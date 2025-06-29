@@ -2,9 +2,6 @@ plugins {
     id 'brouter.library-conventions'
 }
 
-apply plugin: 'java-library'
-apply plugin: 'maven-publish'
-
 dependencies {
     implementation project(':brouter-mapaccess')
     implementation project(':brouter-util')
@@ -14,11 +11,3 @@ dependencies {
 
 // MapcreatorTest generates segments which are used in tests
 test.dependsOn ':brouter-map-creator:test'
-
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
-        }
-    }
-}
