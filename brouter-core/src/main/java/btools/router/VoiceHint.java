@@ -10,26 +10,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VoiceHint {
-  static final int C = 1; // continue (go straight)
-  static final int TL = 2; // turn left
-  static final int TSLL = 3; // turn slightly left
-  static final int TSHL = 4; // turn sharply left
-  static final int TR = 5; // turn right
-  static final int TSLR = 6; // turn slightly right
-  static final int TSHR = 7; // turn sharply right
-  static final int KL = 8; // keep left
-  static final int KR = 9; // keep right
-  static final int TLU = 10; // U-turn
-  static final int TRU = 11; // Right U-turn
-  static final int OFFR = 12; // Off route
-  static final int RNDB = 13; // Roundabout
-  static final int RNLB = 14; // Roundabout left
-  static final int TU = 15; // 180 degree u-turn
-  static final int BL = 16; // Beeline routing
-  static final int EL = 17; // exit left
-  static final int ER = 18; // exit right
+  public static final int C = 1; // continue (go straight)
+  public static final int TL = 2; // turn left
+  public static final int TSLL = 3; // turn slightly left
+  public static final int TSHL = 4; // turn sharply left
+  public static final int TR = 5; // turn right
+  public static final int TSLR = 6; // turn slightly right
+  public static final int TSHR = 7; // turn sharply right
+  public static final int KL = 8; // keep left
+  public static final int KR = 9; // keep right
+  public static final int TLU = 10; // U-turn
+  public static final int TRU = 11; // Right U-turn
+  public static final int OFFR = 12; // Off route
+  public static final int RNDB = 13; // Roundabout
+  public static final int RNLB = 14; // Roundabout left
+  public static final int TU = 15; // 180 degree u-turn
+  public static final int BL = 16; // Beeline routing
+  public static final int EL = 17; // exit left
+  public static final int ER = 18; // exit right
 
-  static final int END = 100; // end point
+  public static final int END = 100; // end point
 
   int ilon;
   int ilat;
@@ -57,6 +57,10 @@ public class VoiceHint {
 
   boolean isRoundabout() {
     return roundaboutExit != 0;
+  }
+
+  public int getCommand() {
+    return cmd;
   }
 
   public void addBadWay(MessageData badWay) {
