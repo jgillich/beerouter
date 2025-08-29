@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -51,7 +52,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
   private volatile boolean terminated;
   private long starttime;
 
-  private static Object threadPoolSync = new Object();
+  private static final Object threadPoolSync = new Object();
   private static boolean debug = Boolean.getBoolean("debugThreadPool");
 
   public void stopRouter() {
@@ -77,8 +78,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     String sIp = null;
 
     try {
-      br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-      bw = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+      br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
+      bw = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8));
 
       String agent = null;
       String encodings = null;
@@ -93,7 +94,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           bw.flush();
           return;
         }
-        if (line.length() == 0) {
+        if (line.isEmpty()) {
           break;
         }
         if (getline == null) {
@@ -125,7 +126,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       if (agent != null && excludedAgents != null) {
         StringTokenizer tk = new StringTokenizer(excludedAgents, ",");
         while (tk.hasMoreTokens()) {
-          if (agent.indexOf(tk.nextToken()) >= 0) {
+          if (agent.contains(tk.nextToken())) {
             writeHttpHeader(bw, HTTP_STATUS_FORBIDDEN);
             bw.write("Bad agent: " + agent);
             bw.flush();
@@ -195,10 +196,8 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       if (wplist.size() < 10) {
         SuspectManager.nearRecentWps.add(wplist);
       }
-      if (params.containsKey("profile")) {
-        // already handled in readRoutingContext
-        params.remove("profile");
-      }
+      // already handled in readRoutingContext
+      params.remove("profile");
       int engineMode = 0;
       if (params.containsKey("engineMode")) {
         engineMode = Integer.parseInt(params.get("engineMode"));
@@ -220,14 +219,14 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
           // no zip for this engineMode
           encodings = null;
         }
-        String headers = encodings == null || encodings.indexOf("gzip") < 0 ? null : "Content-Encoding: gzip\r\n";
+        String headers = encodings == null || !encodings.contains("gzip") ? null : "Content-Encoding: gzip\r\n";
         writeHttpHeader(bw, handler.getMimeType(), handler.getFileName(), headers, HTTP_STATUS_OK);
         if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
             engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
           if (track != null) {
             if (headers != null) { // compressed
               ByteArrayOutputStream baos = new ByteArrayOutputStream();
-              Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), "UTF-8");
+              Writer w = new OutputStreamWriter(new GZIPOutputStream(baos), StandardCharsets.UTF_8);
               w.write(handler.formatTrack(track));
               w.close();
               bw.flush();
@@ -368,7 +367,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
   private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
     Map<String, String> params = new HashMap<>();
-    String decoded = URLDecoder.decode(url, "UTF-8");
+    String decoded = URLDecoder.decode(url, StandardCharsets.UTF_8);
     StringTokenizer tk = new StringTokenizer(decoded, "?&");
     while (tk.hasMoreTokens()) {
       String t = tk.nextToken();
@@ -388,7 +387,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
     long maxRunningTime = 60000;
     String sMaxRunningTime = System.getProperty("maxRunningTime");
     if (sMaxRunningTime != null) {
-      maxRunningTime = Integer.parseInt(sMaxRunningTime) * 1000;
+      maxRunningTime = Long.parseLong(sMaxRunningTime) * 1000;
     }
     return maxRunningTime;
   }
@@ -438,7 +437,7 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
 
   @Override
   public int compareTo(RouteServer t) {
-    return starttime < t.starttime ? -1 : (starttime > t.starttime ? 1 : 0);
+    return Long.compare(starttime, t.starttime);
   }
 
 }
