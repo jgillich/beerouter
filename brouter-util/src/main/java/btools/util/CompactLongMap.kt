@@ -1,17 +1,5 @@
 package btools.util
 
-import java.lang.Boolean
-import kotlin.Any
-import kotlin.Array
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.IntArray
-import kotlin.Long
-import kotlin.LongArray
-import kotlin.arrayOfNulls
-import kotlin.let
-import kotlin.require
-
 /**
  * Memory efficient Map to map a long-key to an object-value
  *
@@ -27,7 +15,9 @@ import kotlin.require
  */
 open class CompactLongMap<V> {
     private var al: Array<LongArray?>?
-    private val pa: IntArray
+
+    // pointer array
+    private val pa: IntArray = IntArray(MAXLISTS)
     private var size = 0
     private val _maxKeepExponent = 14 // the maximum exponent to keep the invalid arrays
 
@@ -60,8 +50,6 @@ open class CompactLongMap<V> {
 
 
     init {
-        // pointer array
-        pa = IntArray(MAXLISTS)
 
         // allocate key lists
         al = arrayOfNulls<LongArray>(MAXLISTS)
@@ -75,7 +63,7 @@ open class CompactLongMap<V> {
     }
 
 
-    open fun put(id: Long, value: V?): kotlin.Boolean {
+    open fun put(id: Long, value: V?): Boolean {
         try {
             value_in = value
             if (contains(id, true)) {
@@ -103,7 +91,7 @@ open class CompactLongMap<V> {
      * @throws IllegalArgumentException for duplicates if enabled
      */
     open fun fastPut(id: Long, value: V?) {
-        require(!(earlyDuplicateCheck && contains(id))) { "duplicate key found in early check: " + id }
+        require(!(earlyDuplicateCheck && contains(id))) { "duplicate key found in early check: $id" }
         vla!![0]!![0] = value
         _add(id)
     }
@@ -134,7 +122,7 @@ open class CompactLongMap<V> {
     }
 
 
-    private fun _add(id: Long): kotlin.Boolean {
+    private fun _add(id: Long): Boolean {
         require(size != Int.Companion.MAX_VALUE) { "cannot grow beyond size Integer.MAX_VALUE" }
 
         // put the new entry in the first array
@@ -157,7 +145,7 @@ open class CompactLongMap<V> {
         // create it if not existant
         if (al!![idx] == null) {
             al!![idx] = LongArray(n)
-            vla!![idx] = arrayOfNulls<Any>(n)
+            vla!![idx] = arrayOfNulls(n)
         }
 
         // now merge the contents of arrays 0...idx-1 into idx
@@ -177,7 +165,7 @@ open class CompactLongMap<V> {
             }
 
             // current maximum found, copy to target array
-            require(!(n < al!![idx]!!.size && maxId == al!![idx]!![n])) { "duplicate key found in late check: " + maxId }
+            require(!(n < al!![idx]!!.size && maxId == al!![idx]!![n])) { "duplicate key found in late check: $maxId" }
             --n
             al!![idx]!![n] = maxId
             vla!![idx]!![n] = vla!![maxIdx]!![pa[maxIdx] - 1]
@@ -197,7 +185,7 @@ open class CompactLongMap<V> {
     /**
      * @return true if "id" is contained in this set.
      */
-    fun contains(id: Long): kotlin.Boolean {
+    fun contains(id: Long): Boolean {
         try {
             return contains(id, false)
         } finally {
@@ -205,7 +193,7 @@ open class CompactLongMap<V> {
         }
     }
 
-    protected open fun contains(id: Long, doPut: kotlin.Boolean): kotlin.Boolean {
+    protected open fun contains(id: Long, doPut: Boolean): Boolean {
         // determine the first empty array
         var bp = size // treat size as bitpattern
         var idx = 1
@@ -225,7 +213,7 @@ open class CompactLongMap<V> {
 
 
     // does sorted array "a" contain "id" ?
-    private fun contains(idx: Int, id: Long, doPut: kotlin.Boolean): kotlin.Boolean {
+    private fun contains(idx: Int, id: Long, doPut: Boolean): Boolean {
         val a = al!![idx]!!
         var offset = a.size
         var n = 0
@@ -272,7 +260,7 @@ open class CompactLongMap<V> {
             flv.add(vla!![minIdx]!![pa[minIdx]] as V?)
             pa[minIdx]++
 
-            require(!(ti > 0 && faid[ti - 1] == minId)) { "duplicate key found in late check: " + minId }
+            require(!(ti > 0 && faid[ti - 1] == minId)) { "duplicate key found in late check: $minId" }
         }
 
         // free the non-frozen arrays
@@ -282,6 +270,6 @@ open class CompactLongMap<V> {
 
     companion object {
         protected const val MAXLISTS: Int = 31 // enough for size Integer.MAX_VALUE
-        private val earlyDuplicateCheck: kotlin.Boolean = false
+        private val earlyDuplicateCheck: Boolean = false
     }
 }

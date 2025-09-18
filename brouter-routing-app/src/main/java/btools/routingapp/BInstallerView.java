@@ -64,7 +64,7 @@ public class BInstallerView extends View {
       mat.postScale(ratio, ratio, focusX, focusY);
       fitBounds();
       boolean landscape = getWidth() > getHeight();
-      tilesVisible = currentScale() >= (landscape ? SCALE_GRID_VISIBLE: SCALE_GRID_VISIBLE-1);
+      tilesVisible = currentScale() >= (landscape ? SCALE_GRID_VISIBLE : SCALE_GRID_VISIBLE - 1);
 
       invalidate();
     }
@@ -150,8 +150,8 @@ public class BInstallerView extends View {
 
     viewscale = Math.max(scaleX, scaleY);
 
-    mat.preScale(viewscale, viewscale, bmp.getWidth() /2f, 0);
-    setRatio(1f, bmp.getWidth() /2f, bmp.getHeight() /2f);
+    mat.preScale(viewscale, viewscale, bmp.getWidth() / 2f, 0);
+    setRatio(1f, bmp.getWidth() / 2f, bmp.getHeight() / 2f);
 
     tilesVisible = false;
   }

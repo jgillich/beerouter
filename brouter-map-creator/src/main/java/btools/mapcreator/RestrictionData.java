@@ -18,6 +18,8 @@ import btools.util.CheapAngleMeter;
  * @author ab
  */
 public class RestrictionData extends MapCreatorBase {
+  private static Map<String, String> names = new HashMap<>();
+  private static Set<Long> badTRs = new TreeSet<>();
   public String restrictionKey;
   public String restriction;
   public short exceptions;
@@ -25,22 +27,45 @@ public class RestrictionData extends MapCreatorBase {
   public long toWid;
   public long viaNid;
   public RestrictionData next;
-
   public int viaLon;
   public int viaLat;
-
   public int fromLon;
   public int fromLat;
-
   public int toLon;
   public int toLat;
-
   public boolean badWayMatch;
 
-  private static Map<String, String> names = new HashMap<>();
-  private static Set<Long> badTRs = new TreeSet<>();
-
   public RestrictionData() {
+  }
+
+  public RestrictionData(DataInputStream di) throws Exception {
+    restrictionKey = unifyName(di.readUTF());
+    restriction = unifyName(di.readUTF());
+    exceptions = di.readShort();
+    fromWid = readId(di);
+    toWid = readId(di);
+    viaNid = readId(di);
+  }
+
+  private static String unifyName(String name) {
+    synchronized (names) {
+      String n = names.get(name);
+      if (n == null) {
+        names.put(name, name);
+        n = name;
+      }
+      return n;
+    }
+  }
+
+  public static void dumpBadTRs() {
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter("badtrs.txt"))) {
+      for (Long id : badTRs) {
+        bw.write("" + id + " 26\n");
+      }
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
   }
 
   public boolean isPositive() {
@@ -87,36 +112,6 @@ public class RestrictionData extends MapCreatorBase {
       return a < -95. || a > 95.;
     }
     return "entry".equals(t) || "exit".equals(t);
-  }
-
-  private static String unifyName(String name) {
-    synchronized (names) {
-      String n = names.get(name);
-      if (n == null) {
-        names.put(name, name);
-        n = name;
-      }
-      return n;
-    }
-  }
-
-  public static void dumpBadTRs() {
-    try (BufferedWriter bw = new BufferedWriter(new FileWriter("badtrs.txt"))) {
-      for (Long id : badTRs) {
-        bw.write("" + id + " 26\n");
-      }
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
-  }
-
-  public RestrictionData(DataInputStream di) throws Exception {
-    restrictionKey = unifyName(di.readUTF());
-    restriction = unifyName(di.readUTF());
-    exceptions = di.readShort();
-    fromWid = readId(di);
-    toWid = readId(di);
-    viaNid = readId(di);
   }
 
   public void writeTo(DataOutputStream dos) throws Exception {

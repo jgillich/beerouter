@@ -49,15 +49,15 @@ object Rd5DiffManager {
 
             val md5New = getMD5(fn)
 
-            println("name=" + name + " md5=" + md5)
+            println("name=$name md5=$md5")
 
             val specificNewDiffs = File(newDiffDir, basename)
             specificNewDiffs.mkdirs()
 
-            val diffFileName = md5 + ".df5"
+            val diffFileName = "$md5.df5"
             val diffFile = File(specificNewDiffs, diffFileName)
 
-            val dummyDiffFileName = md5New + ".df5"
+            val dummyDiffFileName = "$md5New.df5"
             val dummyDiffFile = File(specificNewDiffs, dummyDiffFileName)
             dummyDiffFile.createNewFile()
 

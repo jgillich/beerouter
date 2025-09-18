@@ -15,33 +15,10 @@ import btools.mapaccess.OsmNode
 import btools.util.CheapAngleMeter
 import btools.util.CheapRuler.getLonLatToMeterScales
 import java.io.File
-import kotlin.Boolean
-import kotlin.Exception
-import kotlin.Int
-import kotlin.Long
-import kotlin.LongArray
-import kotlin.RuntimeException
-import kotlin.String
-import kotlin.collections.ArrayList
-import kotlin.collections.MutableList
-import kotlin.collections.MutableMap
-import kotlin.collections.indices
-import kotlin.collections.plus
-import kotlin.div
-import kotlin.hashCode
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import kotlin.plus
-import kotlin.require
-import kotlin.sequences.plus
-import kotlin.text.endsWith
-import kotlin.text.indexOf
-import kotlin.text.lastIndexOf
-import kotlin.text.plus
-import kotlin.text.substring
-import kotlin.text.toInt
-import kotlin.times
 
 class RoutingContext {
     fun getAlternativeIdx(min: Int, max: Int): Int {
@@ -116,7 +93,7 @@ class RoutingContext {
                 val clazz = Class.forName(className)
                 pm = clazz.getDeclaredConstructor().newInstance() as OsmPathModel
             } catch (e: Exception) {
-                throw RuntimeException("Cannot create path-model: " + e)
+                throw RuntimeException("Cannot create path-model: $e")
             }
         }
         pm!!.init(expctxWay, expctxNode, keyValues ?: mutableMapOf())
@@ -200,10 +177,10 @@ class RoutingContext {
         // Total mass (biker + bike + luggages or hiker), in kg
         totalMass = expctxGlobal.getVariableValue("totalMass", 90f).toDouble()
         // Max speed (before braking), in km/h in profile and m/s in code
-        if (footMode) {
-            maxSpeed = expctxGlobal.getVariableValue("maxSpeed", 6f) / 3.6
+        maxSpeed = if (footMode) {
+            expctxGlobal.getVariableValue("maxSpeed", 6f) / 3.6
         } else {
-            maxSpeed = expctxGlobal.getVariableValue("maxSpeed", 45f) / 3.6
+            expctxGlobal.getVariableValue("maxSpeed", 45f) / 3.6
         }
         // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
         S_C_x = expctxGlobal.getVariableValue("S_C_x", 0.5f * 0.45f).toDouble()
@@ -221,7 +198,7 @@ class RoutingContext {
 
     fun freeNoWays() {
         val expctxGlobal: BExpressionContext? = expctxWay
-        if (expctxGlobal != null) expctxGlobal.freeNoWays()
+        expctxGlobal?.freeNoWays()
     }
 
     var poipoints: MutableList<OsmNodeNamed> = mutableListOf()
@@ -292,7 +269,7 @@ class RoutingContext {
      */
     fun cleanNogoList(waypoints: MutableList<OsmNode>) {
         nogopoints_all = nogopoints
-        val nogos: MutableList<OsmNodeNamed> = ArrayList<OsmNodeNamed>()
+        val nogos: MutableList<OsmNodeNamed> = ArrayList()
         for (nogo in nogopoints) {
             var goodGuy = true
             for (wp in waypoints) {
@@ -315,11 +292,11 @@ class RoutingContext {
         val theSize = matchedWaypoints.size
         if (theSize < 2) return
         var removed = 0
-        val newMatchedWaypoints: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+        val newMatchedWaypoints: MutableList<MatchedWaypoint> = ArrayList()
         var prevMwp: MatchedWaypoint? = null
         var prevMwpIsInside = false
         for (i in 0..<theSize) {
-            val mwp = matchedWaypoints.get(i)
+            val mwp = matchedWaypoints[i]
             var isInsideNogo = false
             val wp = mwp.crosspoint
             for (nogo in nogopoints) {
@@ -387,7 +364,7 @@ class RoutingContext {
             val cs = LongArray(3)
             val n = if (nogopoints == null) 0 else nogopoints!!.size
             for (i in 0..<n) {
-                val nogo = nogopoints!!.get(i)
+                val nogo = nogopoints!![i]
                 cs[0] += nogo.iLon
                 cs[1] += nogo.iLat.toLong()
                 // 10 is an arbitrary constant to get sub-integer precision in the checksum
@@ -402,7 +379,7 @@ class RoutingContext {
 
     fun setWaypoint(wp: OsmNodeNamed?, pendingEndpoint: OsmNodeNamed?, endpoint: Boolean) {
         keepnogopoints = nogopoints
-        nogopoints = ArrayList<OsmNodeNamed>()
+        nogopoints = ArrayList()
         nogopoints!!.add(wp!!)
         if (keepnogopoints != null) nogopoints!!.addAll(keepnogopoints!!)
         isEndpoint = endpoint
@@ -412,7 +389,7 @@ class RoutingContext {
     fun checkPendingEndpoint(): Boolean {
         if (pendingEndpoint != null) {
             isEndpoint = true
-            nogopoints!!.set(0, pendingEndpoint!!)
+            nogopoints!![0] = pendingEndpoint!!
             pendingEndpoint = null
             return true
         }
@@ -441,10 +418,10 @@ class RoutingContext {
 
         if (nogopoints != null && !nogopoints!!.isEmpty() && d > 0.0) {
             for (ngidx in nogopoints!!.indices) {
-                val nogo = nogopoints!!.get(ngidx)
-                val x1: kotlin.Double = (lon1 - nogo.iLon) * dlon2m
+                val nogo = nogopoints!![ngidx]
+                val x1: Double = (lon1 - nogo.iLon) * dlon2m
                 val y1 = (lat1 - nogo.iLat) * dlat2m
-                val x2: kotlin.Double = (lon2 - nogo.iLon) * dlon2m
+                val x2: Double = (lon2 - nogo.iLon) * dlon2m
                 val y2 = (lat2 - nogo.iLat) * dlat2m
                 val r12 = x1 * x1 + y1 * y1
                 val r22 = x2 * x2 + y2 * y2
@@ -465,12 +442,12 @@ class RoutingContext {
                     }
                     if (nogo.isNogo) {
                         if (nogo !is OsmNogoPolygon) {  // nogo is a circle
-                            if (nogo.nogoWeight.isNaN()) {
+                            nogoCost = if (nogo.nogoWeight.isNaN()) {
                                 // default nogo behaviour (ignore completely)
-                                nogoCost = -1.0
+                                -1.0
                             } else {
                                 // nogo weight, compute distance within the circle
-                                nogoCost = nogo.distanceWithinRadius(
+                                nogo.distanceWithinRadius(
                                     lon1,
                                     lat1,
                                     lon2,
@@ -485,9 +462,9 @@ class RoutingContext {
                                 // default nogo behaviour (ignore completely)
                                 nogoCost = -1.0
                             } else {
-                                if (nogo.isClosed) {
+                                nogoCost = if (nogo.isClosed) {
                                     // compute distance within the polygon
-                                    nogoCost = nogo.distanceWithinPolygon(
+                                    nogo.distanceWithinPolygon(
                                         lon1,
                                         lat1,
                                         lon2,
@@ -495,7 +472,7 @@ class RoutingContext {
                                     ) * nogo.nogoWeight
                                 } else {
                                     // for a polyline, just add a constant penalty
-                                    nogoCost = nogo.nogoWeight
+                                    nogo.nogoWeight
                                 }
                             }
                         }
@@ -539,15 +516,13 @@ class RoutingContext {
                 }
             }
         }
-        return max(1.0, Math.round(d).toDouble()).toInt()
+        return max(1.0, d.roundToInt().toDouble()).toInt()
     }
 
 
     fun createPrePath(origin: OsmPath, link: OsmLink): OsmPrePath? {
         val p = pm!!.createPrePath()
-        if (p != null) {
-            p.init(origin, link, this)
-        }
+        p?.init(origin, link, this)
         return p
     }
 

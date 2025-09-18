@@ -1,8 +1,8 @@
 package btools.mapcreator;
 
-import java.util.Date;
-
 import org.openstreetmap.osmosis.osmbinary.Osmformat;
+
+import java.util.Date;
 
 /**
  * Manages decoding of the lower level PBF data structures.

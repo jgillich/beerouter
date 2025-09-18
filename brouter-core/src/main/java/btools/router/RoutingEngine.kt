@@ -21,30 +21,10 @@ import java.io.FileWriter
 import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
-import kotlin.Any
-import kotlin.Array
-import kotlin.Comparator
-import kotlin.Double
-import kotlin.Error
-import kotlin.Exception
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.IntArray
-import kotlin.Long
-import kotlin.NumberFormatException
-import kotlin.Short
-import kotlin.String
-import kotlin.arrayOfNulls
 import kotlin.concurrent.Volatile
-import kotlin.doubleArrayOf
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.plus
-import kotlin.require
-import kotlin.requireNotNull
-import kotlin.run
-import kotlin.synchronized
 
 class RoutingEngine @JvmOverloads constructor(
     outfileBase: String?, loggerFactory: ILoggerFactory?, segmentDir: File,
@@ -127,7 +107,7 @@ class RoutingEngine @JvmOverloads constructor(
         this.engineMode = engineMode
 
         var baseFolder = File(routingContext.localFunction).getParentFile()
-        baseFolder = if (baseFolder == null) null else baseFolder.getParentFile()
+        baseFolder = baseFolder?.getParentFile()
         if (baseFolder != null) {
             val stackLog = File(baseFolder, "stacks.txt")
             if (stackLog.exists()) {
@@ -136,7 +116,7 @@ class RoutingEngine @JvmOverloads constructor(
                 logger.info("started stacksampling")
             }
         }
-        val cachedProfile: kotlin.Boolean = ProfileCache.Companion.parseProfile(rc)
+        val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
         logger.info("parsed profile path={} cached={}", rc.localFunction, cachedProfile)
     }
 
@@ -147,18 +127,18 @@ class RoutingEngine @JvmOverloads constructor(
     fun doRun(maxRunningTime: Long) {
         when (engineMode) {
             BROUTER_ENGINEMODE_ROUTING -> {
-                require(waypoints!!.size >= 2) { "we need two lat/lon points at least!" }
+                require(waypoints.size >= 2) { "we need two lat/lon points at least!" }
                 doRouting(maxRunningTime)
             }
 
             BROUTER_ENGINEMODE_SEED -> throw IllegalArgumentException("not a valid engine mode")
             BROUTER_ENGINEMODE_GETELEV, BROUTER_ENGINEMODE_GETINFO -> {
-                require(waypoints!!.size >= 1) { "we need one lat/lon point at least!" }
+                require(waypoints.isNotEmpty()) { "we need one lat/lon point at least!" }
                 doGetInfo()
             }
 
             BROUTER_ENGINEMODE_ROUNDTRIP -> {
-                require(waypoints!!.size >= 1) { "we need one lat/lon point at least!" }
+                require(waypoints.isNotEmpty()) { "we need one lat/lon point at least!" }
                 doRoundTrip()
             }
 
@@ -174,32 +154,32 @@ class RoutingEngine @JvmOverloads constructor(
             this.maxRunningTime = maxRunningTime
 
             if (routingContext.allowSamewayback) {
-                if (waypoints!!.size == 2) {
+                if (waypoints.size == 2) {
                     val onn =
-                        OsmNodeNamed(OsmNode(waypoints!!.get(0).iLon, waypoints!!.get(0).iLat))
+                        OsmNodeNamed(OsmNode(waypoints[0].iLon, waypoints[0].iLat))
                     onn.name = "to"
-                    waypoints!!.add(onn)
+                    waypoints.add(onn)
                 } else {
-                    waypoints!!.get(waypoints!!.size - 1).name =
-                        "via" + (waypoints!!.size - 1) + "_center"
+                    waypoints[waypoints.size - 1].name =
+                        "via" + (waypoints.size - 1) + "_center"
                     val newpoints: MutableList<OsmNodeNamed> = ArrayList()
-                    for (i in waypoints!!.size - 2 downTo 0) {
+                    for (i in waypoints.size - 2 downTo 0) {
                         // System.out.println("back " + waypoints.get(i));
                         val onn =
-                            OsmNodeNamed(OsmNode(waypoints!!.get(i).iLon, waypoints!!.get(i).iLat))
+                            OsmNodeNamed(OsmNode(waypoints[i].iLon, waypoints[i].iLat))
                         onn.name = "via"
                         newpoints.add(onn)
                     }
-                    newpoints.get(newpoints.size - 1)!!.name = "to"
-                    waypoints!!.addAll(newpoints)
+                    newpoints[newpoints.size - 1].name = "to"
+                    waypoints.addAll(newpoints)
                 }
             }
 
-            val nsections = waypoints!!.size - 1
+            val nsections = waypoints.size - 1
             val refTracks = arrayOfNulls<OsmTrack>(nsections) // used ways for alternatives
             val lastTracks = arrayOfNulls<OsmTrack>(nsections)
-            var track: OsmTrack? = null
-            val messageList: MutableList<String?> = ArrayList<String?>()
+            var track: OsmTrack?
+            val messageList: MutableList<String?> = ArrayList()
             var i = 0
             while (true) {
                 track = findTrack(refTracks, lastTracks)!!
@@ -246,7 +226,7 @@ class RoutingEngine @JvmOverloads constructor(
                         else -> this.foundInfo = null
                     }
                     if (this.foundInfo != null) {
-                        val out = File(filename)
+                        File(filename)
                         val fw = FileWriter(filename)
                         fw.write(this.foundInfo)
                         fw.close()
@@ -259,7 +239,7 @@ class RoutingEngine @JvmOverloads constructor(
                 } else {
                     if (i == routingContext.getAlternativeIdx(0, 3)) {
                         if ("CSV" == System.getProperty("reportFormat")) {
-                            val filename = outfileBase + i + ".csv"
+                            val filename = "$outfileBase$i.csv"
                             FormatCsv(routingContext).write(filename, track)
                         } else {
                             logger.debug("gpx={}", FormatGpx(routingContext).format(track))
@@ -314,17 +294,17 @@ class RoutingEngine @JvmOverloads constructor(
             routingContext.freeNoWays()
 
             val wpt1 = MatchedWaypoint()
-            wpt1.waypoint = waypoints!!.get(0)
+            wpt1.waypoint = waypoints[0]
             wpt1.name = "wpt_info"
-            val listOne: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+            val listOne: MutableList<MatchedWaypoint> = ArrayList()
             listOne.add(wpt1)
             matchWaypointsToNodes(listOne)
 
             resetCache(true)
             nodesCache!!.nodesMap.cleanupMode = 0
 
-            val start1 = nodesCache!!.getGraphNode(listOne.get(0).node1!!)
-            val b = nodesCache!!.obtainNonHollowNode(start1)
+            val start1 = nodesCache!!.getGraphNode(listOne[0].node1!!)
+            nodesCache!!.obtainNonHollowNode(start1)
 
             guideTrack = OsmTrack()
             guideTrack!!.addNode(
@@ -344,50 +324,50 @@ class RoutingEngine @JvmOverloads constructor(
                 )
             )
 
-            matchedWaypoints = ArrayList<MatchedWaypoint>()
+            matchedWaypoints = ArrayList()
             val wp1 = MatchedWaypoint()
             wp1.crosspoint = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
             wp1.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
             wp1.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-            matchedWaypoints!!.add(wp1)
+            matchedWaypoints.add(wp1)
             val wp2 = MatchedWaypoint()
             wp2.crosspoint = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
             wp2.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
             wp2.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-            matchedWaypoints!!.add(wp2)
+            matchedWaypoints.add(wp2)
 
             val t = findTrack("getinfo", wp1, wp2, null, null, false)
             if (t != null) {
-                t.messageList = ArrayList<String?>()
+                t.messageList = ArrayList()
                 t.matchedWaypoints = matchedWaypoints
-                t.name = (if (outfileBase == null) "getinfo" else outfileBase)
+                t.name = (outfileBase ?: "getinfo")
 
                 // find nearest point
                 var mindist = 99999
                 var minIdx = -1
                 for (i in t.nodes.indices) {
-                    val ope = t.nodes.get(i)
-                    val dist = ope.calcDistance(listOne.get(0).crosspoint!!)
+                    val ope = t.nodes[i]
+                    val dist = ope.calcDistance(listOne[0].crosspoint!!)
                     if (mindist > dist) {
                         mindist = dist
                         minIdx = i
                     }
                 }
-                var otherIdx = 0
-                if (minIdx == t.nodes.size - 1) {
-                    otherIdx = minIdx - 1
+                var otherIdx: Int
+                otherIdx = if (minIdx == t.nodes.size - 1) {
+                    minIdx - 1
                 } else {
-                    otherIdx = minIdx + 1
+                    minIdx + 1
                 }
-                val otherdist = t.nodes.get(otherIdx).calcDistance(listOne.get(0).crosspoint!!)
-                val minSElev = t.nodes.get(minIdx).sElev.toInt()
-                val otherSElev = t.nodes.get(otherIdx).sElev.toInt()
-                var diffSElev = 0
+                val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
+                val minSElev = t.nodes[minIdx].sElev.toInt()
+                val otherSElev = t.nodes[otherIdx].sElev.toInt()
+                var diffSElev: Int
                 diffSElev = otherSElev - minSElev
                 val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
 
 
-                val n = OsmNodeNamed(listOne.get(0).crosspoint!!)
+                val n = OsmNodeNamed(listOne[0].crosspoint!!)
                 n.name = wpt1.name
                 n.sElev =
                     if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
@@ -447,25 +427,24 @@ class RoutingEngine @JvmOverloads constructor(
                 (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
             var direction =
                 (if (routingContext.startDirection == null) -1 else routingContext.startDirection)!!.toDouble()
-            val directionAdd =
-                (if (routingContext.roundTripDirectionAdd == null) ROUNDTRIP_DEFAULT_DIRECTIONADD else routingContext.roundTripDirectionAdd)!!.toDouble()
+            (if (routingContext.roundTripDirectionAdd == null) ROUNDTRIP_DEFAULT_DIRECTIONADD else routingContext.roundTripDirectionAdd)!!.toDouble()
             if (direction == -1.0) direction =
-                getRandomDirectionFromData(waypoints!!.get(0), searchRadius).toDouble()
+                getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
 
             if (routingContext.allowSamewayback) {
                 val pos = destination(
-                    waypoints!!.get(0).iLon,
-                    waypoints!!.get(0).iLat,
+                    waypoints[0].iLon,
+                    waypoints[0].iLat,
                     searchRadius,
                     direction
                 )
                 val wpt2 = MatchedWaypoint()
                 wpt2.waypoint = OsmNode(pos[0], pos[1])
-                wpt2.name = "rt1_" + direction
+                wpt2.name = "rt1_$direction"
 
                 val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
                 onn.name = "rt1"
-                waypoints!!.add(onn)
+                waypoints.add(onn)
             } else {
                 buildPointsFromCircle(
                     waypoints,
@@ -496,17 +475,17 @@ class RoutingEngine @JvmOverloads constructor(
         for (i in 1..<points) {
             val anAngle = 90 - (180.0 * i / points)
             val pos = destination(
-                waypoints.get(0).iLon,
-                waypoints.get(0).iLat,
+                waypoints[0].iLon,
+                waypoints[0].iLat,
                 searchRadius,
                 startAngle - anAngle
             )
             val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-            onn.name = "rt" + i
+            onn.name = "rt$i"
             waypoints.add(onn)
         }
 
-        val onn = OsmNodeNamed(waypoints.get(0))
+        val onn = OsmNodeNamed(waypoints[0])
         onn.name = "to_rt"
         waypoints.add(onn)
     }
@@ -514,18 +493,18 @@ class RoutingEngine @JvmOverloads constructor(
     fun getRandomDirectionFromData(wp: OsmNodeNamed, searchRadius: Double): Int {
         val start = System.currentTimeMillis()
 
-        var preferredRandomType = 0
+        var preferredRandomType: Int
         val consider_elevation =
             routingContext.expctxWay!!.getVariableValue("consider_elevation", 0f) == 1f
         val consider_forest =
             routingContext.expctxWay!!.getVariableValue("consider_forest", 0f) == 1f
         val consider_river = routingContext.expctxWay!!.getVariableValue("consider_river", 0f) == 1f
-        if (consider_elevation) {
-            preferredRandomType = AreaInfo.Companion.RESULT_TYPE_ELEV50
+        preferredRandomType = if (consider_elevation) {
+            AreaInfo.Companion.RESULT_TYPE_ELEV50
         } else if (consider_forest) {
-            preferredRandomType = AreaInfo.Companion.RESULT_TYPE_GREEN
+            AreaInfo.Companion.RESULT_TYPE_GREEN
         } else if (consider_river) {
-            preferredRandomType = AreaInfo.Companion.RESULT_TYPE_RIVER
+            AreaInfo.Companion.RESULT_TYPE_RIVER
         } else {
             return (Math.random() * 360).toInt()
         }
@@ -545,20 +524,20 @@ class RoutingEngine @JvmOverloads constructor(
         }
 
         if (ais.isEmpty()) {
-            val listStart: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+            val listStart: MutableList<MatchedWaypoint> = ArrayList()
             listStart.add(wpt1)
 
-            val wpliststart: MutableList<OsmNodeNamed> = ArrayList<OsmNodeNamed>()
+            val wpliststart: MutableList<OsmNodeNamed> = ArrayList()
             wpliststart.add(wp)
 
-            val listOne: MutableList<OsmNodeNamed> = ArrayList<OsmNodeNamed>()
+            val listOne: MutableList<OsmNodeNamed> = ArrayList()
 
             run {
                 var a = 45
                 while (a < 360) {
                     val pos = destination(wp.iLon, wp.iLat, searchRadius * 1.5, a.toDouble())
                     val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-                    onn.name = "via" + a
+                    onn.name = "via$a"
                     listOne.add(onn)
 
                     val wpt = MatchedWaypoint()
@@ -569,7 +548,7 @@ class RoutingEngine @JvmOverloads constructor(
                 }
             }
 
-            var re: RoutingEngine? = null
+            var re: RoutingEngine?
             val rc = RoutingContext()
             val name = routingContext.localFunction
             val idx = name!!.lastIndexOf(File.separator)
@@ -590,18 +569,18 @@ class RoutingEngine @JvmOverloads constructor(
             val numForest = rc.expctxWay!!.getLookupKey("estimated_forest_class")
             val numRiver = rc.expctxWay!!.getLookupKey("estimated_river_class")
 
-            val start1 = re.nodesCache!!.getStartNode(listStart.get(0).node1!!.idFromPos)
+            val start1 = re.nodesCache!!.getStartNode(listStart[0].node1!!.idFromPos)
 
             val elev =
-                (if (start1 == null) 0.0 else start1.elev) // listOne.get(0).crosspoint.getElev();
+                (start1?.elev ?: 0.0) // listOne.get(0).crosspoint.getElev();
 
             var maxlon = Int.Companion.MIN_VALUE
             var minlon = Int.Companion.MAX_VALUE
             var maxlat = Int.Companion.MIN_VALUE
             var minlat = Int.Companion.MAX_VALUE
             for (on in listOne) {
-                maxlon = Math.max(on.iLon, maxlon)
-                minlon = Math.min(on.iLon, minlon)
+                maxlon = max(on.iLon, maxlon)
+                minlon = min(on.iLon, minlon)
                 maxlat = max(on.iLat, maxlat)
                 minlat = min(on.iLat, minlat)
             }
@@ -619,14 +598,14 @@ class RoutingEngine @JvmOverloads constructor(
 
                 rc.ai!!.polygon = OsmNogoPolygon(true)
                 rc.ai!!.polygon!!.addVertex(wp.iLon, wp.iLat)
-                rc.ai!!.polygon!!.addVertex(listOne.get(a).iLon, listOne.get(a).iLat)
-                if (a == 3) rc.ai!!.polygon!!.addVertex(listOne.get(0).iLon, listOne.get(0).iLat)
-                else rc.ai!!.polygon!!.addVertex(listOne.get(a + 1).iLon, listOne.get(a + 1).iLat)
+                rc.ai!!.polygon!!.addVertex(listOne[a].iLon, listOne[a].iLat)
+                if (a == 3) rc.ai!!.polygon!!.addVertex(listOne[0].iLon, listOne[0].iLat)
+                else rc.ai!!.polygon!!.addVertex(listOne[a + 1].iLon, listOne[a + 1].iLat)
 
                 ais.add(rc.ai!!)
             }
 
-            var maxscale = abs(searchRect.points.get(2).x - searchRect.points.get(0).x)
+            var maxscale = abs(searchRect.points[2].x - searchRect.points[0].x)
             maxscale = max(1, Math.round(maxscale / 31250f / 2) + 1)
 
             areareader.getDirectAllData(
@@ -658,22 +637,22 @@ class RoutingEngine @JvmOverloads constructor(
         //  System.out.println("\n" + ai.toString());
         //}
         when (preferredRandomType) {
-            AreaInfo.Companion.RESULT_TYPE_ELEV50 -> Collections.sort<AreaInfo?>(
+            AreaInfo.Companion.RESULT_TYPE_ELEV50 -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.elev50Weight - o1.elev50Weight })
 
-            AreaInfo.Companion.RESULT_TYPE_GREEN -> Collections.sort<AreaInfo?>(
+            AreaInfo.Companion.RESULT_TYPE_GREEN -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.green - o1.green })
 
-            AreaInfo.Companion.RESULT_TYPE_RIVER -> Collections.sort<AreaInfo?>(
+            AreaInfo.Companion.RESULT_TYPE_RIVER -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.river - o1.river })
 
             else -> return (Math.random() * 360).toInt()
         }
 
-        val angle = ais.get(0)!!.direction
+        val angle = ais[0].direction
         return angle - 30 + (Math.random() * 60).toInt()
     }
 
@@ -685,14 +664,14 @@ class RoutingEngine @JvmOverloads constructor(
         var startElev = Short.Companion.MIN_VALUE
         var endElev = Short.Companion.MIN_VALUE
         var startIdx = 0
-        var endIdx = -1
+        var endIdx: Int
         var dist = 0
         val ourSize = track.nodes.size
         for (idx in 0..<ourSize) {
-            val n = track.nodes.get(idx)
+            val n = track.nodes[idx]
             if (n.sElev == Short.Companion.MIN_VALUE && lastElev != Short.Companion.MIN_VALUE && idx < ourSize - 1) {
                 // start one point before entry point to get better elevation results
-                if (idx > 1) startElev = track.nodes.get(idx - 2).sElev
+                if (idx > 1) startElev = track.nodes[idx - 2].sElev
                 if (startElev == Short.Companion.MIN_VALUE) startElev = lastElev
                 startIdx = idx
                 startPt = lastPt
@@ -700,10 +679,10 @@ class RoutingEngine @JvmOverloads constructor(
                 if (lastPt != null) dist += n.calcDistance(lastPt)
             } else if (n.sElev != Short.Companion.MIN_VALUE && lastElev == Short.Companion.MIN_VALUE && startElev != Short.Companion.MIN_VALUE) {
                 // end one point behind exit point to get better elevation results
-                if (idx + 1 < track.nodes.size) endElev = track.nodes.get(idx + 1).sElev
+                if (idx + 1 < track.nodes.size) endElev = track.nodes[idx + 1].sElev
                 if (endElev == Short.Companion.MIN_VALUE) endElev = n.sElev
                 endIdx = idx
-                var tmpPt = track.nodes.get(if (startIdx > 1) startIdx - 2 else startIdx - 1)
+                var tmpPt = track.nodes[if (startIdx > 1) startIdx - 2 else startIdx - 1]
                 val diffElev = endElev - startElev
                 dist += tmpPt.calcDistance(startPt!!)
                 dist += n.calcDistance(lastPt!!)
@@ -712,10 +691,10 @@ class RoutingEngine @JvmOverloads constructor(
                 var lastMsg = ""
                 var tmpincline = 0.0
                 var startincline = 0.0
-                var selev = track.nodes.get(startIdx - 2).sElev.toDouble()
+                var selev = track.nodes[startIdx - 2].sElev.toDouble()
                 var hasInclineTags = false
                 for (i in startIdx - 1..<endIdx + 1) {
-                    val tmp = track.nodes.get(i)
+                    val tmp = track.nodes[i]
                     if (tmp.message != null) {
                         val md = tmp.message!!.copy()
                         val msg = md!!.wayKeyValues
@@ -751,7 +730,7 @@ class RoutingEngine @JvmOverloads constructor(
                                 tmpincline = diff / (distRest / 100.0)
                             }
                         }
-                        lastMsg = msg!!
+                        lastMsg = msg
                     }
                     val tmpdist = tmp.calcDistance(tmpPt)
                     distRest -= tmpdist
@@ -765,13 +744,13 @@ class RoutingEngine @JvmOverloads constructor(
             } else if (n.sElev != Short.Companion.MIN_VALUE && lastElev == Short.Companion.MIN_VALUE && startIdx == 0) {
                 // fill at start
                 for (i in 0..<idx) {
-                    track.nodes.get(i).sElev = n.sElev
+                    track.nodes[i].sElev = n.sElev
                 }
             } else if (n.sElev == Short.Companion.MIN_VALUE && idx == track.nodes.size - 1) {
                 // fill at end
                 startIdx = idx
                 for (i in startIdx..<track.nodes.size) {
-                    track.nodes.get(i).sElev = (lastElev)
+                    track.nodes[i].sElev = (lastElev)
                 }
             } else if (n.sElev == Short.Companion.MIN_VALUE) {
                 if (lastPt != null) dist += n.calcDistance(lastPt)
@@ -784,8 +763,8 @@ class RoutingEngine @JvmOverloads constructor(
     fun doSearch() {
         try {
             val seedPoint = MatchedWaypoint()
-            seedPoint.waypoint = waypoints!!.get(0)
-            val listOne: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+            seedPoint.waypoint = waypoints[0]
+            val listOne: MutableList<MatchedWaypoint> = ArrayList()
             listOne.add(seedPoint)
             matchWaypointsToNodes(listOne)
 
@@ -837,7 +816,7 @@ class RoutingEngine @JvmOverloads constructor(
         var refTracks = refTracks
         var lastTracks = lastTracks
         val totaltrack = OsmTrack()
-        var nUnmatched = waypoints!!.size
+        var nUnmatched = waypoints.size
         var hasDirectRouting = false
 
         if (useNodePoints && extraWaypoints.isNotEmpty()) {
@@ -845,35 +824,37 @@ class RoutingEngine @JvmOverloads constructor(
             for (wp in extraWaypoints) {
                 if (wp.direct) hasDirectRouting = true
                 if (wp.name!!.startsWith("from")) {
-                    waypoints!!.add(1, wp)
-                    waypoints!!.get(0).direct = true
+                    waypoints.add(1, wp)
+                    waypoints[0].direct = true
                     nUnmatched++
                 } else {
-                    waypoints!!.add(waypoints!!.size - 1, wp)
-                    waypoints!!.get(waypoints!!.size - 2).direct = true
+                    waypoints.add(waypoints.size - 1, wp)
+                    waypoints[waypoints.size - 2].direct = true
                     nUnmatched++
                 }
             }
             extraWaypoints = mutableListOf()
         }
-        if (lastTracks.size < waypoints!!.size - 1) {
-            refTracks = arrayOfNulls<OsmTrack>(waypoints!!.size - 1) // used ways for alternatives
-            lastTracks = arrayOfNulls<OsmTrack>(waypoints!!.size - 1)
+        if (lastTracks.size < waypoints.size - 1) {
+            refTracks = arrayOfNulls(waypoints.size - 1) // used ways for alternatives
+            lastTracks = arrayOfNulls(waypoints.size - 1)
             hasDirectRouting = true
         }
-        for (wp in waypoints!!) {
+        for (wp in waypoints) {
             logger.info("wp={} {}", wp, if (wp.direct) "direct" else "")
             if (wp.direct) hasDirectRouting = true
         }
 
         // check for a track for that target
         var nearbyTrack: OsmTrack? = null
-        if (!hasDirectRouting && lastTracks[waypoints!!.size - 2] == null) {
-            val debugInfo = if (logger.isInfoEnabled()) StringBuilder() else null
+        if (!hasDirectRouting && lastTracks[waypoints.size - 2] == null) {
+            val debugInfo = if (logger.isInfoEnabled) StringBuilder() else null
             nearbyTrack = OsmTrack.Companion.readBinary(
-                routingContext.rawTrackPath, waypoints!!.get(
-                    waypoints!!.size - 1
-                ), routingContext.nogoChecksums, routingContext.profileTimestamp, debugInfo
+                routingContext.rawTrackPath,
+                waypoints[waypoints.size - 1],
+                routingContext.nogoChecksums,
+                routingContext.profileTimestamp,
+                debugInfo
             )
             if (nearbyTrack != null) {
                 nUnmatched--
@@ -888,22 +869,22 @@ class RoutingEngine @JvmOverloads constructor(
         if (matchedWaypoints.isEmpty()) { // could exist from the previous alternative level
             for (i in 0..<nUnmatched) {
                 val mwp = MatchedWaypoint()
-                mwp.waypoint = waypoints!!.get(i)
-                mwp.name = waypoints!!.get(i).name
-                mwp.direct = waypoints!!.get(i).direct
-                matchedWaypoints!!.add(mwp)
+                mwp.waypoint = waypoints[i]
+                mwp.name = waypoints[i].name
+                mwp.direct = waypoints[i].direct
+                matchedWaypoints.add(mwp)
             }
-            val startSize = matchedWaypoints!!.size
-            matchWaypointsToNodes(matchedWaypoints!!)
-            if (startSize < matchedWaypoints!!.size) {
+            val startSize = matchedWaypoints.size
+            matchWaypointsToNodes(matchedWaypoints)
+            if (startSize < matchedWaypoints.size) {
                 refTracks =
-                    arrayOfNulls<OsmTrack>(matchedWaypoints!!.size - 1) // used ways for alternatives
-                lastTracks = arrayOfNulls<OsmTrack>(matchedWaypoints!!.size - 1)
+                    arrayOfNulls(matchedWaypoints.size - 1) // used ways for alternatives
+                lastTracks = arrayOfNulls(matchedWaypoints.size - 1)
                 hasDirectRouting = true
             }
 
-            for (mwp in matchedWaypoints!!) {
-                if (matchedWaypoints!!.size != nUnmatched) logger.info(
+            for (mwp in matchedWaypoints) {
+                if (matchedWaypoints.size != nUnmatched) logger.info(
                     "new wp={} {}{}",
                     mwp.waypoint,
                     mwp.crosspoint,
@@ -916,46 +897,46 @@ class RoutingEngine @JvmOverloads constructor(
             // detect target islands: restricted search in inverse direction
             routingContext.inverseDirection = !routingContext.inverseRouting
             airDistanceCostFactor = 0.0
-            for (i in 0..<matchedWaypoints!!.size - 1) {
+            for (i in 0..<matchedWaypoints.size - 1) {
                 nodeLimit = MAXNODES_ISLAND_CHECK
-                if (matchedWaypoints!!.get(i).direct) continue
+                if (matchedWaypoints[i].direct) continue
                 if (routingContext.inverseRouting) {
                     val seg = findTrack(
                         "start-island-check",
-                        matchedWaypoints!!.get(i),
-                        matchedWaypoints!!.get(i + 1),
+                        matchedWaypoints[i],
+                        matchedWaypoints[i + 1],
                         null,
                         null,
                         false
                     )
-                    require(!(seg == null && nodeLimit > 0)) { "start island detected for section " + i }
+                    require(!(seg == null && nodeLimit > 0)) { "start island detected for section $i" }
                 } else {
                     val seg = findTrack(
                         "target-island-check",
-                        matchedWaypoints!!.get(i + 1),
-                        matchedWaypoints!!.get(i),
+                        matchedWaypoints[i + 1],
+                        matchedWaypoints[i],
                         null,
                         null,
                         false
                     )
-                    require(!(seg == null && nodeLimit > 0)) { "target island detected for section " + i }
+                    require(!(seg == null && nodeLimit > 0)) { "target island detected for section $i" }
                 }
             }
             routingContext.inverseDirection = false
             nodeLimit = 0
 
             if (nearbyTrack != null) {
-                matchedWaypoints!!.add(nearbyTrack.endPoint!!)
+                matchedWaypoints.add(nearbyTrack.endPoint!!)
             }
         } else {
-            if (lastTracks.size < matchedWaypoints!!.size - 1) {
+            if (lastTracks.size < matchedWaypoints.size - 1) {
                 refTracks =
-                    arrayOfNulls<OsmTrack>(matchedWaypoints!!.size - 1) // used ways for alternatives
-                lastTracks = arrayOfNulls<OsmTrack>(matchedWaypoints!!.size - 1)
+                    arrayOfNulls(matchedWaypoints.size - 1) // used ways for alternatives
+                lastTracks = arrayOfNulls(matchedWaypoints.size - 1)
                 hasDirectRouting = true
             }
         }
-        for (mwp in matchedWaypoints!!) {
+        for (mwp in matchedWaypoints) {
             //System.out.println(FormatGpx.getWaypoint(mwp.waypoint.iLon, mwp.waypoint.ilat, mwp.name, null));
             //System.out.println(FormatGpx.getWaypoint(mwp.crosspoint.iLon, mwp.crosspoint.ilat, mwp.name+"_cp", null));
         }
@@ -963,7 +944,7 @@ class RoutingEngine @JvmOverloads constructor(
         routingContext.hasDirectRouting = hasDirectRouting
 
         OsmPath.Companion.seg = 1 // set segment counter
-        for (i in 0..<matchedWaypoints!!.size - 1) {
+        for (i in 0..<matchedWaypoints.size - 1) {
             if (lastTracks[i] != null) {
                 if (refTracks[i] == null) refTracks[i] = OsmTrack()
                 refTracks[i]!!.addNodes(lastTracks[i]!!)
@@ -974,8 +955,8 @@ class RoutingEngine @JvmOverloads constructor(
             if (routingContext.inverseRouting) {
                 routingContext.inverseDirection = true
                 seg = searchTrack(
-                    matchedWaypoints!!.get(i + 1),
-                    matchedWaypoints!!.get(i),
+                    matchedWaypoints[i + 1],
+                    matchedWaypoints[i],
                     null,
                     refTracks[i]
                 )
@@ -983,25 +964,21 @@ class RoutingEngine @JvmOverloads constructor(
                 wptIndex = i + 1
             } else {
                 seg = searchTrack(
-                    matchedWaypoints!!.get(i),
-                    matchedWaypoints!!.get(i + 1),
-                    if (i == matchedWaypoints!!.size - 2) nearbyTrack else null,
+                    matchedWaypoints[i],
+                    matchedWaypoints[i + 1],
+                    if (i == matchedWaypoints.size - 2) nearbyTrack else null,
                     refTracks[i]
                 )
                 wptIndex = i
                 if (routingContext.continueStraight) {
-                    if (i < matchedWaypoints!!.size - 2) {
+                    if (i < matchedWaypoints.size - 2) {
                         val lastPoint =
-                            if (seg!!.containsNode(matchedWaypoints!!.get(i + 1).node1!!)) matchedWaypoints!!.get(
-                                i + 1
-                            ).node1 else matchedWaypoints!!.get(i + 1).node2
+                            if (seg!!.containsNode(matchedWaypoints[i + 1].node1!!)) matchedWaypoints[i + 1].node1 else matchedWaypoints[i + 1].node2
                         val nogo = OsmNodeNamed(lastPoint!!)
                         nogo.radius = 5.0
                         nogo.name = "nogo" + (i + 1)
                         nogo.nogoWeight = 9999.0
                         nogo.isNogo = true
-                        if (routingContext.nogopoints == null) routingContext.nogopoints =
-                            ArrayList<OsmNodeNamed>()
                         routingContext.nogopoints.add(nogo)
                     }
                 }
@@ -1011,16 +988,14 @@ class RoutingEngine @JvmOverloads constructor(
             if (routingContext.ai != null) return null
 
             var changed = false
-            if (routingContext.correctMisplacedViaPoints && !matchedWaypoints!!.get(i).direct && !routingContext.allowSamewayback) {
+            if (routingContext.correctMisplacedViaPoints && !matchedWaypoints[i].direct && !routingContext.allowSamewayback) {
                 changed = snapPathConnection(
                     totaltrack,
                     seg,
-                    if (routingContext.inverseRouting) matchedWaypoints!!.get(i + 1) else matchedWaypoints!!.get(
-                        i
-                    )
+                    if (routingContext.inverseRouting) matchedWaypoints[i + 1] else matchedWaypoints[i]
                 )
             }
-            if (wptIndex > 0) matchedWaypoints!!.get(wptIndex).indexInTrack =
+            if (wptIndex > 0) matchedWaypoints[wptIndex].indexInTrack =
                 totaltrack.nodes.size - 1
 
             totaltrack.appendTrack(seg)
@@ -1031,7 +1006,7 @@ class RoutingEngine @JvmOverloads constructor(
 
         recalcTrack(totaltrack)
 
-        matchedWaypoints!!.get(matchedWaypoints!!.size - 1).indexInTrack = totaltrack.nodes.size - 1
+        matchedWaypoints[matchedWaypoints.size - 1].indexInTrack = totaltrack.nodes.size - 1
         totaltrack.matchedWaypoints = matchedWaypoints
         totaltrack.processVoiceHints(routingContext)
         totaltrack.prepareSpeedProfile(routingContext)
@@ -1039,13 +1014,13 @@ class RoutingEngine @JvmOverloads constructor(
         totaltrack.showTime = routingContext.showTime
         totaltrack.params = routingContext.keyValues
 
-        if (routingContext.poipoints != null) totaltrack.pois = routingContext.poipoints
+        if (routingContext.poipoints.isNotEmpty()) totaltrack.pois = routingContext.poipoints
 
         return totaltrack
     }
 
     fun getExtraSegment(start: OsmPathElement, end: OsmPathElement): OsmTrack? {
-        val wptlist: MutableList<MatchedWaypoint?> = ArrayList<MatchedWaypoint?>()
+        val wptlist: MutableList<MatchedWaypoint?> = ArrayList()
         val wpt1 = MatchedWaypoint()
         wpt1.waypoint = OsmNode(start.iLon, start.iLat)
         wpt1.name = "wptx1"
@@ -1061,10 +1036,10 @@ class RoutingEngine @JvmOverloads constructor(
         wpt2.node1 = OsmNode(end.iLon, end.iLat)
         wptlist.add(wpt2)
 
-        val mwp1 = wptlist.get(0)
-        val mwp2 = wptlist.get(1)
+        val mwp1 = wptlist[0]
+        val mwp2 = wptlist[1]
 
-        var mid: OsmTrack? = null
+        var mid: OsmTrack?
 
         val corr = routingContext.correctMisplacedViaPoints
         routingContext.correctMisplacedViaPoints = false
@@ -1095,17 +1070,15 @@ class RoutingEngine @JvmOverloads constructor(
         var indexStartBack = indexStart
         var indexStartFore = 0
 
-        val ptStart = tt.nodes.get(indexStartBack)
-        val ptMeeting = tt.nodes.get(indexMeetingBack)
-        val ptEnd = t.nodes.get(indexEnd)
+        val ptStart = tt.nodes[indexStartBack]
+        val ptMeeting = tt.nodes[indexMeetingBack]
+        val ptEnd = t.nodes[indexEnd]
 
         val bMeetingIsOnRoundabout = ptMeeting.message!!.isRoundabout
         var bMeetsRoundaboutStart = false
-
-        var i: Int
-        i = 0
+        var i = 0
         while (i < indexEnd) {
-            val n = t.nodes.get(i)
+            val n = t.nodes[i]
             if (n.positionEquals(ptStart)) {
                 indexStartFore = i
                 bMeetsRoundaboutStart = true
@@ -1124,10 +1097,10 @@ class RoutingEngine @JvmOverloads constructor(
             indexEnd = indexStartFore
         }
 
-        val removeList: MutableList<OsmPathElement?> = ArrayList<OsmPathElement?>()
+        val removeList: MutableList<OsmPathElement?> = ArrayList()
         if (!bMeetsRoundaboutStart) {
             indexStartBack = indexMeetingBack
-            while (!tt.nodes.get(indexStartBack).message!!.isRoundabout) {
+            while (!tt.nodes[indexStartBack].message!!.isRoundabout) {
                 indexStartBack--
                 if (indexStartBack == 2) break
             }
@@ -1135,7 +1108,7 @@ class RoutingEngine @JvmOverloads constructor(
 
         i = indexStartBack + 1
         while (i < tt.nodes.size) {
-            val n = tt.nodes.get(i)
+            val n = tt.nodes[i]
             val detours = tt.getFromDetourMap(n.idFromPos)
             var h = detours
             while (h != null) {
@@ -1148,9 +1121,9 @@ class RoutingEngine @JvmOverloads constructor(
         var ttend: OsmPathElement? = null
         var ttend_next: OsmPathElement? = null
         if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
-            ttend = tt.nodes.get(indexStartBack)
-            ttend_next = tt.nodes.get(indexStartBack + 1)
-            val ttend_detours = tt.getFromDetourMap(ttend.idFromPos)
+            ttend = tt.nodes[indexStartBack]
+            ttend_next = tt.nodes[indexStartBack + 1]
+            tt.getFromDetourMap(ttend.idFromPos)
 
             tt.registerDetourForId(ttend.idFromPos, null)
         }
@@ -1163,7 +1136,7 @@ class RoutingEngine @JvmOverloads constructor(
 
         i = 0
         while (i < indexEnd) {
-            val n = t.nodes.get(i)
+            val n = t.nodes[i]
             if (n.positionEquals(if (bMeetsRoundaboutStart) ptStart else ptEnd)) break
             if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart && n.message!!.isRoundabout) break
 
@@ -1181,9 +1154,9 @@ class RoutingEngine @JvmOverloads constructor(
         var aenergy = 0f
         var acost = 0
         if (i > 1) {
-            atime = t.nodes.get(i).time
-            aenergy = t.nodes.get(i).energy
-            acost = t.nodes.get(i).cost
+            atime = t.nodes[i].time
+            aenergy = t.nodes[i].energy
+            acost = t.nodes[i].cost
         }
 
         for (e in removeList) {
@@ -1200,13 +1173,12 @@ class RoutingEngine @JvmOverloads constructor(
         }
 
         if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
-            val tstart = t.nodes.get(0)
-            val tstart_next: OsmPathElement? = null
-            val tstart_detours = t.getFromDetourMap(tstart.idFromPos)
+            val tstart = t.nodes[0]
+            t.getFromDetourMap(tstart.idFromPos)
             val ttend_detours = tt.getFromDetourMap(ttend!!.idFromPos)
 
             val mid = getExtraSegment(ttend, ttend_detours!!.node!!)
-            val tt_end = tt.nodes.get(tt.nodes.size - 1)
+            val tt_end = tt.nodes[tt.nodes.size - 1]
 
             val last_cost = tt_end.cost
             var tmp_cost = 0
@@ -1231,8 +1203,8 @@ class RoutingEngine @JvmOverloads constructor(
             t.nodes.add(0, ttend_detours.node!!)
         }
 
-        tt.cost = tt.nodes.get(tt.nodes.size - 1).cost
-        t.cost = t.nodes.get(t.nodes.size - 1).cost
+        tt.cost = tt.nodes[tt.nodes.size - 1].cost
+        t.cost = t.nodes[t.nodes.size - 1].cost
 
         startWp.correctedpoint = OsmNode(ptStart.iLon, ptStart.iLat)
 
@@ -1244,42 +1216,40 @@ class RoutingEngine @JvmOverloads constructor(
         tt: OsmTrack,
         t: OsmTrack,
         startWp: MatchedWaypoint
-    ): kotlin.Boolean {
+    ): Boolean {
         if (!startWp.name!!.startsWith("via") && !startWp.name!!.startsWith("rt")) return false
 
         val ourSize = tt.nodes.size
         if (ourSize > 0) {
-            val testPoint = tt.nodes.get(ourSize - 1)
+            tt.nodes[ourSize - 1]
             if (routingContext.poipoints != null) {
                 for (node in routingContext.poipoints) {
-                    val lon0 = tt.nodes.get(ourSize - 2).iLon
-                    val lat0 = tt.nodes.get(ourSize - 2).iLat
+                    val lon0 = tt.nodes[ourSize - 2].iLon
+                    val lat0 = tt.nodes[ourSize - 2].iLat
                     val lon1: Int = startWp.crosspoint!!.iLon
                     val lat1 = startWp.crosspoint!!.iLat
-                    val lon2: Int = node!!.iLon
-                    val lat2 = node!!.iLat
-                    val angle3 =
-                        routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
-                    val dist = node!!.calcDistance(startWp.crosspoint!!)
+                    val lon2: Int = node.iLon
+                    val lat2 = node.iLat
+                    routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
+                    val dist = node.calcDistance(startWp.crosspoint!!)
                     if (dist < routingContext.waypointCatchingRange) return false
                 }
             }
-            val removeBackList: MutableList<OsmPathElement?> = ArrayList<OsmPathElement?>()
-            val removeForeList: MutableList<OsmPathElement?> = ArrayList<OsmPathElement?>()
-            val removeVoiceHintList: MutableList<Int> = ArrayList<Int>()
+            val removeBackList: MutableList<OsmPathElement?> = ArrayList()
+            val removeForeList: MutableList<OsmPathElement?> = ArrayList()
+            val removeVoiceHintList: MutableList<Int> = ArrayList()
             var last: OsmPathElement? = null
-            val lastJunction: OsmPathElement? = null
             val lastJunctions = CompactLongMap<OsmPathElementHolder?>()
-            var newJunction: OsmPathElement? = null
+            var newJunction: OsmPathElement?
             var newTarget: OsmPathElement? = null
-            var tmpback: OsmPathElement? = null
-            var tmpfore: OsmPathElement? = null
+            var tmpback: OsmPathElement?
+            var tmpfore: OsmPathElement?
             var tmpStart: OsmPathElement? = null
             var indexback = ourSize - 1
             var indexfore = 0
             val stop = (if (indexback - MAX_STEPS_CHECK > 1) indexback - MAX_STEPS_CHECK else 1)
             var wayDistance = 0.0
-            var nextDist = 0.0
+            var nextDist: Double
             var bCheckRoundAbout = false
             var bBackRoundAbout = false
             var bForeRoundAbout = false
@@ -1288,8 +1258,8 @@ class RoutingEngine @JvmOverloads constructor(
             var differentLanePoints = 0
             var indexMeeting = -1
             while (indexback >= 1 && indexback >= stop && indexfore < t.nodes.size) {
-                tmpback = tt.nodes.get(indexback)
-                tmpfore = t.nodes.get(indexfore)
+                tmpback = tt.nodes[indexback]
+                tmpfore = t.nodes[indexfore]
                 if (!bBackRoundAbout && tmpback.message != null && tmpback.message!!.isRoundabout) {
                     bBackRoundAbout = true
                     indexBackFound = indexfore
@@ -1301,7 +1271,7 @@ class RoutingEngine @JvmOverloads constructor(
                     indexForeFound = indexfore
                 }
                 if (indexfore == 0) {
-                    tmpStart = t.nodes.get(0)
+                    tmpStart = t.nodes[0]
                 } else {
                     val dirback =
                         getDirection(tmpStart!!.iLon, tmpStart.iLat, tmpback.iLon, tmpback.iLat)
@@ -1322,15 +1292,15 @@ class RoutingEngine @JvmOverloads constructor(
             }
             //System.out.println("snap round result " + indexback + ": " + bBackRoundAbout + " - " + indexfore + "; " + bForeRoundAbout + " pts " + differentLanePoints);
             if (bCheckRoundAbout) {
-                tmpback = tt.nodes.get(--indexback)
+                tmpback = tt.nodes[--indexback]
                 while (tmpback!!.message != null && tmpback.message!!.isRoundabout) {
-                    tmpback = tt.nodes.get(--indexback)
+                    tmpback = tt.nodes[--indexback]
                 }
 
                 var ifore = ++indexfore
-                var testfore = t.nodes.get(ifore)
+                var testfore = t.nodes[ifore]
                 while (ifore < t.nodes.size && testfore.message != null && testfore.message!!.isRoundabout) {
-                    testfore = t.nodes.get(ifore)
+                    testfore = t.nodes[ifore]
                     ifore++
                 }
 
@@ -1346,8 +1316,8 @@ class RoutingEngine @JvmOverloads constructor(
             indexfore = 0
             while (indexback >= 1 && indexback >= stop && indexfore < t.nodes.size) {
                 var junctions = 0
-                tmpback = tt.nodes.get(indexback)
-                tmpfore = t.nodes.get(indexfore)
+                tmpback = tt.nodes[indexback]
+                tmpfore = t.nodes[indexfore]
                 if (tmpback.message != null && tmpback.message!!.isRoundabout) {
                     bCheckRoundAbout = true
                 }
@@ -1366,8 +1336,8 @@ class RoutingEngine @JvmOverloads constructor(
 
                     if (dist == 1 && indexfore > 0) {
                         if (indexfore == 1) {
-                            removeBackList.add(tt.nodes.get(tt.nodes.size - 1)) // last and first should be equal, so drop only on second also equal
-                            removeForeList.add(t.nodes.get(0))
+                            removeBackList.add(tt.nodes[tt.nodes.size - 1]) // last and first should be equal, so drop only on second also equal
+                            removeForeList.add(t.nodes[0])
                             removeBackList.add(tmpback)
                             removeForeList.add(tmpfore)
                             removeVoiceHintList.add(tt.nodes.size - 1)
@@ -1377,14 +1347,14 @@ class RoutingEngine @JvmOverloads constructor(
                             removeForeList.add(tmpfore)
                             removeVoiceHintList.add(indexback)
                         }
-                        nextDist = t.nodes.get(indexfore - 1).calcDistance(tmpfore).toDouble()
+                        nextDist = t.nodes[indexfore - 1].calcDistance(tmpfore).toDouble()
                         wayDistance += nextDist
                     }
                     if (dist > 1 || indexback == 1) {
-                        if (removeBackList.size != 0) {
+                        if (removeBackList.isNotEmpty()) {
                             // recover last - should be the cross point
-                            removeBackList.remove(removeBackList.get(removeBackList.size - 1))
-                            removeForeList.remove(removeForeList.get(removeForeList.size - 1))
+                            removeBackList.remove(removeBackList[removeBackList.size - 1])
+                            removeForeList.remove(removeForeList[removeForeList.size - 1])
                             break
                         } else {
                             return false
@@ -1409,9 +1379,9 @@ class RoutingEngine @JvmOverloads constructor(
             var aenergy = 0f
             var acost = 0
             if (removeForeList.size > 1) {
-                atime = t.nodes.get(indexfore - 1).time
-                aenergy = t.nodes.get(indexfore - 1).energy
-                acost = t.nodes.get(indexfore - 1).cost
+                atime = t.nodes[indexfore - 1].time
+                aenergy = t.nodes[indexfore - 1].energy
+                acost = t.nodes[indexfore - 1].cost
             }
 
             for (e in removeBackList) {
@@ -1437,16 +1407,16 @@ class RoutingEngine @JvmOverloads constructor(
 
             if (t.nodes.size < 2) return true
             if (tt.nodes.isEmpty()) return true
-            if (tt.nodes.size == 1) {
-                last = tt.nodes.get(0)
+            last = if (tt.nodes.size == 1) {
+                tt.nodes[0]
             } else {
-                last = tt.nodes.get(tt.nodes.size - 2)
+                tt.nodes[tt.nodes.size - 2]
             }
-            newJunction = t.nodes.get(0)
-            newTarget = t.nodes.get(1)
+            newJunction = t.nodes[0]
+            newTarget = t.nodes[1]
 
-            tt.cost = tt.nodes.get(tt.nodes.size - 1).cost
-            t.cost = t.nodes.get(t.nodes.size - 1).cost
+            tt.cost = tt.nodes[tt.nodes.size - 1].cost
+            t.cost = t.nodes[t.nodes.size - 1].cost
 
             // fill to correctedpoint
             startWp.correctedpoint = OsmNode(newJunction.iLon, newJunction.iLat)
@@ -1462,9 +1432,9 @@ class RoutingEngine @JvmOverloads constructor(
         var lasttime = 0f
         var lastenergy = 0f
         var speed_min = 9999f
-        val directMap: MutableMap<Int?, Int?> = HashMap<Int?, Int?>()
-        var tmptime = 1f
-        var speed = 1f
+        val directMap: MutableMap<Int?, Int?> = HashMap()
+        var tmptime: Float
+        var speed: Float
         var dist: Int
         var angle: Double
 
@@ -1477,26 +1447,32 @@ class RoutingEngine @JvmOverloads constructor(
         val eleFactor = if (routingContext.inverseRouting) 0.25 else -0.25
 
         for (i in 0..<ourSize) {
-            val n = t.nodes.get(i)
+            val n = t.nodes[i]
             if (n.message == null) n.message = MessageData()
             var nLast: OsmPathElement? = null
-            if (i == 0) {
-                angle = 0.0
-                dist = 0
-            } else if (i == 1) {
-                angle = 0.0
-                nLast = t.nodes.get(0)
-                dist = nLast.calcDistance(n)
-            } else {
-                val lon0 = t.nodes.get(i - 2).iLon
-                val lat0 = t.nodes.get(i - 2).iLat
-                val lon1 = t.nodes.get(i - 1).iLon
-                val lat1 = t.nodes.get(i - 1).iLat
-                val lon2 = t.nodes.get(i).iLon
-                val lat2 = t.nodes.get(i).iLat
-                angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
-                nLast = t.nodes.get(i - 1)
-                dist = nLast.calcDistance(n)
+            when (i) {
+                0 -> {
+                    angle = 0.0
+                    dist = 0
+                }
+
+                1 -> {
+                    angle = 0.0
+                    nLast = t.nodes[0]
+                    dist = nLast.calcDistance(n)
+                }
+
+                else -> {
+                    val lon0 = t.nodes[i - 2].iLon
+                    val lat0 = t.nodes[i - 2].iLat
+                    val lon1 = t.nodes[i - 1].iLon
+                    val lat1 = t.nodes[i - 1].iLat
+                    val lon2 = t.nodes[i].iLon
+                    val lat2 = t.nodes[i].iLat
+                    angle = routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
+                    nLast = t.nodes[i - 1]
+                    dist = nLast.calcDistance(n)
+                }
             }
             n.message!!.linkdist = dist
             n.message!!.turnangle = angle.toFloat()
@@ -1539,30 +1515,28 @@ class RoutingEngine @JvmOverloads constructor(
         t.distance = totaldist
 
         //t.energy = totalenergy;
-        val keys: SortedSet<Int> = TreeSet<Int>(directMap.keys)
+        val keys: SortedSet<Int> = TreeSet(directMap.keys)
         for (key in keys) {
-            val value: Int = directMap.get(key)!!
+            val value: Int = directMap[key]!!
             val addTime = (value / (speed_min / 3.6f))
 
             var addEnergy = 0.0
             if (key > 0) {
                 val GRAVITY = 9.81 // in meters per second^(-2)
                 val incline =
-                    (if (t.nodes.get(key - 1).sElev == Short.Companion.MIN_VALUE || t.nodes.get(key).sElev == Short.Companion.MIN_VALUE) 0.0 else (t.nodes.get(
-                        key - 1
-                    ).elev - t.nodes.get(key).elev) / value)
+                    (if (t.nodes[key - 1].sElev == Short.Companion.MIN_VALUE || t.nodes[key].sElev == Short.Companion.MIN_VALUE) 0.0 else (t.nodes[key - 1].elev - t.nodes[key].elev) / value)
                 val f_roll =
                     routingContext.totalMass * GRAVITY * (routingContext.defaultC_r + incline)
                 val spd = speed_min / 3.6
                 addEnergy = value * (routingContext.S_C_x * spd * spd + f_roll)
             }
             for (j in key..<ourSize) {
-                val n = t.nodes.get(j)
+                val n = t.nodes[j]
                 n.time = n.time + addTime
                 n.energy = n.energy + addEnergy.toFloat()
             }
         }
-        t.energy = t.nodes.get(t.nodes.size - 1).energy.toInt()
+        t.energy = t.nodes[t.nodes.size - 1].energy.toInt()
 
         logger.info("track total distance={} ascend={}", t.distance, t.ascend)
     }
@@ -1593,7 +1567,7 @@ class RoutingEngine @JvmOverloads constructor(
             logger.info("second check for way points")
             resetCache(false)
             range = -MAX_DYNAMIC_RANGE.toDouble()
-            val tmp: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+            val tmp: MutableList<MatchedWaypoint> = ArrayList()
             for (mwp in unmatchedWaypoints) {
                 if (mwp.crosspoint == null || mwp.radius >= routingContext.waypointCatchingRange) tmp.add(
                     mwp
@@ -1610,7 +1584,7 @@ class RoutingEngine @JvmOverloads constructor(
         if (useDynamicDistance && !useNodePoints && bAddBeeline) {
             val waypoints: MutableList<MatchedWaypoint> = ArrayList()
             for (i in unmatchedWaypoints.indices) {
-                val wp = unmatchedWaypoints.get(i)
+                val wp = unmatchedWaypoints[i]
                 if (wp.waypoint!!.calcDistance(wp.crosspoint!!) > routingContext.waypointCatchingRange) {
                     val nmw = MatchedWaypoint()
                     if (i == 0) {
@@ -1764,13 +1738,11 @@ class RoutingEngine @JvmOverloads constructor(
                 if (t != null) {
                     track = t
                 } else {
-                    throw IllegalArgumentException("no track found at pass=" + cfi)
+                    throw IllegalArgumentException("no track found at pass=$cfi")
                 }
             }
         }
         requireNotNull(track) { "no track found" }
-
-        val lastElement: OsmPathElement? = null
 
         val wasClean = nearbyTrack != null && !nearbyTrack.isDirty
         if (refTrack == null && !(wasClean && isDirty)) { // do not overwrite a clean with a dirty track
@@ -1801,7 +1773,7 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
 
-    private fun resetCache(detailed: kotlin.Boolean) {
+    private fun resetCache(detailed: Boolean) {
         if (nodesCache != null) {
             logger.info("NodesCache status={} before reset", nodesCache!!.formatStatus())
         }
@@ -1823,7 +1795,7 @@ class RoutingEngine @JvmOverloads constructor(
         n2: OsmNode?,
         mwp: MatchedWaypoint,
         endPos: OsmNodeNamed?,
-        sameSegmentSearch: kotlin.Boolean
+        sameSegmentSearch: Boolean
     ): OsmPath? {
         if (endPos != null) {
             endPos.radius = 1.5
@@ -1843,7 +1815,7 @@ class RoutingEngine @JvmOverloads constructor(
         n2: OsmNode?,
         wp: OsmNodeNamed,
         endPos: OsmNodeNamed?,
-        sameSegmentSearch: kotlin.Boolean
+        sameSegmentSearch: Boolean
     ): OsmPath? {
         try {
             routingContext.setWaypoint(wp, if (sameSegmentSearch) endPos else null, false)
@@ -1883,9 +1855,7 @@ class RoutingEngine @JvmOverloads constructor(
                 }
                 link = link.getNext(n1)
             }
-            if (bestLink != null) {
-                bestLink.addLinkHolder(bestPath!!, n1)
-            }
+            bestLink?.addLinkHolder(bestPath!!, n1)
             if (bestPath != null) bestPath.treedepth = 1
 
             return bestPath
@@ -1900,7 +1870,7 @@ class RoutingEngine @JvmOverloads constructor(
         endWp: MatchedWaypoint?,
         costCuttingTrack: OsmTrack?,
         refTrack: OsmTrack?,
-        fastPartialRecalc: kotlin.Boolean
+        fastPartialRecalc: Boolean
     ): OsmTrack? {
         try {
             val wpts2: MutableList<OsmNode> = ArrayList()
@@ -1933,7 +1903,7 @@ class RoutingEngine @JvmOverloads constructor(
         endWp: MatchedWaypoint?,
         costCuttingTrack: OsmTrack?,
         refTrack: OsmTrack?,
-        fastPartialRecalc: kotlin.Boolean
+        fastPartialRecalc: Boolean
     ): OsmTrack? {
         var fastPartialRecalc = fastPartialRecalc
         val verbose = guideTrack != null
@@ -1951,8 +1921,8 @@ class RoutingEngine @JvmOverloads constructor(
         val startNodeId2 = startWp.node2!!.idFromPos
         val endNodeId1 = if (endWp == null) -1L else endWp.node1!!.idFromPos
         val endNodeId2 = if (endWp == null) -1L else endWp.node2!!.idFromPos
-        var end1: OsmNode? = null
-        var end2: OsmNode? = null
+        var end1: OsmNode?
+        var end2: OsmNode?
         var endPos: OsmNodeNamed? = null
 
         var sameSegmentSearch = false
@@ -2020,7 +1990,7 @@ class RoutingEngine @JvmOverloads constructor(
             addToOpenset(startPath1)
             addToOpenset(startPath2)
         }
-        val openBorderList: MutableList<OsmPath> = ArrayList<OsmPath>(4096)
+        val openBorderList: MutableList<OsmPath> = ArrayList(4096)
         var memoryPanicMode = false
         var needNonPanicProcessing = false
 
@@ -2168,14 +2138,14 @@ class RoutingEngine @JvmOverloads constructor(
                                 matchPath = OsmPathElement.Companion.create(path)
                             }
                             if (costEstimate < maxTotalCost) {
-                                logger.info("maxcost " + maxTotalCost + " -> " + costEstimate)
+                                logger.info("maxcost $maxTotalCost -> $costEstimate")
                                 maxTotalCost = costEstimate
                             }
                         }
                     }
                 }
 
-                val firstLinkHolder = currentLink!!.getFirstLinkHolder(sourceNode)
+                val firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode)
                 var linkHolder = firstLinkHolder
                 while (linkHolder != null) {
                     (linkHolder as OsmPath).airdistance =
@@ -2184,7 +2154,7 @@ class RoutingEngine @JvmOverloads constructor(
                 }
 
                 if (path.treedepth > 1) {
-                    val isBidir = currentLink!!.isBidirectional
+                    val isBidir = currentLink.isBidirectional
                     sourceNode.unlinkLink(currentLink)
 
                     // if the counterlink is alive and does not yet have a path, remove it
@@ -2256,7 +2226,7 @@ class RoutingEngine @JvmOverloads constructor(
                             continue
                         }
                         val guideNode =
-                            guideTrack!!.nodes.get(if (routingContext.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx)
+                            guideTrack!!.nodes[if (routingContext.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx]
                         val nextId = nextNode.idFromPos
                         if (nextId != guideNode.idFromPos) {
                             // not along the guide-track, discard, but register for voice-hint processing
@@ -2354,7 +2324,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    private fun compileTrack(path: OsmPath, verbose: kotlin.Boolean): OsmTrack {
+    private fun compileTrack(path: OsmPath, verbose: Boolean): OsmTrack {
         var element: OsmPathElement? = OsmPathElement.Companion.create(path)
 
         // for final track, cut endnode
@@ -2371,7 +2341,7 @@ class RoutingEngine @JvmOverloads constructor(
 
         var distance = 0
 
-        val eleFactor = if (routingContext.inverseRouting) -0.25 else 0.25
+        if (routingContext.inverseRouting) -0.25 else 0.25
         while (element != null) {
             if (guideTrack != null && element.message == null) {
                 element.message = MessageData()
@@ -2446,7 +2416,7 @@ class RoutingEngine @JvmOverloads constructor(
 
     fun getOpenSet(): IntArray {
         if (extract == null) {
-            extract = arrayOfNulls<Any>(500)
+            extract = arrayOfNulls(500)
         }
 
         synchronized(openSet) {

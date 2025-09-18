@@ -9,11 +9,10 @@ import org.junit.Test
 class OsmNodeNamedTest {
     @Test
     fun testDistanceWithinRadius() {
-        // Segment ends
-        var lon1: Int
-        var lat1: Int
-        var lon2: Int
-        var lat2: Int
+        var lat1 = 0
+        var lat2 = 0
+        var lon1 = 0
+        var lon2 = 0
         // Circle definition
         val node = OsmNodeNamed()
         // Center
@@ -25,6 +24,7 @@ class OsmNodeNamedTest {
         // Check distance within radius is correctly computed if the segment passes through the center
         lon1 = toOsmLon(2.332559)
         lat1 = toOsmLat(48.823822)
+        // Segment ends
         lon2 = toOsmLon(2.335018)
         lat2 = toOsmLat(48.824105)
         var totalSegmentLength = distance(lon1, lat1, lon2, lat2)

@@ -45,7 +45,7 @@ class IntegerFifo3Pass(capacity: Int) {
 
     private fun get(idx: Int): Int {
         if (idx >= size) {
-            throw IndexOutOfBoundsException("list size=" + size + " idx=" + idx)
+            throw IndexOutOfBoundsException("list size=$size idx=$idx")
         }
         return a[idx]
     }

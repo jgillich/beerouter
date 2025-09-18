@@ -95,20 +95,26 @@ class MicroCache2 : MicroCache {
             while (featureId != 0) {
                 val bitsize = bc.decodeNoisyNumber(5)
 
-                if (featureId == 2) { // exceptions to turn-restriction
-                    trExceptions = bc.decodeBounded(1023).toShort()
-                } else if (featureId == 1) { // turn-restriction
-                    writeBoolean(true)
-                    writeShort(trExceptions.toInt()) // exceptions from previous feature
-                    trExceptions = 0
+                when (featureId) {
+                    2 -> { // exceptions to turn-restriction
+                        trExceptions = bc.decodeBounded(1023).toShort()
+                    }
 
-                    writeBoolean(bc.decodeBit()) // isPositive
-                    writeInt(ilon + bc.decodeNoisyDiff(10)) // fromLon
-                    writeInt(ilat + bc.decodeNoisyDiff(10)) // fromLat
-                    writeInt(ilon + bc.decodeNoisyDiff(10)) // toLon
-                    writeInt(ilat + bc.decodeNoisyDiff(10)) // toLat
-                } else {
-                    for (i in 0..<bitsize) bc.decodeBit() // unknown feature, just skip
+                    1 -> { // turn-restriction
+                        writeBoolean(true)
+                        writeShort(trExceptions.toInt()) // exceptions from previous feature
+                        trExceptions = 0
+
+                        writeBoolean(bc.decodeBit()) // isPositive
+                        writeInt(ilon + bc.decodeNoisyDiff(10)) // fromLon
+                        writeInt(ilat + bc.decodeNoisyDiff(10)) // fromLat
+                        writeInt(ilon + bc.decodeNoisyDiff(10)) // toLon
+                        writeInt(ilat + bc.decodeNoisyDiff(10)) // toLat
+                    }
+
+                    else -> {
+                        for (i in 0..<bitsize) bc.decodeBit() // unknown feature, just skip
+                    }
                 }
                 featureId = bc.decodeVarBits()
             }
@@ -117,7 +123,7 @@ class MicroCache2 : MicroCache {
             selev += nodeEleDiff.decodeSignedValue()
             writeShort(selev.toShort().toInt())
             val nodeTags = nodeTagCoder.decodeTagValueSet()
-            writeVarBytes(if (nodeTags == null) null else nodeTags.data)
+            writeVarBytes(nodeTags?.data)
 
             val links = bc.decodeNoisyNumber(1)
 //            if (MicroCache.Companion.debug) println("***   decoding node " + ilon + "/" + ilat + " with links=" + links)
@@ -156,7 +162,7 @@ class MicroCache2 : MicroCache {
                         validBits[nodeIdx shr 5] =
                             validBits[nodeIdx shr 5] or (1 shl nodeIdx) // mark target-node valid
                     }
-                    writeModeAndDesc(isReverse, if (wayTags == null) null else wayTags.data)
+                    writeModeAndDesc(isReverse, wayTags?.data)
                 }
 
                 if (!isReverse) { // write geometry for forward links only
@@ -187,12 +193,12 @@ class MicroCache2 : MicroCache {
                             writeVarLengthSigned(elediff)
                         }
 
-                        if (matcher != null) matcher.transferNode(
+                        matcher?.transferNode(
                             ilontarget - dlon_remaining,
                             ilattarget - dlat_remaining
                         )
                     }
-                    if (matcher != null) matcher.end()
+                    matcher?.end()
                 }
                 if (linkValid) {
                     injectSize(sizeoffset)
@@ -293,7 +299,7 @@ class MicroCache2 : MicroCache {
     }
 
     override fun encodeMicroCache(buffer: ByteArray): Int {
-        val idMap: MutableMap<Long?, Int?> = HashMap<Long?, Int?>()
+        val idMap: MutableMap<Long?, Int?> = HashMap()
         for (n in 0..<size) { // loop over nodes
             idMap.put(expandId(faid[n]), n)
         }
@@ -342,13 +348,13 @@ class MicroCache2 : MicroCache {
             if (dostats) bc.assignBits("node-positions")
             bc.encodeNoisyNumber(netdatasize, 10) // net-size
             if (dostats) bc.assignBits("netdatasize")
-            if (dodebug) println("*** encoding cache of size=" + size)
+            if (dodebug) println("*** encoding cache of size=$size")
             var lastSelev = 0
 
             for (n in 0..<size) { // loop over nodes
                 aboffset = startPos(n)
                 aboffsetEnd = fapos[n]
-                if (dodebug) println("*** encoding node " + n + " from " + aboffset + " to " + aboffsetEnd)
+                if (dodebug) println("*** encoding node $n from $aboffset to $aboffsetEnd")
 
                 val id64 = expandId(faid[n])
                 val ilon = (id64 shr 32).toInt()
@@ -391,7 +397,7 @@ class MicroCache2 : MicroCache {
                 nodeTagCoder.encodeTagValueSet(readVarBytes())
                 if (dostats) bc.assignBits("nodeTagIdx")
                 var nlinks = linkCounts.next
-                if (dodebug) println("*** nlinks=" + nlinks)
+                if (dodebug) println("*** nlinks=$nlinks")
                 bc.encodeNoisyNumber(nlinks, 1)
                 if (dostats) bc.assignBits("link-counts")
 
@@ -414,20 +420,20 @@ class MicroCache2 : MicroCache {
                     }
 
                     val link64 = (ilonlink.toLong()) shl 32 or ilatlink.toLong()
-                    val idx = idMap.get(link64)
+                    val idx = idMap[link64]
                     val isInternal = idx != null
 
                     if (isReverse && isInternal) {
-                        if (dodebug) println("*** NOT encoding link reverse=" + isReverse + " internal=" + isInternal)
+                        if (dodebug) println("*** NOT encoding link reverse=$isReverse internal=$isInternal")
                         netdatasize -= aboffset - startPointer
                         continue  // do not encode internal reverse links
                     }
-                    if (dodebug) println("*** encoding link reverse=" + isReverse + " internal=" + isInternal)
+                    if (dodebug) println("*** encoding link reverse=$isReverse internal=$isInternal")
                     nlinks++
 
                     if (isInternal) {
                         val nodeIdx = idx
-                        if (dodebug) println("*** target nodeIdx=" + nodeIdx)
+                        if (dodebug) println("*** target nodeIdx=$nodeIdx")
                         if (nodeIdx == n) throw RuntimeException("ups: self ref?")
                         nodeIdxDiff.encodeSignedValue(nodeIdx - n)
                         if (dostats) bc.assignBits("nodeIdx")
@@ -445,7 +451,7 @@ class MicroCache2 : MicroCache {
                         val geometry = readDataUntil(endPointer)
                         // write transition nodes
                         var count = transCounts.next
-                        if (dodebug) println("*** encoding geometry with count=" + count)
+                        if (dodebug) println("*** encoding geometry with count=$count")
                         bc.encodeVarBits(count++)
                         if (dostats) bc.assignBits("transcount")
                         var transcount = 0

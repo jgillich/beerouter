@@ -6,7 +6,6 @@
 package btools.mapaccess
 
 import btools.codec.DataBuffers
-import btools.codec.MicroCache
 import btools.util.ByteDataReader
 import btools.util.Crc32.crc
 import java.io.File
@@ -20,14 +19,13 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
 
     var creationTime: Long = 0L
 
-    var fileName: String?
+    var fileName: String? = f.getName()
 
     @JvmField
     var divisor: Int = 80
     var elevationType: Byte = 3
 
     init {
-        fileName = f.getName()
         val iobuffer = dataBuffers.iobuffer
         ra = RandomAccessFile(f, "r")
         ra!!.readFully(iobuffer, 0, 200)
@@ -66,10 +64,10 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
             creationTime = dis.readLong()
 
             val crcData = dis.readInt()
-            if (crcData == fileIndexCrc) {
-                divisor = 80 // old format
+            divisor = if (crcData == fileIndexCrc) {
+                80 // old format
             } else if ((crcData xor 2) == fileIndexCrc) {
-                divisor = 32 // new format
+                32 // new format
             } else {
                 throw IOException("top index checksum error")
             }
@@ -118,7 +116,7 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
             } catch (e: IOException) {
             } finally {
                 try {
-                    if (raf != null) raf.close()
+                    raf?.close()
                 } catch (e: IOException) {
                     throw RuntimeException(e)
                 }

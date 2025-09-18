@@ -5,9 +5,6 @@ import btools.util.CheapAngleMeter.Companion.getDifferenceFromDirection
 import btools.util.CheapAngleMeter.Companion.getDirection
 import btools.util.CheapRuler.getLonLatToMeterScales
 import java.util.Collections
-import kotlin.Boolean
-import kotlin.Comparator
-import kotlin.Int
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -73,8 +70,8 @@ class WaypointMatcherImpl(
             last!!.directionToNext = getDirection(
                 last.waypoint!!.iLon,
                 last.waypoint!!.iLat,
-                waypoints.get(lastidx).waypoint!!.iLon,
-                waypoints.get(lastidx).waypoint!!.iLat
+                waypoints[lastidx].waypoint!!.iLon,
+                waypoints[lastidx].waypoint!!.iLat
             )
         }
         maxWptIdx = waypoints.size - 1
@@ -105,11 +102,11 @@ class WaypointMatcherImpl(
         //for ( MatchedWaypoint mwp : waypoints )
         for (i in waypoints.indices) {
             if (!useAsStartWay && i == 0) continue
-            val mwp = waypoints.get(i)
+            val mwp = waypoints[i]
 
             if (mwp.direct &&
                 (i == 0 ||
-                        waypoints.get(i - 1).direct)
+                        waypoints[i - 1].direct)
             ) {
                 if (mwp.crosspoint == null) {
                     mwp.crosspoint = OsmNode()
@@ -244,7 +241,7 @@ class WaypointMatcherImpl(
 
                     updateWayList(mwp.wayNearest, mw)
 
-                    val way = mwp.wayNearest.get(0)
+                    val way = mwp.wayNearest[0]
                     mwp.crosspoint!!.iLon = way.crosspoint!!.iLon
                     mwp.crosspoint!!.iLat = way.crosspoint!!.iLat
                     mwp.node1 = OsmNode(way.node1!!.iLon, way.node1!!.iLat)
@@ -271,7 +268,7 @@ class WaypointMatcherImpl(
     fun updateWayList(ways: MutableList<MatchedWaypoint>, mw: MatchedWaypoint?) {
         ways.add(mw!!)
         // use only shortest distances by smallest direction difference
-        Collections.sort<MatchedWaypoint?>(ways, comparator)
+        Collections.sort(ways, comparator)
         if (ways.size > MAX_POINTS) ways.removeAt(MAX_POINTS)
     }
 

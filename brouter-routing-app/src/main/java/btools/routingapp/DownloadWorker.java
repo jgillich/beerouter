@@ -37,23 +37,18 @@ import btools.util.ProgressListener;
 
 public class DownloadWorker extends Worker {
   public static final String WORKER_NAME = "BRouterWorker";
-
-  private final static boolean DEBUG = false;
-
   public static final String KEY_INPUT_SEGMENT_NAMES = "SEGMENT_NAMES";
   public static final String KEY_INPUT_SEGMENT_ALL = "SEGMENT_ALL";
   public static final String KEY_OUTPUT_ERROR = "ERROR";
-
   public static final int VALUE_SEGMENT_PARTS = 0;
   public static final int VALUE_SEGMENT_ALL = 1;
   public static final int VALUE_SEGMENT_DIFFS = 2;
   public static final int VALUE_SEGMENT_DROPDIFFS = 3;
-
   public static final String PROGRESS_SEGMENT_NAME = "PROGRESS_SEGMENT_NAME";
   public static final String PROGRESS_SEGMENT_PERCENT = "PROGRESS_SEGMENT_PERCENT";
-
-  private static final int NOTIFICATION_ID = new Random().nextInt();
   public static final String PROFILES_DIR = "profiles2/";
+  private final static boolean DEBUG = false;
+  private static final int NOTIFICATION_ID = new Random().nextInt();
   private static final String SEGMENTS_DIR = "segments4/";
   private static final String SEGMENT_DIFF_SUFFIX = ".df5";
   private static final String SEGMENT_SUFFIX = ".rd5";
@@ -66,13 +61,12 @@ public class DownloadWorker extends Worker {
   private final DownloadProgressListener downloadProgressListener;
   private final Data.Builder progressBuilder = new Data.Builder();
   private final NotificationCompat.Builder notificationBuilder;
-  private int downloadAll;
-  private boolean versionChanged;
-  private List<URL> done = new ArrayList<>();
-
   int version = -1;
   int appversion = -1;
   String errorCode = null;
+  private int downloadAll;
+  private boolean versionChanged;
+  private List<URL> done = new ArrayList<>();
   private boolean bHttpDownloadProblem;
 
   public DownloadWorker(
@@ -307,7 +301,8 @@ public class DownloadWorker extends Worker {
         //if (profileFile.exists())
         {
           String profileLocation = mServerConfig.getProfilesUrl() + fileName;
-          if (bHttpDownloadProblem) profileLocation = profileLocation.replace("https://", "http://");
+          if (bHttpDownloadProblem)
+            profileLocation = profileLocation.replace("https://", "http://");
           URL profileUrl = new URL(profileLocation);
           int size = (int) (profileFile.exists() ? profileFile.length() : 0);
 
@@ -338,7 +333,8 @@ public class DownloadWorker extends Worker {
           String md5 = Rd5DiffManager.getMD5(segmentFile);
           if (DEBUG) Log.d(LOG_TAG, "Calculating local checksum " + md5);
           String segmentDeltaLocation = segmentBaseUrl + "diff/" + segmentName.replace(SEGMENT_SUFFIX, "/" + md5 + SEGMENT_DIFF_SUFFIX);
-          if (bHttpDownloadProblem) segmentDeltaLocation = segmentDeltaLocation.replace("https://", "http://");
+          if (bHttpDownloadProblem)
+            segmentDeltaLocation = segmentDeltaLocation.replace("https://", "http://");
           URL segmentDeltaUrl = new URL(segmentDeltaLocation);
           if (httpFileExists(segmentDeltaUrl)) {
             File segmentDeltaFile = new File(segmentFile.getAbsolutePath() + "_diff");

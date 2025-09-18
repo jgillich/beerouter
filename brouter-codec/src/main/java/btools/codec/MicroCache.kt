@@ -1,7 +1,6 @@
 package btools.codec
 
 import btools.util.ByteDataWriter
-import kotlin.IntArray
 
 /**
  * a micro-cache is a data cache for an area of some square kilometers or some
@@ -56,7 +55,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     }
 
     val dataSize: Int
-        get() = if (ab == null) 0 else ab.size
+        get() = ab?.size ?: 0
 
     /**
      * Set the internal reader (aboffset, aboffsetEnd) to the body data for the given id
@@ -219,7 +218,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     }
 
     private fun summary(): String {
-        val sb = StringBuilder("size=" + size + " aboffset=" + aboffset)
+        val sb = StringBuilder("size=$size aboffset=$aboffset")
         for (i in 0..<size) {
             sb.append("\nidx=" + i + " faid=" + faid!![i] + " fapos=" + fapos!![i])
         }
@@ -242,7 +241,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
                     return "data buffer too small"
                 }
                 if (ab[start + offset] != mc.ab[start + offset]) {
-                    return "data mismatch at index " + i + " offset=" + offset
+                    return "data mismatch at index $i offset=$offset"
                 }
             }
             if (fapos!![i] != mc.fapos!![i]) {

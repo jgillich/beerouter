@@ -9,7 +9,7 @@ package btools.router
 class VoiceHintList {
     private var transportMode: Int = TRANS_MODE_BIKE
     var turnInstructionMode: Int = 0
-    var list: MutableList<VoiceHint> = ArrayList<VoiceHint>()
+    var list: MutableList<VoiceHint> = ArrayList()
 
     fun setTransportMode(isCar: Boolean, isBike: Boolean) {
         transportMode =
@@ -22,11 +22,11 @@ class VoiceHintList {
 
     fun getTransportMode(): String {
         val ret: String
-        when (transportMode) {
-            TRANS_MODE_FOOT -> ret = "foot"
-            TRANS_MODE_CAR -> ret = "car"
-            TRANS_MODE_BIKE -> ret = "bike"
-            else -> ret = "bike"
+        ret = when (transportMode) {
+            TRANS_MODE_FOOT -> "foot"
+            TRANS_MODE_CAR -> "car"
+            TRANS_MODE_BIKE -> "bike"
+            else -> "bike"
         }
         return ret
     }

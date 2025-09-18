@@ -19,26 +19,26 @@ class RoutingParamCollector {
     fun getWayPointList(lonLats: String): MutableList<OsmNodeNamed?> {
         val coords = lonLats.split(";|\\|".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray() // use both variantes
-        require(!(coords.size < 1 || !coords[0].contains(","))) { "we need one lat/lon point at least!" }
+        require(!(coords.isEmpty() || !coords[0].contains(","))) { "we need one lat/lon point at least!" }
 
-        val wplist: MutableList<OsmNodeNamed?> = ArrayList<OsmNodeNamed?>()
+        val wplist: MutableList<OsmNodeNamed?> = ArrayList()
         for (i in coords.indices) {
             val lonLat =
                 coords[i].split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-            require(lonLat.size >= 1) { "we need one lat/lon point at least!" }
-            wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i))
+            require(lonLat.isNotEmpty()) { "we need one lat/lon point at least!" }
+            wplist.add(readPosition(lonLat[0], lonLat[1], "via$i"))
             if (lonLat.size > 2) {
                 if (lonLat[2] == "d") {
-                    wplist.get(wplist.size - 1)!!.direct = true
+                    wplist[wplist.size - 1]!!.direct = true
                 } else {
-                    wplist.get(wplist.size - 1)!!.name = lonLat[2]
+                    wplist[wplist.size - 1]!!.name = lonLat[2]
                 }
             }
         }
 
-        if (wplist.get(0)!!.name!!.startsWith("via")) wplist.get(0)!!.name = "from"
-        if (wplist.get(wplist.size - 1)!!.name!!.startsWith("via")) {
-            wplist.get(wplist.size - 1)!!.name = "to"
+        if (wplist[0]!!.name!!.startsWith("via")) wplist[0]!!.name = "from"
+        if (wplist[wplist.size - 1]!!.name!!.startsWith("via")) {
+            wplist[wplist.size - 1]!!.name = "to"
         }
 
         return wplist
@@ -52,7 +52,7 @@ class RoutingParamCollector {
      * @return a list
      */
     fun readPositions(lons: DoubleArray?, lats: DoubleArray?): MutableList<OsmNodeNamed?> {
-        val wplist: MutableList<OsmNodeNamed?> = ArrayList<OsmNodeNamed?>()
+        val wplist: MutableList<OsmNodeNamed?> = ArrayList()
 
         if (lats == null || lats.size < 2 || lons == null || lons.size < 2) {
             return wplist
@@ -61,24 +61,24 @@ class RoutingParamCollector {
         var i = 0
         while (i < lats.size && i < lons.size) {
             val n = OsmNodeNamed()
-            n.name = "via" + i
+            n.name = "via$i"
             n.iLon = ((lons[i] + 180.0) * 1000000.0 + 0.5).toInt()
             n.iLat = ((lats[i] + 90.0) * 1000000.0 + 0.5).toInt()
             wplist.add(n)
             i++
         }
 
-        if (wplist.get(0)!!.name!!.startsWith("via")) wplist.get(0)!!.name = "from"
-        if (wplist.get(wplist.size - 1)!!.name!!.startsWith("via")) {
-            wplist.get(wplist.size - 1)!!.name = "to"
+        if (wplist[0]!!.name!!.startsWith("via")) wplist[0]!!.name = "from"
+        if (wplist[wplist.size - 1]!!.name!!.startsWith("via")) {
+            wplist[wplist.size - 1]!!.name = "to"
         }
 
         return wplist
     }
 
     private fun readPosition(vlon: String, vlat: String, name: String?): OsmNodeNamed {
-        requireNotNull(vlon) { "lon " + name + " not found in input" }
-        requireNotNull(vlat) { "lat " + name + " not found in input" }
+        requireNotNull(vlon) { "lon $name not found in input" }
+        requireNotNull(vlat) { "lat $name not found in input" }
 
         return readPosition(vlon.toDouble(), vlat.toDouble(), name)
     }
@@ -100,7 +100,7 @@ class RoutingParamCollector {
      */
     @Throws(UnsupportedEncodingException::class)
     fun getUrlParams(url: String): MutableMap<String?, String?> {
-        val params: MutableMap<String?, String?> = HashMap<String?, String?>()
+        val params: MutableMap<String?, String?> = HashMap()
         val decoded = URLDecoder.decode(url, "UTF-8")
         val tk = StringTokenizer(decoded, "?&")
         while (tk.hasMoreTokens()) {
@@ -130,17 +130,17 @@ class RoutingParamCollector {
         params: MutableMap<String?, String?>?
     ) {
         if (params != null) {
-            if (params.size == 0) return
+            if (params.isEmpty()) return
 
             // prepare nogos extra
             if (params.containsKey("profile")) {
-                rctx.localFunction = params.get("profile")
+                rctx.localFunction = params["profile"]
             }
-            if (params.containsKey("nogoLats") && params.get("nogoLats")!!.length > 0) {
+            if (params.containsKey("nogoLats") && params["nogoLats"]!!.isNotEmpty()) {
                 val nogoList = readNogos(
-                    params.get("nogoLons"),
-                    params.get("nogoLats"),
-                    params.get("nogoRadi")
+                    params["nogoLons"],
+                    params["nogoLats"],
+                    params["nogoRadi"]
                 )
                 if (nogoList != null) {
                     RoutingContext.Companion.prepareNogoPoints(nogoList)
@@ -155,7 +155,7 @@ class RoutingParamCollector {
                 params.remove("nogoRadi")
             }
             if (params.containsKey("nogos")) {
-                val nogoList = readNogoList(params.get("nogos"))
+                val nogoList = readNogoList(params["nogos"])
                 if (nogoList != null) {
                     RoutingContext.Companion.prepareNogoPoints(nogoList)
                     if (rctx.nogopoints == null) {
@@ -168,7 +168,7 @@ class RoutingParamCollector {
             }
             if (params.containsKey("polylines")) {
                 val result: MutableList<OsmNodeNamed> = ArrayList()
-                parseNogoPolygons(params.get("polylines"), result, false)
+                parseNogoPolygons(params["polylines"], result, false)
                 if (rctx.nogopoints == null) {
                     rctx.nogopoints = result
                 } else {
@@ -177,8 +177,8 @@ class RoutingParamCollector {
                 params.remove("polylines")
             }
             if (params.containsKey("polygons")) {
-                val result: MutableList<OsmNodeNamed> = ArrayList<OsmNodeNamed>()
-                parseNogoPolygons(params.get("polygons"), result, true)
+                val result: MutableList<OsmNodeNamed> = ArrayList()
+                parseNogoPolygons(params["polygons"], result, true)
                 if (rctx.nogopoints == null) {
                     rctx.nogopoints = result
                 } else {
@@ -198,10 +198,10 @@ class RoutingParamCollector {
                             value.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
                         for (i in sa.indices) {
                             val v = sa[i].toInt()
-                            if (wplist.size > v) wplist.get(v)!!.direct = true
+                            if (wplist.size > v) wplist[v]!!.direct = true
                         }
                     } catch (ex: Exception) {
-                        logger.error("error {}", ex.getStackTrace()[0].getLineNumber(), ex)
+                        logger.error("error {}", ex.stackTrace[0].lineNumber, ex)
                     }
                 } else if (key == "pois") {
                     rctx.poipoints = readPoisList(value)!!
@@ -242,7 +242,7 @@ class RoutingParamCollector {
                 } else if (key == "trackFormat") {
                     rctx.outputFormat = value.lowercase(Locale.getDefault())
                 } else if (key.startsWith("profile:")) {
-                    if (rctx.keyValues == null) rctx.keyValues = HashMap<String?, String?>()
+                    if (rctx.keyValues == null) rctx.keyValues = HashMap()
                     rctx.keyValues!!.put(key.substring(8), value)
                 }
                 // ignore other params
@@ -258,8 +258,8 @@ class RoutingParamCollector {
      */
     fun setProfileParams(rctx: RoutingContext, params: MutableMap<String?, String?>?) {
         if (params != null) {
-            if (params.size == 0) return
-            if (rctx.keyValues == null) rctx.keyValues = HashMap<String?, String?>()
+            if (params.isEmpty()) return
+            if (rctx.keyValues == null) rctx.keyValues = HashMap()
             for (e in params.entries) {
                 val key = e.key
                 val value = e.value
@@ -282,8 +282,7 @@ class RoutingParamCollector {
                     .toTypedArray()
                 if (lonLatList.size > 1) {
                     val polygon = OsmNogoPolygon(closed)
-                    var j: Int
-                    j = 0
+                    var j: Int = 0
                     while (j < 2 * (lonLatList.size / 2) - 1) {
                         val slon = lonLatList[j++]
                         val slat = lonLatList[j++]
@@ -297,7 +296,7 @@ class RoutingParamCollector {
                         nogoWeight = lonLatList[j]
                     }
                     polygon.nogoWeight = nogoWeight.toDouble()
-                    if (polygon.points.size > 0) {
+                    if (polygon.points.isNotEmpty()) {
                         polygon.calcBoundingCircle()
                         result.add(polygon)
                     }
@@ -391,7 +390,7 @@ class RoutingParamCollector {
 
     private fun readNogo(lon: Double, lat: Double, radius: Int, nogoWeight: Double): OsmNodeNamed {
         val n = OsmNodeNamed()
-        n.name = "nogo" + radius
+        n.name = "nogo$radius"
         n.iLon = ((lon + 180.0) * 1000000.0 + 0.5).toInt()
         n.iLat = ((lat + 90.0) * 1000000.0 + 0.5).toInt()
         n.isNogo = true

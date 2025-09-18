@@ -30,7 +30,7 @@ class ProfileCache {
 
         @Synchronized
         fun setSize(size: Int) {
-            apc = arrayOfNulls<ProfileCache>(size)
+            apc = arrayOfNulls(size)
         }
 
         @Synchronized
@@ -54,7 +54,7 @@ class ProfileCache {
                 if (lastLookupFile != null) {
                     logger.info("invalidating profile-cache after lookup-file update")
                 }
-                apc = arrayOfNulls<ProfileCache>(apc.size)
+                apc = arrayOfNulls(apc.size)
                 lastLookupFile = lookupFile
                 lastLookupTimestamp = lookupFile.lastModified()
             }

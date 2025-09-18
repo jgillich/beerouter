@@ -18,7 +18,7 @@ import kotlin.experimental.or
  * @author ab
  */
 open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
-    private val blocklist: MutableList<ByteArray?> = ArrayList<ByteArray?>(4096)
+    private val blocklist: MutableList<ByteArray?> = ArrayList(4096)
 
     private val blocksize: Int // bytes per bitplane in one block
     private val blocksizeBits: Int
@@ -44,7 +44,7 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
             bits++
         }
         if (bits == 28) {
-            throw RuntimeException("not a valid blocksize: " + blocksize + " ( expected 1 << bits with bits in (4..27) )")
+            throw RuntimeException("not a valid blocksize: $blocksize ( expected 1 << bits with bits in (4..27) )")
         }
         blocksizeBits = bits + 3
         blocksizeBitsMask = (1L shl blocksizeBits) - 1
@@ -54,12 +54,12 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
     open fun put(key: Long, value: Int) {
         putCount++
 
-        require(!(value < 0 || value > maxvalue)) { "value out of range (0.." + maxvalue + "): " + value }
+        require(!(value < 0 || value > maxvalue)) { "value out of range (0..$maxvalue): $value" }
 
         val blockn = (key shr blocksizeBits).toInt()
         val offset = (key and blocksizeBitsMask).toInt()
 
-        var block = if (blockn < blocklist.size) blocklist.get(blockn) else null
+        var block = if (blockn < blocklist.size) blocklist[blockn] else null
 
         var valuebits = 1
         if (block == null) {
@@ -69,7 +69,7 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
             while (blocklist.size < blockn + 1) {
                 blocklist.add(null)
             }
-            blocklist.set(blockn, block)
+            blocklist[blockn] = block
         } else {
             // check how many bitplanes we have from the arraysize
             while (sizeForBits(valuebits) < block.size) {
@@ -94,7 +94,7 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
         if (idx == headersize) {
             block = expandBlock(block, valuebits)
             block[idx] = v // create new entry
-            blocklist.set(blockn, block)
+            blocklist[blockn] = block
             valuebits++
             headersize = 1 shl valuebits
         }
@@ -140,7 +140,7 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
         // bit-stats on first get
         if (getCount++ == 0L) {
             println("**** DenseLongMap stats ****")
-            println("putCount=" + putCount)
+            println("putCount=$putCount")
             for (i in 0..7) {
                 println(i.toString() + "-bitplanes=" + bitplaneCount[i])
             }
@@ -169,7 +169,7 @@ open class DenseLongMap @JvmOverloads constructor(blocksize: Int = 512) {
         val blockn = (key shr blocksizeBits).toInt()
         val offset = (key and blocksizeBitsMask).toInt()
 
-        val block = if (blockn < blocklist.size) blocklist.get(blockn) else null
+        val block = if (blockn < blocklist.size) blocklist[blockn] else null
 
         if (block == null) {
             return -1

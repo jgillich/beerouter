@@ -103,7 +103,7 @@ public class BRouter {
     try {
       RoutingEngine re = null;
       if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETELEV ||
-          engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETINFO) {
+        engineMode == RoutingEngine.BROUTER_ENGINEMODE_GETINFO) {
         re = new RoutingEngine("testinfo", null, new File(args[0]), wplist, rc, engineMode);
       } else {
         re = new RoutingEngine("testtrack", null, new File(args[0]), wplist, rc, engineMode);

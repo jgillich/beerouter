@@ -18,7 +18,7 @@ class BExpressionLookupValue(var value: String) {
     }
 
     fun addAlias(alias: String?) {
-        if (aliases == null) aliases = ArrayList<String>()
+        if (aliases == null) aliases = ArrayList()
         aliases!!.add(alias!!)
     }
 

@@ -1,6 +1,5 @@
 Import new tags for noise, green and water feature
 
-
 - A PostgreSQL and a osm2pgsql installation is needed
   see https://www.postgresql.org/
   and https://osm2pgsql.org/
@@ -23,7 +22,6 @@ Import new tags for noise, green and water feature
 # osm2pgsql -c -s -d osm -U postgres -W -H localhost -P 5432 -O flex -S brouter_cfg.lua /path/to/file.pbf
 ```
 
-
 - generate new tags inside the database (use `<` if `-f` does not work)
 
 ```
@@ -32,24 +30,24 @@ Import new tags for noise, green and water feature
 
 - prepare generation of pbf
 
-  - lookups.dat has to contain the new tags from the database
+    - lookups.dat has to contain the new tags from the database
 
-  - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter)
+    - script needs a jdbc in the classpath (on UNIX and Linux use a colon `:` as delimiter)
 
-    `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
+      `... -cp ../postgresql-42.6.0.jar;../brouter_fc.jar ...`
 
-  - script needs a call with jdbc parameter
+    - script needs a call with jdbc parameter
 
-    define the database parameter
+      define the database parameter
 
-    `JDBC="jdbc:postgresql://localhost/osm?user=postgres&password=xyz&ssl=false"`
+      `JDBC="jdbc:postgresql://localhost/osm?user=postgres&password=xyz&ssl=false"`
 
-  - export the tags from database to filesystem
+    - export the tags from database to filesystem
 
-    `java -Xmx6144M -Xms6144M -Xms6144M -cp %CLASSPATH% btools.mapcreator.DatabasePseudoTagProvider $(JDBC) db_tags.csv.gz`
+      `java -Xmx6144M -Xms6144M -Xms6144M -cp %CLASSPATH% btools.mapcreator.DatabasePseudoTagProvider $(JDBC) db_tags.csv.gz`
 
-  - call it with OsmFastCutter as last parameter (behind pbf file)
+    - call it with OsmFastCutter as last parameter (behind pbf file)
 
-    `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf db_tags.csv.gz`
+      `... btools.mapcreator.OsmFastCutter ... ../planet-new.osm.pbf db_tags.csv.gz`
 
 

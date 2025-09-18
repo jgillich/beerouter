@@ -29,7 +29,7 @@ open class OsmNode : OsmLink, OsmPos {
     override var sElev: Short = Short.Companion.MIN_VALUE
 
     override val elev: Double
-        get() = sElev / 4.0;
+        get() = sElev / 4.0
 
     /**
      * The node-tags, if any

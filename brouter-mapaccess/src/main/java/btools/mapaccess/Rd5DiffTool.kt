@@ -22,7 +22,7 @@ import java.io.IOException
 
 class Rd5DiffTool : ProgressListener {
     override fun updateProgress(task: String?, progress: Int) {
-        println(task + ": " + progress + "%")
+        println("$task: $progress%")
     }
 
     override val isCanceled: Boolean
@@ -118,9 +118,7 @@ class Rd5DiffTool : ProgressListener {
             for (i in 0..24) {
                 val lv = dis.readLong()
                 fileIndex[i] = lv and 0xffffffffffffL
-                if (dos != null) {
-                    dos.writeLong(lv)
-                }
+                dos?.writeLong(lv)
             }
             return fileIndex
         }
@@ -139,9 +137,7 @@ class Rd5DiffTool : ProgressListener {
             for (i in 0..1023) {
                 val iv = dis.readInt()
                 posIndex[i] = iv
-                if (dos != null) {
-                    dos.writeInt(iv)
-                }
+                dos?.writeInt(iv)
             }
             return posIndex
         }
@@ -173,7 +169,7 @@ class Rd5DiffTool : ProgressListener {
         }
 
         private fun createMicroCache(ab: ByteArray?, dataBuffers: DataBuffers?): MicroCache {
-            if (ab == null || ab.size == 0) {
+            if (ab == null || ab.isEmpty()) {
                 return MicroCache.emptyCache()
             }
             val bc = StatCoderContext(ab)
@@ -399,9 +395,9 @@ class Rd5DiffTool : ProgressListener {
                             if (ab1 != null) {
                                 dos.write(ab1)
                             }
-                            val newTargetSize = if (ab1 == null) 0 else ab1.size
+                            val newTargetSize = ab1?.size ?: 0
                             if (targetSize != newTargetSize) {
-                                throw RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + "!=" + newTargetSize)
+                                throw RuntimeException("size mismatch at $subFileIdx/$tileIdx $targetSize!=$newTargetSize")
                             }
                             continue
                         }
@@ -415,7 +411,7 @@ class Rd5DiffTool : ProgressListener {
 
                         if (mc.size() == 0) {
                             if (targetSize != 0) {
-                                throw RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + ">0")
+                                throw RuntimeException("size mismatch at $subFileIdx/$tileIdx $targetSize>0")
                             }
                             continue
                         }

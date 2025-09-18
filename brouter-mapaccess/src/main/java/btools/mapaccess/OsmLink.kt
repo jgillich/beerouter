@@ -112,10 +112,10 @@ open class OsmLink {
     }
 
     fun getFirstLinkHolder(source: OsmNode?): OsmLinkHolder? {
-        if (n2 != null && n2 !== source) {
-            return firstlinkholder
+        return if (n2 != null && n2 !== source) {
+            firstlinkholder
         } else if (n1 != null && n1 !== source) {
-            return reverselinkholder
+            reverselinkholder
         } else {
             throw IllegalArgumentException("internal error: getFirstLinkHolder: unknown source")
         }

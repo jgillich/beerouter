@@ -6,10 +6,10 @@ package btools.util
 object StringUtils {
     private val xmlChr = charArrayOf('&', '<', '>', '\'', '"', '\t', '\n', '\r')
     private val xmlEsc: Array<String> =
-        arrayOf<String>("&amp;", "&lt;", "&gt;", "&apos;", "&quot;", "&#x9;", "&#xA;", "&#xD;")
+        arrayOf("&amp;", "&lt;", "&gt;", "&apos;", "&quot;", "&#x9;", "&#xA;", "&#xD;")
 
     private val jsnChr = charArrayOf('\'', '"', '\\', '/')
-    private val jsnEsc: Array<String> = arrayOf<String>("\\'", "\\\"", "\\\\", "\\/")
+    private val jsnEsc: Array<String> = arrayOf("\\'", "\\\"", "\\\\", "\\/")
 
     /**
      * Escape a literal to put into a json document
@@ -30,7 +30,7 @@ object StringUtils {
     private fun escape(s: String, chr: CharArray, esc: Array<String>): String {
         var sb: StringBuilder? = null
         for (i in 0..<s.length) {
-            val c = s.get(i)
+            val c = s[i]
             var j = 0
             while (j < chr.size) {
                 if (c == chr[j]) {
@@ -46,6 +46,6 @@ object StringUtils {
                 sb.append(c)
             }
         }
-        return if (sb == null) s else sb.toString()
+        return sb?.toString() ?: s
     }
 }

@@ -59,7 +59,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
     }
 
     fun writeModeAndDesc(isReverse: Boolean, sa: ByteArray?) {
-        val len = if (sa == null) 0 else sa.size
+        val len = sa?.size ?: 0
         val sizecode = len shl 1 or (if (isReverse) 1 else 0)
         writeVarLengthUnsigned(sizecode)
         if (len > 0) {

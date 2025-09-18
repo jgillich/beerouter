@@ -10,7 +10,7 @@ nav_order: 2
 BRouter uses several subdirectories inside the base directory.
 
 | directory                         | description                                  |
-| --------------------------------- | -------------------------------------------- |
+|-----------------------------------|----------------------------------------------|
 | `<basedir>/brouter`               |                                              |
 | `<basedir>/brouter/modes`         | routing-mode/profile mapping and route cache |
 | `<basedir>/brouter/profiles2`     | lookup-table and routing-profiles (\*.brf)   |

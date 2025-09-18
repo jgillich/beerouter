@@ -10,10 +10,10 @@
         android:id="@+id/buttonImport"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true"
-        android:text="@string/import_profile"
-        android:layout_alignParentEnd="true" />
+        android:text="@string/import_profile" />
 
     <EditText
         android:id="@+id/editTextFilename"
@@ -35,9 +35,9 @@
         android:ems="8"
         android:enabled="false"
         android:gravity="start|top"
+        android:importantForAutofill="no"
         android:inputType="none"
-        android:minHeight="48dp"
-        android:importantForAutofill="no" />
+        android:minHeight="48dp" />
 
 </RelativeLayout>
 

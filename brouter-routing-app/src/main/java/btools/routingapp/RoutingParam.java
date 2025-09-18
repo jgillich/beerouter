@@ -9,6 +9,6 @@ public class RoutingParam implements Serializable {
   public String value;
 
   public String toString() {
-    return "RoutingParam " + name + " = " + value +" type: " + type + " txt: " + description;
+    return "RoutingParam " + name + " = " + value + " type: " + type + " txt: " + description;
   }
 }

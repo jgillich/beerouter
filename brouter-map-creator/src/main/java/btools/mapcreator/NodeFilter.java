@@ -16,9 +16,9 @@ import btools.util.TinyDenseLongMap;
  * @author ab
  */
 public class NodeFilter extends MapCreatorBase {
+  protected DenseLongMap nodebitmap;
   private DiffCoderDataOutputStream nodesOutStream;
   private File nodeTilesOut;
-  protected DenseLongMap nodebitmap;
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** NodeFilter: Filter way related nodes");

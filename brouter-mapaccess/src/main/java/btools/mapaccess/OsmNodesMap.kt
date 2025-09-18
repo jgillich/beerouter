@@ -8,7 +8,7 @@ package btools.mapaccess
 import btools.util.ByteArrayUnifier
 
 class OsmNodesMap {
-    private val hmap: MutableMap<OsmNode?, OsmNode> = HashMap<OsmNode?, OsmNode>(4096)
+    private val hmap: MutableMap<OsmNode?, OsmNode> = HashMap(4096)
 
     val byteArrayUnifier: ByteArrayUnifier = ByteArrayUnifier(16384, false)
 
@@ -78,7 +78,7 @@ class OsmNodesMap {
         var minId = n.visitID
         nodesCreated++
 
-        var nextLink: OsmLink? = null
+        var nextLink: OsmLink?
         var l = n.firstlink
         while (l != null) {
             nextLink = l.getNext(n)
@@ -194,7 +194,7 @@ class OsmNodesMap {
     }
 
     fun collectOutreachers() {
-        nodes2check = ArrayList<OsmNode>(nodesCreated)
+        nodes2check = ArrayList(nodesCreated)
         nodesCreated = 0
         for (n in hmap.values) {
             addActiveNode(nodes2check!!, n)
@@ -236,7 +236,7 @@ class OsmNodesMap {
     fun get(ilon: Int, ilat: Int): OsmNode? {
         testKey.iLon = ilon
         testKey.iLat = ilat
-        return hmap.get(testKey)
+        return hmap[testKey]
     }
 
 

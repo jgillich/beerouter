@@ -38,9 +38,8 @@ import btools.server.ServiceContext;
  */
 public class ServerHandler extends RequestHandler {
 
-  private RoutingContext rc;
-
   private static boolean useRFCMimeType = Boolean.getBoolean("useRFCMimeType");
+  private RoutingContext rc;
 
   public ServerHandler(ServiceContext serviceContext, Map<String, String> params) {
     super(serviceContext, params);

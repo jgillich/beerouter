@@ -34,13 +34,12 @@ class SortedHeap<V> {
     private class SortedBin(var binsize: Int, var parent: SortedHeap<*>) {
         var next: SortedBin? = null
         var nextNonEmpty: SortedBin? = null
-        var al: IntArray // key array
+        var al: IntArray = IntArray(binsize) // key array
         var vla: Array<Any?> // value array
         var lv: Int = 0 // low value
         var lp: Int // low pointer
 
         init {
-            al = IntArray(binsize)
             vla = arrayOfNulls<Any>(binsize)
             lp = binsize
         }

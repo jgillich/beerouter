@@ -82,7 +82,7 @@ internal class KinematicModel : OsmPathModel() {
     }
 
     protected fun getParam(name: String?, defaultValue: Float): Float {
-        val sval = if (params == null) null else params!!.get(name)
+        val sval = if (params == null) null else params!![name]
         if (sval != null) {
             return sval.toFloat()
         }

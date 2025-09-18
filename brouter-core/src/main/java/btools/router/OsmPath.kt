@@ -120,8 +120,8 @@ abstract class OsmPath : OsmLinkHolder {
                 message!!.lon = targetNode!!.iLon
                 message!!.lat = targetNode!!.iLat
                 message!!.ele = Short.Companion.MIN_VALUE
-                message!!.linkdist = sourceNode!!.calcDistance(targetNode!!).toInt()
-                message!!.wayKeyValues = "direct_segment=" + seg
+                message!!.linkdist = sourceNode!!.calcDistance(targetNode!!)
+                message!!.wayKeyValues = "direct_segment=$seg"
                 seg++
             }
             return
@@ -385,10 +385,10 @@ abstract class OsmPath : OsmLinkHolder {
                         originElement!!.message = message
                     }
                 }
-                if (rc.nogoCost < 0) {
-                    cost = -1
+                cost = if (rc.nogoCost < 0) {
+                    -1
                 } else {
-                    cost = (cost + rc.nogoCost).toInt()
+                    (cost + rc.nogoCost).toInt()
                 }
                 return
             }

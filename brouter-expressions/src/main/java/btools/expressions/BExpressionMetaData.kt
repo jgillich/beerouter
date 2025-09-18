@@ -15,7 +15,7 @@ class BExpressionMetaData {
     var minAppVersion: Short = -1
 
     private val listeners: MutableMap<String?, BExpressionContext> =
-        HashMap<String?, BExpressionContext>()
+        HashMap()
 
     fun registerListener(context: String?, ctx: BExpressionContext?) {
         listeners.put(context, ctx!!)
@@ -31,11 +31,11 @@ class BExpressionMetaData {
                 var line = br.readLine()
                 if (line == null) break
                 line = line.trim { it <= ' ' }
-                if (line.length == 0 || line.startsWith("#")) {
+                if (line.isEmpty() || line.startsWith("#")) {
                     continue
                 }
                 if (line.startsWith(CONTEXT_TAG)) {
-                    ctx = listeners.get(line.substring(CONTEXT_TAG.length))
+                    ctx = listeners[line.substring(CONTEXT_TAG.length)]
                     continue
                 }
                 if (line.startsWith(VERSION_TAG)) {
@@ -53,7 +53,7 @@ class BExpressionMetaData {
                 if (line.startsWith(VARLENGTH_TAG)) { // tag removed...
                     continue
                 }
-                if (ctx != null) ctx.parseMetaLine(line)
+                ctx?.parseMetaLine(line)
             }
             br.close()
 

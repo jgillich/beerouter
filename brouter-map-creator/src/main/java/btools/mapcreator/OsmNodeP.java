@@ -15,21 +15,6 @@ import btools.codec.MicroCache;
 import btools.codec.MicroCache2;
 
 public class OsmNodeP extends OsmLinkP {
-  /**
-   * The latitude
-   */
-  public int ilat;
-
-  /**
-   * The longitude
-   */
-  public int ilon;
-
-  /**
-   * The elevation
-   */
-  public short selev;
-
   public final static int NO_BRIDGE_BIT = 1;
   public final static int NO_TUNNEL_BIT = 2;
   public final static int BORDER_BIT = 4;
@@ -37,7 +22,18 @@ public class OsmNodeP extends OsmLinkP {
   public final static int ANY_WAY_BIT = 16;
   public final static int MULTI_WAY_BIT = 32;
   public final static int DP_SURVIVOR_BIT = 64;
-
+  /**
+   * The latitude
+   */
+  public int ilat;
+  /**
+   * The longitude
+   */
+  public int ilon;
+  /**
+   * The elevation
+   */
+  public short selev;
   public byte bits = 0;
 
   // interface OsmPos
@@ -235,7 +231,7 @@ public class OsmNodeP extends OsmLinkP {
       mc.injectSize(sizeoffset);
     }
 
-    while (internalReverse.size() > 0) {
+    while (!internalReverse.isEmpty()) {
       int nextIdx = 0;
       if (internalReverse.size() > 1) {
         int max32 = Integer.MIN_VALUE;

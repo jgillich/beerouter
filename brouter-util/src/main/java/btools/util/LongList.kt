@@ -24,7 +24,7 @@ class LongList(capacity: Int) {
 
     fun get(idx: Int): Long {
         if (idx >= size) {
-            throw IndexOutOfBoundsException("list size=" + size + " idx=" + idx)
+            throw IndexOutOfBoundsException("list size=$size idx=$idx")
         }
         return a[idx]
     }

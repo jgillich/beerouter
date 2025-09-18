@@ -56,7 +56,7 @@ internal class BExpression {
             FOREIGN_VARIABLE_EXP -> return ctx!!.getForeignVariableValue(variableIdx)
             VARIABLE_GET_EXP -> return ctx!!.getLookupValue(lookupNameIdx)
             NOT_EXP -> return if (op1!!.evaluate(ctx) == 0f) 1f else 0f
-            else -> throw IllegalArgumentException("unknown op-code: " + typ)
+            else -> throw IllegalArgumentException("unknown op-code: $typ")
         }
     }
 
@@ -125,9 +125,9 @@ internal class BExpression {
             return "" + numberValue
         }
         if (typ == VARIABLE_EXP) {
-            return "vidx=" + variableIdx
+            return "vidx=$variableIdx"
         }
-        val sb = StringBuilder("typ=" + typ + " ops=(")
+        val sb = StringBuilder("typ=$typ ops=(")
         addOp(sb, op1)
         addOp(sb, op2)
         addOp(sb, op3)
@@ -185,17 +185,17 @@ internal class BExpression {
 
             if (ASSIGN_EXP == e.typ) {
                 // manage assined an injected values
-                val assignedBefore = ctx.lastAssignedExpression!!.get(e.variableIdx)
+                val assignedBefore = ctx.lastAssignedExpression!![e.variableIdx]
                 if (assignedBefore != null && assignedBefore.doNotChange) {
                     e.op1 = assignedBefore // was injected as key-value
                     e.op1!!.doNotChange =
                         false // protect just once, can be changed in second assignement
                 }
-                ctx.lastAssignedExpression!!.set(e.variableIdx, e.op1)
+                ctx.lastAssignedExpression!![e.variableIdx] = e.op1
             } else if (!ctx.skipConstantExpressionOptimizations) {
                 // try to simplify the expression
                 if (VARIABLE_EXP == e.typ) {
-                    val ae = ctx.lastAssignedExpression!!.get(e.variableIdx)
+                    val ae = ctx.lastAssignedExpression!![e.variableIdx]
                     if (ae != null && ae.typ == NUMBER_EXP) {
                         e = ae
                     }
@@ -243,7 +243,7 @@ internal class BExpression {
             }
 
             if (level == 0) {
-                require("assign" == operator) { "operator " + operator + " is invalid on toplevel (only 'assign' allowed)" }
+                require("assign" == operator) { "operator $operator is invalid on toplevel (only 'assign' allowed)" }
             }
 
             val exp = BExpression()
@@ -290,10 +290,10 @@ internal class BExpression {
                         exp.typ = ASSIGN_EXP
                         val variable = ctx.parseToken()
                         requireNotNull(variable) { "unexpected end of file" }
-                        require(variable.indexOf('=') < 0) { "variable name cannot contain '=': " + variable }
-                        require(variable.indexOf(':') < 0) { "cannot assign context-prefixed variable: " + variable }
+                        require(variable.indexOf('=') < 0) { "variable name cannot contain '=': $variable" }
+                        require(variable.indexOf(':') < 0) { "cannot assign context-prefixed variable: $variable" }
                         exp.variableIdx = ctx.getVariableIdx(variable, true)
-                        require(exp.variableIdx >= ctx.minWriteIdx) { "cannot assign to readonly variable " + variable }
+                        require(exp.variableIdx >= ctx.minWriteIdx) { "cannot assign to readonly variable $variable" }
                     } else if ("not" == operator) {
                         exp.typ = NOT_EXP
                     } else {
@@ -305,7 +305,7 @@ internal class BExpression {
                             val values = operator.substring(idx + 1)
 
                             exp.lookupNameIdx = ctx.getLookupNameIdx(name)
-                            require(exp.lookupNameIdx >= 0) { "unknown lookup name: " + name }
+                            require(exp.lookupNameIdx >= 0) { "unknown lookup name: $name" }
                             val tk = StringTokenizer(values, "|")
                             val nt = tk.countTokens()
                             val nt2 = if (nt == 0) 1 else nt
@@ -314,7 +314,7 @@ internal class BExpression {
                                 val value = if (ti < nt) tk.nextToken() else ""
                                 exp.lookupValueIdxArray[ti] =
                                     ctx.getLookupValueIdx(exp.lookupNameIdx, value)
-                                require(exp.lookupValueIdxArray[ti] >= 0) { "unknown lookup value: " + value }
+                                require(exp.lookupValueIdxArray[ti] >= 0) { "unknown lookup value: $value" }
                             }
                         } else if ((operator.indexOf(':').also { idx = it }) >= 0) {
                             /*
@@ -348,7 +348,7 @@ internal class BExpression {
                                 exp.numberValue = operator.toFloat()
                                 exp.typ = NUMBER_EXP
                             } catch (nfe: NumberFormatException) {
-                                throw IllegalArgumentException("unknown expression: " + operator)
+                                throw IllegalArgumentException("unknown expression: $operator")
                             }
                         }
                     }
@@ -375,7 +375,7 @@ internal class BExpression {
         @Throws(Exception::class)
         private fun checkExpectedToken(ctx: BExpressionContext, expected: String) {
             val token = ctx.parseToken()
-            require(expected == token) { "unexpected token: " + token + ", expected: " + expected }
+            require(expected == token) { "unexpected token: $token, expected: $expected" }
         }
 
         fun createAssignExpressionFromKeyValue(
@@ -390,7 +390,7 @@ internal class BExpression {
             e.op1!!.typ = NUMBER_EXP
             e.op1!!.numberValue = value.toFloat()
             e.op1!!.doNotChange = true
-            ctx.lastAssignedExpression!!.set(e.variableIdx, e.op1)
+            ctx.lastAssignedExpression!![e.variableIdx] = e.op1
             return e
         }
     }

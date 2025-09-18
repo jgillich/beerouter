@@ -40,7 +40,7 @@ class VoiceHint {
             return
         }
         if (badWays == null) {
-            badWays = ArrayList<MessageData>()
+            badWays = ArrayList()
         }
         badWays!!.add(badWay)
     }
@@ -120,7 +120,7 @@ class VoiceHint {
             EL -> return if (timode == 2 || timode == 9) "EL" else "KL"
             ER -> return if (timode == 2 || timode == 9) "ER" else "KR"
             OFFR -> return "OFFR"
-            else -> return "unknown command: " + c
+            else -> return "unknown command: $c"
         }
     }
 

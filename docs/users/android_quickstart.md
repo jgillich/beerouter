@@ -15,7 +15,8 @@ Several map tools support routing with BRouter:
 
 - [_OsmAnd_](http://www.osmand.net): GPLv3, Free (limited features) and paid version available
 - [_Locus Map_](http://www.locusmap.eu): Proprietary, Free (ads) and paid version available
-- [_Oruxmaps_](http://www.oruxmaps.com): Proprietary, Free (previous version) and paid version available
+- [_Oruxmaps_](http://www.oruxmaps.com): Proprietary, Free (previous version) and paid version
+  available
 
 Install any of those map tools using your favorite app store.
 
@@ -73,7 +74,7 @@ _routing-mode_ BRouter selects the _routing-profile_ according to a mapping.
 By default BRouter uses the following mapping:
 
 | routing-mode   | routing-profile |
-| -------------- | --------------- |
+|----------------|-----------------|
 | motorcar_fast  | car-test        |
 | motorcar_short | moped           |
 | bicycle_fast   | fastbike        |

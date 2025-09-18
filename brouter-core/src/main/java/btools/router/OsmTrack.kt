@@ -39,7 +39,7 @@ class OsmTrack {
         var nextHolder: OsmPathElementHolder? = null
     }
 
-    var nodes: MutableList<OsmPathElement> = ArrayList<OsmPathElement>()
+    var nodes: MutableList<OsmPathElement> = ArrayList()
 
     private var nodesMap: CompactLongMap<OsmPathElementHolder?>? = null
 
@@ -62,7 +62,7 @@ class OsmTrack {
 
     fun registerDetourForId(id: Long, detour: OsmPathElement?) {
         if (detourMap == null) {
-            detourMap = CompactLongMap<OsmPathElementHolder?>()
+            detourMap = CompactLongMap()
         }
         val nh = OsmPathElementHolder()
         nh.node = detour
@@ -114,12 +114,12 @@ class OsmTrack {
     fun appendDetours(source: OsmTrack) {
         if (detourMap == null) {
             detourMap =
-                if (source.detourMap == null) null else CompactLongMap<OsmPathElementHolder?>()
+                if (source.detourMap == null) null else CompactLongMap()
         }
         if (source.detourMap != null) {
             val pos = nodes.size - source.nodes.size + 1
             var origin: OsmPathElement? = null
-            if (pos > 0) origin = nodes.get(pos)
+            if (pos > 0) origin = nodes[pos]
             for (node in source.nodes) {
                 val id = node.idFromPos
                 val nh = OsmPathElementHolder()
@@ -140,7 +140,7 @@ class OsmTrack {
     }
 
     fun buildMap() {
-        nodesMap = CompactLongMap<OsmPathElementHolder?>()
+        nodesMap = CompactLongMap()
         for (node in nodes) {
             val id = node.idFromPos
             val nh = OsmPathElementHolder()
@@ -159,7 +159,7 @@ class OsmTrack {
     }
 
     fun aggregateMessages(): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList<String?>()
+        val res: MutableList<String?> = ArrayList()
         var current: MessageData? = null
         for (n in nodes) {
             if (n.message != null && n.message!!.wayKeyValues != null) {
@@ -181,13 +181,13 @@ class OsmTrack {
     }
 
     fun aggregateSpeedProfile(): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList<String?>()
+        val res: MutableList<String?> = ArrayList()
         var vmax = -1
         var vmaxe = -1
         var vmin = -1
         var extraTime = 0
         for (i in nodes.size - 1 downTo 1) {
-            val n = nodes.get(i)
+            val n = nodes[i]
             val m = n.message
             val vnode = getVNode(i)
             if (m != null && (vmax != m.vmax || vmin != m.vmin || vmaxe != m.vmaxExplicit || vnode < m.vmax || extraTime != m.extraTime)) {
@@ -195,7 +195,7 @@ class OsmTrack {
                 vmin = m.vmin
                 vmaxe = m.vmaxExplicit
                 extraTime = m.extraTime
-                res.add(i.toString() + "," + vmaxe + "," + vmax + "," + vmin + "," + vnode + "," + extraTime)
+                res.add("$i,$vmaxe,$vmax,$vmin,$vnode,$extraTime")
             }
         }
         return res
@@ -246,16 +246,16 @@ class OsmTrack {
     }
 
     fun appendTrack(t: OsmTrack) {
-        var i = 0
+        var i: Int
 
         val ourSize = nodes.size
         if (ourSize > 0 && t.nodes.size > 1) {
-            val olde = nodes.get(ourSize - 1)
-            t.nodes.get(1).origin = olde
+            val olde = nodes[ourSize - 1]
+            t.nodes[1].origin = olde
         }
-        val t0 = if (ourSize > 0) nodes.get(ourSize - 1).time else 0f
-        val e0 = if (ourSize > 0) nodes.get(ourSize - 1).energy else 0f
-        val c0 = if (ourSize > 0) nodes.get(ourSize - 1).cost else 0
+        val t0 = if (ourSize > 0) nodes[ourSize - 1].time else 0f
+        val e0 = if (ourSize > 0) nodes[ourSize - 1].energy else 0f
+        val c0 = if (ourSize > 0) nodes[ourSize - 1].cost else 0
         i = 0
         while (i < t.nodes.size) {
             val e = t.nodes[i]
@@ -334,25 +334,25 @@ class OsmTrack {
     }
 
     private fun getVNode(i: Int): Int {
-        val m1 = if (i + 1 < nodes.size) nodes.get(i + 1).message else null
-        val m0 = if (i < nodes.size) nodes.get(i).message else null
-        val vnode0 = if (m1 == null) 999 else m1.vnode0
-        val vnode1 = if (m0 == null) 999 else m0.vnode1
+        val m1 = if (i + 1 < nodes.size) nodes[i + 1].message else null
+        val m0 = if (i < nodes.size) nodes[i].message else null
+        val vnode0 = m1?.vnode0 ?: 999
+        val vnode1 = m0?.vnode1 ?: 999
         return if (vnode0 < vnode1) vnode0 else vnode1
     }
 
     val totalSeconds: Int
         get() {
             val s =
-                if (nodes.size < 2) 0f else nodes.get(nodes.size - 1).time - nodes.get(0).time
+                if (nodes.size < 2) 0f else nodes[nodes.size - 1].time - nodes[0].time
             return (s + 0.5).toInt()
         }
 
     fun equalsTrack(t: OsmTrack): Boolean {
         if (nodes.size != t.nodes.size) return false
         for (i in nodes.indices) {
-            val e1 = nodes.get(i)
-            val e2 = t.nodes.get(i)
+            val e1 = nodes[i]
+            val e2 = t.nodes[i]
             if (e1.iLon != e2.iLon || e1.iLat != e2.iLat) return false
         }
         return true
@@ -378,14 +378,14 @@ class OsmTrack {
         }
         var nodeNr = nodes.size - 1
         var i = nodeNr
-        var node = nodes.get(nodeNr)
+        var node = nodes[nodeNr]
         while (node != null) {
             node = node.origin!!
         }
 
         i = 0
 
-        node = nodes.get(nodeNr)
+        node = nodes[nodeNr]
         val inputs: MutableList<VoiceHint> = ArrayList()
         while (node != null) {
             if (node.origin != null) {
@@ -456,11 +456,11 @@ class OsmTrack {
     val minDistance: Int
         get() {
             if (voiceHints != null) {
-                when (voiceHints!!.transportMode()) {
-                    VoiceHintList.Companion.TRANS_MODE_CAR -> return 20
-                    VoiceHintList.Companion.TRANS_MODE_FOOT -> return 3
-                    VoiceHintList.Companion.TRANS_MODE_BIKE -> return 5
-                    else -> return 5
+                return when (voiceHints!!.transportMode()) {
+                    VoiceHintList.Companion.TRANS_MODE_CAR -> 20
+                    VoiceHintList.Companion.TRANS_MODE_FOOT -> 3
+                    VoiceHintList.Companion.TRANS_MODE_BIKE -> 5
+                    else -> 5
                 }
             }
             return 2
@@ -471,12 +471,12 @@ class OsmTrack {
             return 0f
         }
         if (i < voiceHints!!.list.size) {
-            return voiceHints!!.list.get(i).time
+            return voiceHints!!.list[i].time
         }
         if (nodes.isEmpty()) {
             return 0f
         }
-        return nodes.get(nodes.size - 1).time
+        return nodes[nodes.size - 1].time
     }
 
     fun removeVoiceHint(i: Int) {
@@ -497,7 +497,7 @@ class OsmTrack {
                 return e.message
             }
             e = e.origin
-            require(cnt++ != 1000000) { "ups: " + root + "->" + element }
+            require(cnt++ != 1000000) { "ups: $root->$element" }
         }
         return null
     }
@@ -527,9 +527,7 @@ class OsmTrack {
                         val dlon: Int = ep.waypoint!!.iLon - newEp.iLon
                         val dlat = ep.waypoint!!.iLat - newEp.iLat
                         val targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20
-                        if (debugInfo != null) {
-                            debugInfo.append("target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch)
-                        }
+                        debugInfo?.append("target-delta = $dlon/$dlat targetMatch=$targetMatch")
                         if (targetMatch) {
                             t = OsmTrack()
                             t.endPoint = ep
@@ -569,7 +567,7 @@ class OsmTrack {
                             val profileCheckOk = pchecksum == profileChecksum
 
                             if (debugInfo != null) {
-                                debugInfo.append(" nogoCheckOk=" + nogoCheckOk + " profileCheckOk=" + profileCheckOk)
+                                debugInfo.append(" nogoCheckOk=$nogoCheckOk profileCheckOk=$profileCheckOk")
                                 debugInfo.append(
                                     " al=" + formatLongs(al) + " nogoChecksums=" + formatLongs(
                                         nogoChecksums
@@ -580,9 +578,7 @@ class OsmTrack {
                         }
                         dis.close()
                     } catch (e: Exception) {
-                        if (debugInfo != null) {
-                            debugInfo.append("Error reading rawTrack: " + e)
-                        }
+                        debugInfo?.append("Error reading rawTrack: $e")
                     }
                 }
             }

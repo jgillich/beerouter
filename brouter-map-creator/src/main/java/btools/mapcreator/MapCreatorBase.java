@@ -19,27 +19,9 @@ import java.util.Map;
 import btools.util.DiffCoderDataOutputStream;
 
 public abstract class MapCreatorBase implements WayListener, NodeListener, RelationListener {
-  private DiffCoderDataOutputStream[] tileOutStreams;
   protected File outTileDir;
-
   protected Map<String, String> tags;
-
-  public void putTag(String key, String value) {
-    if (tags == null) tags = new HashMap<>();
-    tags.put(key, value);
-  }
-
-  public String getTag(String key) {
-    return tags == null ? null : tags.get(key);
-  }
-
-  public Map<String, String> getTagsOrNull() {
-    return tags;
-  }
-
-  public void setTags(Map<String, String> tags) {
-    this.tags = tags;
-  }
+  private DiffCoderDataOutputStream[] tileOutStreams;
 
   protected static long readId(DataInputStream is) throws IOException {
     int offset = is.readByte();
@@ -60,7 +42,6 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
     o.writeInt(i);
   }
 
-
   protected static File[] sortBySizeAsc(File[] files) {
     int n = files.length;
     long[] sizes = new long[n];
@@ -79,6 +60,23 @@ public abstract class MapCreatorBase implements WayListener, NodeListener, Relat
       sorted[nf] = files[idx];
     }
     return sorted;
+  }
+
+  public void putTag(String key, String value) {
+    if (tags == null) tags = new HashMap<>();
+    tags.put(key, value);
+  }
+
+  public String getTag(String key) {
+    return tags == null ? null : tags.get(key);
+  }
+
+  public Map<String, String> getTagsOrNull() {
+    return tags;
+  }
+
+  public void setTags(Map<String, String> tags) {
+    this.tags = tags;
   }
 
   protected File fileFromTemplate(File template, File dir, String suffix) {

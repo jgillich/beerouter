@@ -4,7 +4,8 @@ This documentation can be used to generate a static website using [jekyll](https
 
 ## Dependencies
 
-jekyll uses ruby and therefore installs dependencies using gem. It is recommended to use bundler to manage those dependencies.
+jekyll uses ruby and therefore installs dependencies using gem. It is recommended to use bundler to
+manage those dependencies.
 
 `bundle install` installs all dependencies. To update dependencies use `bundle update`.
 

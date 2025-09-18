@@ -18,25 +18,7 @@ import java.util.NavigableMap
 import java.util.Random
 import java.util.StringTokenizer
 import java.util.TreeMap
-import kotlin.Array
-import kotlin.BooleanArray
-import kotlin.ByteArray
-import kotlin.Exception
-import kotlin.Float
-import kotlin.FloatArray
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.IntArray
-import kotlin.Long
-import kotlin.RuntimeException
-import kotlin.String
-import kotlin.Throws
-import kotlin.arrayOf
-import kotlin.arrayOfNulls
 import kotlin.math.abs
-import kotlin.plus
-import kotlin.require
-import kotlin.toString
 
 abstract class BExpressionContext protected constructor(
     context: String?,
@@ -51,11 +33,11 @@ abstract class BExpressionContext protected constructor(
     @JvmField
     var _modelClass: String? = null
 
-    private val lookupNumbers: MutableMap<String?, Int?> = HashMap<String?, Int?>()
+    private val lookupNumbers: MutableMap<String?, Int?> = HashMap()
     private val lookupValues: MutableList<Array<BExpressionLookupValue?>?> =
-        ArrayList<Array<BExpressionLookupValue?>?>()
-    private val lookupNames: MutableList<String?> = ArrayList<String?>()
-    private val lookupHistograms: MutableList<IntArray> = ArrayList<IntArray>()
+        ArrayList()
+    private val lookupNames: MutableList<String?> = ArrayList()
+    private val lookupHistograms: MutableList<IntArray> = ArrayList()
     private lateinit var lookupIdxUsed: BooleanArray
 
     private var lookupDataFrozen = false
@@ -66,9 +48,9 @@ abstract class BExpressionContext protected constructor(
     private val ctxEndode = BitCoderContext(abBuf)
     private val ctxDecode = BitCoderContext(ByteArray(0))
 
-    private val variableNumbers: MutableMap<String?, Int?> = HashMap<String?, Int?>()
+    private val variableNumbers: MutableMap<String?, Int?> = HashMap()
 
-    internal var lastAssignedExpression: MutableList<BExpression?>? = ArrayList<BExpression?>()
+    internal var lastAssignedExpression: MutableList<BExpression?>? = ArrayList()
 
     @JvmField
     var skipConstantExpressionOptimizations: Boolean = false
@@ -209,7 +191,7 @@ abstract class BExpressionContext protected constructor(
             // see encoder for value rotation
             val dd = ctx.decodeVarBits()
             var d = if (dd == 7) 1 else (if (dd < 7) dd + 2 else dd + 1)
-            if (d >= lookupValues.get(inum)!!.size && d < 1000) d = 1 // map out-of-range to unknown
+            if (d >= lookupValues[inum]!!.size && d < 1000) d = 1 // map out-of-range to unknown
 
             ld[inum++] = d
         }
@@ -220,29 +202,29 @@ abstract class BExpressionContext protected constructor(
         val sb = StringBuilder(200)
         decode(lookupData, inverseDirection, ab)
         for (inum in lookupValues.indices) { // loop over lookup names
-            val va = lookupValues.get(inum)!!
+            val va = lookupValues[inum]!!
             val `val` = lookupData[inum]
             val value: String? =
                 if (`val` >= 1000) ((`val` - 1000) / 100f).toString() else va[`val`].toString()
-            if (value != null && value.length > 0) {
-                if (sb.length > 0) sb.append(' ')
-                sb.append(lookupNames.get(inum) + "=" + value)
+            if (value != null && value.isNotEmpty()) {
+                if (sb.isNotEmpty()) sb.append(' ')
+                sb.append(lookupNames[inum] + "=" + value)
             }
         }
         return sb.toString()
     }
 
     fun getKeyValueList(inverseDirection: Boolean, ab: ByteArray): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList<String?>()
+        val res: MutableList<String?> = ArrayList()
         decode(lookupData, inverseDirection, ab)
         for (inum in lookupValues.indices) { // loop over lookup names
-            val va = lookupValues.get(inum)!!
+            val va = lookupValues[inum]!!
             val `val` = lookupData[inum]
             // no negative values
             val value: String? =
                 if (`val` >= 1000) ((`val` - 1000) / 100f).toString() else va[`val`].toString()
-            if (value != null && value.length > 0) {
-                res.add(lookupNames.get(inum))
+            if (value != null && value.isNotEmpty()) {
+                res.add(lookupNames[inum])
                 res.add(value)
             }
         }
@@ -252,14 +234,14 @@ abstract class BExpressionContext protected constructor(
     fun getLookupKey(name: String?): Int {
         var res = -1
         try {
-            res = lookupNumbers.get(name)!!
+            res = lookupNumbers[name]!!
         } catch (e: Exception) {
         }
         return res
     }
 
     fun getLookupValue(key: Int): Float {
-        var res = 0f
+        var res: Float
         val `val` = lookupData[key]
         if (`val` == 0) return Float.Companion.NaN
         res = (`val` - 1000) / 100f
@@ -267,7 +249,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun getLookupValue(inverseDirection: Boolean, ab: ByteArray, key: Int): Float {
-        var res = 0f
+        var res: Float
         decode(lookupData, inverseDirection, ab)
         val `val` = lookupData[key]
         if (`val` == 0) return Float.Companion.NaN
@@ -302,7 +284,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun finishMetaParsing() {
-        require(!(parsedLines == 0 && "global" != context)) { "lookup table does not contain data for context " + context + " (old version?)" }
+        require(!(parsedLines == 0 && "global" != context)) { "lookup table does not contain data for context $context (old version?)" }
 
         // post-process metadata:
         lookupDataFrozen = true
@@ -318,7 +300,7 @@ abstract class BExpressionContext protected constructor(
     private fun evaluate() {
         val n = expressionList!!.size
         for (expidx in 0..<n) {
-            expressionList!!.get(expidx)!!.evaluate(this)
+            expressionList!![expidx]!!.evaluate(this)
         }
     }
 
@@ -327,7 +309,7 @@ abstract class BExpressionContext protected constructor(
     private var cachemisses: Long = 0
 
     fun cacheStats(): String {
-        return "requests=" + requests + " requests2=" + requests2 + " cachemisses=" + cachemisses
+        return "requests=$requests requests2=$requests2 cachemisses=$cachemisses"
     }
 
     private var lastCacheNode: CacheNode? = CacheNode()
@@ -374,7 +356,7 @@ abstract class BExpressionContext protected constructor(
         }
 
         var cn: CacheNode?
-        if (lastCacheNode!!.ab == ab) {
+        if (lastCacheNode!!.ab.contentEquals(ab)) {
             cn = lastCacheNode
         } else {
             probeCacheNode.ab = ab
@@ -421,7 +403,7 @@ abstract class BExpressionContext protected constructor(
             }
             cn.vars = vw.vars
         } else {
-            if (ab == cn.ab) requests2++
+            if (ab.contentEquals(cn.ab)) requests2++
 
             cache!!.touch(cn)
         }
@@ -444,8 +426,8 @@ abstract class BExpressionContext protected constructor(
         // first count
         for (name in lookupNumbers.keys) {
             var cnt = 0
-            val inum: Int = lookupNumbers.get(name)!!
-            val histo = lookupHistograms.get(inum)
+            val inum: Int = lookupNumbers[name]!!
+            val histo = lookupHistograms[inum]
             //    if ( histo.length == 500 ) continue;
             for (i in 2..<histo.size) {
                 cnt += histo[i]
@@ -453,13 +435,13 @@ abstract class BExpressionContext protected constructor(
             counts.put("" + (1000000000 + cnt) + "_" + name, name)
         }
 
-        while (counts.size > 0) {
+        while (counts.isNotEmpty()) {
             val key = counts.lastEntry().key
-            val name = counts.get(key)
+            val name = counts[key]
             counts.remove(key)
-            val inum: Int = lookupNumbers.get(name)!!
-            val values = lookupValues.get(inum)!!
-            val histo = lookupHistograms.get(inum)
+            val inum: Int = lookupNumbers[name]!!
+            val values = lookupValues[inum]!!
+            val histo = lookupHistograms[inum]
             if (values.size == 1000) continue
             val svalues = arrayOfNulls<String>(values.size)
             for (i in values.indices) {
@@ -504,7 +486,7 @@ abstract class BExpressionContext protected constructor(
     fun assertAllVariablesEqual(other: BExpressionContext) {
         val nv = variableData!!.size
         val nv2 = other.variableData!!.size
-        if (nv != nv2) throw RuntimeException("mismatch in variable-count: " + nv + "<->" + nv2)
+        if (nv != nv2) throw RuntimeException("mismatch in variable-count: $nv<->$nv2")
         for (i in 0..<nv) {
             if (variableData!![i] != other.variableData!![i]) {
                 throw RuntimeException(
@@ -521,7 +503,7 @@ abstract class BExpressionContext protected constructor(
                 return e.key
             }
         }
-        throw RuntimeException("no variable for index" + idx)
+        throw RuntimeException("no variable for index$idx")
     }
 
     /**
@@ -539,7 +521,7 @@ abstract class BExpressionContext protected constructor(
     ): BExpressionLookupValue? {
         var value = value
         var newValue: BExpressionLookupValue? = null
-        var num = lookupNumbers.get(name)
+        var num = lookupNumbers[name]
         if (num == null) {
             if (lookupData2 != null) {
                 // do not create unknown name for external data array
@@ -563,8 +545,8 @@ abstract class BExpressionContext protected constructor(
         }
 
         // look for that value
-        var values = lookupValues.get(num)
-        var histo = lookupHistograms.get(num)
+        var values = lookupValues[num]
+        var histo = lookupHistograms[num]
         var i = 0
         var bFoundAsterix = false
         while (i < values!!.size) {
@@ -606,10 +588,10 @@ abstract class BExpressionContext protected constructor(
                         // do some value conversion
                         if (value.contains("ft")) {
                             var feet = 0f
-                            var inch = 0
+                            var inch: Int
                             val sa = value.split("ft".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
-                            if (sa.size >= 1) feet = sa[0].toFloat()
+                            if (sa.isNotEmpty()) feet = sa[0].toFloat()
                             if (sa.size == 2) {
                                 value = sa[1]
                                 if (value.indexOf("in") > 0) value =
@@ -620,10 +602,10 @@ abstract class BExpressionContext protected constructor(
                             value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
                         } else if (value.contains("'")) {
                             var feet = 0f
-                            var inch = 0
+                            var inch: Int
                             val sa = value.split("'".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
-                            if (sa.size >= 1) feet = sa[0].toFloat()
+                            if (sa.isNotEmpty()) feet = sa[0].toFloat()
                             if (sa.size == 2) {
                                 value = sa[1]
                                 if (value.indexOf("''") > 0) value =
@@ -635,7 +617,7 @@ abstract class BExpressionContext protected constructor(
                             }
                             value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
                         } else if (value.contains("in") || value.contains("\"")) {
-                            var inch = 0f
+                            var inch: Float
                             if (value.indexOf("in") > 0) value =
                                 value.substring(0, value.indexOf("in"))
                             if (value.indexOf("\"") > 0) value =
@@ -643,7 +625,7 @@ abstract class BExpressionContext protected constructor(
                             inch = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", inch * 0.0254f)
                         } else if (value.contains("feet") || value.contains("foot")) {
-                            var feet = 0f
+                            var feet: Float
                             val s = value.substring(0, value.indexOf("f"))
                             feet = s.toFloat()
                             value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
@@ -654,7 +636,7 @@ abstract class BExpressionContext protected constructor(
                         } else if (value.contains("cm")) {
                             val sa = value.split("cm".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
-                            if (sa.size >= 1) value = sa[0]
+                            if (sa.isNotEmpty()) value = sa[0]
                             val cm = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", cm / 100f)
                         } else if (value.contains("meter")) {
@@ -662,13 +644,13 @@ abstract class BExpressionContext protected constructor(
                         } else if (value.contains("mph")) {
                             val sa = value.split("mph".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
-                            if (sa.size >= 1) value = sa[0]
+                            if (sa.isNotEmpty()) value = sa[0]
                             val mph = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", mph * 1.609344f)
                         } else if (value.contains("knot")) {
                             val sa = value.split("knot".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
-                            if (sa.size >= 1) value = sa[0]
+                            if (sa.isNotEmpty()) value = sa[0]
                             val nm = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", nm * 1.852f)
                         } else if (value.contains("kmh") || value.contains("km/h") || value.contains(
@@ -711,8 +693,8 @@ abstract class BExpressionContext protected constructor(
             histo = nhisto
             newValue = BExpressionLookupValue(value)
             values[i] = newValue
-            lookupHistograms.set(num, histo)
-            lookupValues.set(num, values)
+            lookupHistograms[num] = histo
+            lookupValues[num] = values
         }
 
         histo[i]++
@@ -728,14 +710,14 @@ abstract class BExpressionContext protected constructor(
      * value-index means 0=unknown, 1=other, 2=value-x, ...
      */
     fun addLookupValue(name: String?, valueIndex: Int) {
-        val num = lookupNumbers.get(name)
+        val num = lookupNumbers[name]
         if (num == null) {
             return
         }
 
         // look for that value
-        val nvalues = lookupValues.get(num)!!.size
-        require(!(valueIndex < 0 || valueIndex >= nvalues)) { "value index out of range for name " + name + ": " + valueIndex }
+        val nvalues = lookupValues[num]!!.size
+        require(!(valueIndex < 0 || valueIndex >= nvalues)) { "value index out of range for name $name: $valueIndex" }
         lookupData[num] = valueIndex
     }
 
@@ -748,13 +730,13 @@ abstract class BExpressionContext protected constructor(
      */
     fun addSmallestLookupValue(name: String?, valueIndex: Int) {
         var valueIndex = valueIndex
-        val num = lookupNumbers.get(name)
+        val num = lookupNumbers[name]
         if (num == null) {
             return
         }
 
         // look for that value
-        val nvalues = lookupValues.get(num)!!.size
+        val nvalues = lookupValues[num]!!.size
         val oldValueIndex = lookupData[num]
         if (oldValueIndex > 1 && oldValueIndex < valueIndex) {
             return
@@ -762,20 +744,20 @@ abstract class BExpressionContext protected constructor(
         if (valueIndex >= nvalues) {
             valueIndex = nvalues - 1
         }
-        require(valueIndex >= 0) { "value index out of range for name " + name + ": " + valueIndex }
+        require(valueIndex >= 0) { "value index out of range for name $name: $valueIndex" }
         lookupData[num] = valueIndex
     }
 
     fun getBooleanLookupValue(name: String?): Boolean {
-        val num = lookupNumbers.get(name)
+        val num = lookupNumbers[name]
         return num != null && lookupData[num] == 2
     }
 
     fun getOutputVariableIndex(name: String?, mustExist: Boolean): Int {
         val idx = getVariableIdx(name, false)
         if (idx < 0) {
-            require(!mustExist) { "unknown variable: " + name }
-        } else require(idx >= minWriteIdx) { "bad access to global variable: " + name }
+            require(!mustExist) { "unknown variable: $name" }
+        } else require(idx >= minWriteIdx) { "bad access to global variable: $name" }
         for (i in 0..<nBuildInVars) {
             if (buildInVariableIdx[i] == idx) {
                 return i
@@ -797,7 +779,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun getForeignVariableIdx(context: String, name: String?): Int {
-        require(!(foreignContext == null || context != foreignContext!!.context)) { "unknown foreign context: " + context }
+        require(!(foreignContext == null || context != foreignContext!!.context)) { "unknown foreign context: $context" }
         return foreignContext!!.getOutputVariableIndex(name, true)
     }
 
@@ -841,7 +823,7 @@ abstract class BExpressionContext protected constructor(
         } catch (e: Exception) {
             throw RuntimeException(e)
         }
-        require(expressionList!!.size != 0) {
+        require(expressionList!!.isNotEmpty()) {
             (file.getName()
                     + " does not contain expressions for context " + context + " (old version?)")
         }
@@ -854,12 +836,12 @@ abstract class BExpressionContext protected constructor(
     ): MutableList<BExpression?> {
         _br = BufferedReader(FileReader(file))
         _readerDone = false
-        val result: MutableList<BExpression?> = ArrayList<BExpression?>()
+        val result: MutableList<BExpression?> = ArrayList()
 
         // if injected keyValues are present, create assign expressions for them
         if (keyValues != null) {
             for (key in keyValues.keys) {
-                val value = keyValues.get(key)
+                val value = keyValues[key]
                 result.add(
                     BExpression.Companion.createAssignExpressionFromKeyValue(
                         this,
@@ -881,7 +863,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun setVariableValue(name: String?, value: Float, create: Boolean) {
-        var num = variableNumbers.get(name)
+        var num = variableNumbers[name]
         if (num != null) {
             variableData!![num] = value
         } else if (create) {
@@ -897,7 +879,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun getVariableValue(name: String?, defaultValue: Float): Float {
-        val num = variableNumbers.get(name)
+        val num = variableNumbers[name]
         return if (num == null) defaultValue else getVariableValue(num)
     }
 
@@ -906,7 +888,7 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun getVariableIdx(name: String?, create: Boolean): Int {
-        var num = variableNumbers.get(name)
+        var num = variableNumbers[name]
         if (num == null) {
             if (create) {
                 num = variableNumbers.size
@@ -929,8 +911,8 @@ abstract class BExpressionContext protected constructor(
     }
 
     fun getLookupNameIdx(name: String?): Int {
-        val num = lookupNumbers.get(name)
-        return if (num == null) -1 else num
+        val num = lookupNumbers[name]
+        return num ?: -1
     }
 
     fun markLookupIdxUsed(idx: Int) {
@@ -951,17 +933,17 @@ abstract class BExpressionContext protected constructor(
         val sb = StringBuilder()
         for (inum in lookupValues.indices) {
             if (lookupIdxUsed[inum]) {
-                if (sb.length > 0) {
+                if (sb.isNotEmpty()) {
                     sb.append(',')
                 }
-                sb.append(lookupNames.get(inum))
+                sb.append(lookupNames[inum])
             }
         }
         return sb.toString()
     }
 
     fun getLookupValueIdx(nameIdx: Int, value: String?): Int {
-        val values = lookupValues.get(nameIdx)!!
+        val values = lookupValues[nameIdx]!!
         for (i in values.indices) {
             if (values[i]!!.value == value) return i
         }
@@ -993,7 +975,7 @@ abstract class BExpressionContext protected constructor(
         while (true) {
             val ic = if (_readerDone) -1 else _br!!.read()
             if (ic < 0) {
-                if (sb.length == 0) return null
+                if (sb.isEmpty()) return null
                 _readerDone = true
                 return sb.toString()
             }
@@ -1004,8 +986,8 @@ abstract class BExpressionContext protected constructor(
                 sbcom.append(c)
                 if (c == '\r' || c == '\n') inComment = false
                 if (!inComment) {
-                    val num = variableNumbers.get("check_start_way")
-                    if (num != null && noStartWays.size == 0 && sbcom.toString()
+                    val num = variableNumbers["check_start_way"]
+                    if (num != null && noStartWays.isEmpty() && sbcom.toString()
                             .contains("noStartWay")
                     ) {
                         var `var` = sbcom.toString().trim { it <= ' ' }
@@ -1024,7 +1006,7 @@ abstract class BExpressionContext protected constructor(
                                 if (nidx == -1) break
                                 val vidx = getLookupValueIdx(nidx, value)
                                 val tmp = IntArray(noStartWays.size + 2)
-                                if (noStartWays.size > 0) System.arraycopy(
+                                if (noStartWays.isNotEmpty()) System.arraycopy(
                                     noStartWays,
                                     0,
                                     tmp,
@@ -1042,12 +1024,12 @@ abstract class BExpressionContext protected constructor(
                 continue
             }
             if (Character.isWhitespace(c)) {
-                if (sb.length > 0) return sb.toString()
+                if (sb.isNotEmpty()) return sb.toString()
                 else {
                     continue
                 }
             }
-            if (c == '#' && sb.length == 0) inComment = true
+            if (c == '#' && sb.isEmpty()) inComment = true
             else sb.append(c)
         }
     }
@@ -1081,7 +1063,7 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    fun checkStartWay(ab: ByteArray?): kotlin.Boolean {
+    fun checkStartWay(ab: ByteArray?): Boolean {
         if (ab == null) return true
         Arrays.fill(ld2, 0)
         decode(ld2, false, ab)

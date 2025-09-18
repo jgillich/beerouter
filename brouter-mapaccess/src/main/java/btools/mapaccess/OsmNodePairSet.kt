@@ -52,7 +52,7 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
 
     private fun addPair(n1: Long, n2: Long) {
         if (map == null) {
-            map = CompactLongMap<OsmNodePair?>()
+            map = CompactLongMap()
         }
         npairs++
 

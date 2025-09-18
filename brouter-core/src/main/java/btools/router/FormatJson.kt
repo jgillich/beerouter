@@ -49,10 +49,10 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
         }
         if (t.showSpeedProfile) { // set in profile
             val sp = t.aggregateSpeedProfile()
-            if (sp.size > 0) {
+            if (sp.isNotEmpty()) {
                 sb.append("        \"speedprofile\": [\n")
                 for (i in sp.indices.reversed()) {
-                    sb.append("          [").append(sp.get(i)).append(if (i > 0) "],\n" else "]\n")
+                    sb.append("          [").append(sp[i]).append(if (i > 0) "],\n" else "]\n")
                 }
                 sb.append("        ],\n")
             }
@@ -61,7 +61,7 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
         run {
             sb.append("        \"messages\": [\n")
             sb.append("          [\"")
-                .append(Formatter.Companion.MESSAGES_HEADER.replace("\t".toRegex(), "\", \""))
+                .append(MESSAGES_HEADER.replace("\t".toRegex(), "\", \""))
                 .append("\"],\n")
             for (m in t.aggregateMessages()) {
                 sb.append("          [\"").append(m!!.replace("\t".toRegex(), "\", \""))
@@ -112,9 +112,9 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
                 }
                 sele = ", " + (((speed * 10).toInt()) / 10f)
             }
-            sb.append("          [").append(Formatter.Companion.formatILon(n.iLon)).append(", ")
+            sb.append("          [").append(formatILon(n.iLon)).append(", ")
                 .append(
-                    Formatter.Companion.formatILat(n.iLat)
+                    formatILat(n.iLat)
                 )
                 .append(sele).append("],\n")
             nn = n
@@ -126,7 +126,7 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
         if (t.exportWaypoints || t.exportCorrectedWaypoints || !t.pois.isEmpty()) {
             sb.append("    },\n")
             for (i in 0..t.pois.size - 1) {
-                val poi = t.pois.get(i)
+                val poi = t.pois[i]
                 addFeature(sb, "poi", poi!!.name!!, poi!!.iLat, poi.iLon, poi.sElev)
                 if (i < t.pois.size - 1) {
                     sb.append(",")
@@ -137,15 +137,15 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
                 if (!t.pois.isEmpty()) sb.append("    ,\n")
                 for (i in 0..t.matchedWaypoints.size - 1) {
                     val type: String?
-                    if (i == 0) {
-                        type = "from"
+                    type = if (i == 0) {
+                        "from"
                     } else if (i == t.matchedWaypoints.size - 1) {
-                        type = "to"
+                        "to"
                     } else {
-                        type = "via"
+                        "via"
                     }
 
-                    val wp = t.matchedWaypoints.get(i)
+                    val wp = t.matchedWaypoints[i]
                     addFeature(
                         sb,
                         type,
@@ -166,7 +166,7 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
                 for (i in 0..t.matchedWaypoints.size - 1) {
                     val type = "via_corr"
 
-                    val wp = t.matchedWaypoints.get(i)
+                    val wp = t.matchedWaypoints[i]
                     if (wp.correctedpoint != null) {
                         if (hasCorrPoints) {
                             sb.append(",")
@@ -205,13 +205,13 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
         sb.append("      \"type\": \"Feature\",\n")
         sb.append("      \"properties\": {\n")
         sb.append("        \"name\": \"" + escapeJson(name) + "\",\n")
-        sb.append("        \"type\": \"" + type + "\"\n")
+        sb.append("        \"type\": \"$type\"\n")
         sb.append("      },\n")
         sb.append("      \"geometry\": {\n")
         sb.append("        \"type\": \"Point\",\n")
         sb.append("        \"coordinates\": [\n")
-        sb.append("          " + Formatter.Companion.formatILon(ilon) + ",\n")
-        sb.append("          " + Formatter.Companion.formatILat(ilat) + (if (selev != Short.Companion.MIN_VALUE) ",\n          " + selev / 4.0 else "") + "\n")
+        sb.append("          " + formatILon(ilon) + ",\n")
+        sb.append("          " + formatILat(ilat) + (if (selev != Short.Companion.MIN_VALUE) ",\n          " + selev / 4.0 else "") + "\n")
         sb.append("        ]\n")
         sb.append("      }\n")
         sb.append("    }")
@@ -258,9 +258,9 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
             sb.append("      \"properties\": {\n")
             sb.append("        \"creator\": \"BRouter-" + OsmTrack.Companion.version + "\",\n")
             sb.append("        \"name\": \"" + escapeJson(name) + "\",\n")
-            sb.append("        \"type\": \"" + type + "\"")
+            sb.append("        \"type\": \"$type\"")
             if (desc != null) {
-                sb.append(",\n        \"message\": \"" + desc + "\"\n")
+                sb.append(",\n        \"message\": \"$desc\"\n")
             } else {
                 sb.append("\n")
             }
@@ -268,9 +268,9 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
             sb.append("      \"geometry\": {\n")
             sb.append("        \"type\": \"Point\",\n")
             sb.append("        \"coordinates\": [\n")
-            sb.append("          " + Formatter.Companion.formatILon(ilon) + ",\n")
-            sb.append("          " + Formatter.Companion.formatILat(ilat) + ",\n")
-            sb.append("          " + elev + "\n")
+            sb.append("          " + formatILon(ilon) + ",\n")
+            sb.append("          " + formatILat(ilat) + ",\n")
+            sb.append("          $elev\n")
             sb.append("        ]\n")
             sb.append("      }\n")
             sb.append("    }\n")

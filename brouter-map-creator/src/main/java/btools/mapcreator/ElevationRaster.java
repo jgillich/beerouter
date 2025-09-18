@@ -8,6 +8,24 @@ import btools.util.ReducedMedianFilter;
  * @author ab
  */
 public class ElevationRaster {
+  private static int gridSteps = 10;
+  private static Weights[][][] allShiftWeights = new Weights[17][][];
+  private static double filterCenterFraction = 0.2;
+  private static double filterDiscRadius = 4.999; // in pixels
+
+  static {
+    String sRadius = System.getProperty("filterDiscRadius");
+    if (sRadius != null && !sRadius.isEmpty()) {
+      filterDiscRadius = Integer.parseInt(sRadius);
+      System.out.println("using filterDiscRadius = " + filterDiscRadius);
+    }
+    String sFraction = System.getProperty("filterCenterFraction");
+    if (sFraction != null && !sFraction.isEmpty()) {
+      filterCenterFraction = Integer.parseInt(sFraction) / 100.;
+      System.out.println("using filterCenterFraction = " + filterCenterFraction);
+    }
+  }
+
   public int ncols;
   public int nrows;
   public boolean halfcol;
@@ -16,10 +34,74 @@ public class ElevationRaster {
   public double cellsize;
   public short[] eval_array;
   public short noDataValue;
-
   public boolean usingWeights = false;
-
   private boolean missingData = false;
+  private ReducedMedianFilter rmf = new ReducedMedianFilter(256);
+
+  private static Weights[][] getWeights(int latIndex) {
+    int idx = latIndex < 16 ? latIndex : 16;
+
+    Weights[][] res = allShiftWeights[idx];
+    if (res == null) {
+      res = calcWeights(idx);
+      allShiftWeights[idx] = res;
+    }
+    return res;
+  }
+
+  private static Weights[][] calcWeights(int latIndex) {
+    double coslat = Math.cos(latIndex * 5. / 57.3);
+
+    // radius in pixel units
+    double ry = filterDiscRadius;
+    double rx = ry / coslat;
+
+    // gridsize is 2*radius + 1 cell
+    int nx = ((int) rx) * 2 + 3;
+    int ny = ((int) ry) * 2 + 3;
+
+    System.out.println("nx=" + nx + " ny=" + ny);
+
+    int mx = nx / 2; // mean pixels
+    int my = ny / 2;
+
+    // create a matrix for the relative intergrid-position
+
+    Weights[][] shiftWeights = new Weights[gridSteps + 1][];
+
+    // loop the intergrid-position
+    for (int gx = 0; gx <= gridSteps; gx++) {
+      shiftWeights[gx] = new Weights[gridSteps + 1];
+      double x0 = mx + ((double) gx) / gridSteps;
+
+      for (int gy = 0; gy <= gridSteps; gy++) {
+        double y0 = my + ((double) gy) / gridSteps;
+
+        // create the weight-matrix
+        Weights weights = new Weights(nx, ny);
+        shiftWeights[gx][gy] = weights;
+
+        double sampleStep = 0.001;
+
+        for (double x = -1. + sampleStep / 2.; x < 1.; x += sampleStep) {
+          double mx2 = 1. - x * x;
+
+          int x_idx = (int) (x0 + x * rx);
+
+          for (double y = -1. + sampleStep / 2.; y < 1.; y += sampleStep) {
+            if (y * y > mx2) {
+              continue;
+            }
+            // we are in the ellipse, see what pixel we are on
+            int y_idx = (int) (y0 + y * ry);
+            weights.inc(x_idx, y_idx);
+          }
+        }
+        weights.normalize(true);
+      }
+    }
+    return shiftWeights;
+  }
 
   public short getElevation(int ilon, int ilat) {
     double lon = ilon / 1000000. - 180.;
@@ -104,7 +186,9 @@ public class ElevationRaster {
     return (short) (m * 2);
   }
 
-  private ReducedMedianFilter rmf = new ReducedMedianFilter(256);
+
+  // calculate interpolation weights from the overlap of a probe disc of given radius at given latitude
+  // ( latIndex = 0 -> 0 deg, latIndex = 16 -> 80 degree)
 
   private double getElevation(Weights w, int row, int col) {
     if (missingData) {
@@ -128,6 +212,10 @@ public class ElevationRaster {
     return missingData ? 0. : rmf.calcEdgeReducedMedian(filterCenterFraction);
   }
 
+  @Override
+  public String toString() {
+    return ncols + "," + nrows + "," + halfcol + "," + xllcorner + "," + yllcorner + "," + cellsize + "," + noDataValue + "," + usingWeights;
+  }
 
   private static class Weights {
     int nx;
@@ -167,98 +255,5 @@ public class ElevationRaster {
     double getWeight(int ix, int iy) {
       return weights[iy * nx + ix];
     }
-  }
-
-  private static int gridSteps = 10;
-  private static Weights[][][] allShiftWeights = new Weights[17][][];
-
-  private static double filterCenterFraction = 0.2;
-  private static double filterDiscRadius = 4.999; // in pixels
-
-  static {
-    String sRadius = System.getProperty("filterDiscRadius");
-    if (sRadius != null && sRadius.length() > 0) {
-      filterDiscRadius = Integer.parseInt(sRadius);
-      System.out.println("using filterDiscRadius = " + filterDiscRadius);
-    }
-    String sFraction = System.getProperty("filterCenterFraction");
-    if (sFraction != null && sFraction.length() > 0) {
-      filterCenterFraction = Integer.parseInt(sFraction) / 100.;
-      System.out.println("using filterCenterFraction = " + filterCenterFraction);
-    }
-  }
-
-
-  // calculate interpolation weights from the overlap of a probe disc of given radius at given latitude
-  // ( latIndex = 0 -> 0 deg, latIndex = 16 -> 80 degree)
-
-  private static Weights[][] getWeights(int latIndex) {
-    int idx = latIndex < 16 ? latIndex : 16;
-
-    Weights[][] res = allShiftWeights[idx];
-    if (res == null) {
-      res = calcWeights(idx);
-      allShiftWeights[idx] = res;
-    }
-    return res;
-  }
-
-  private static Weights[][] calcWeights(int latIndex) {
-    double coslat = Math.cos(latIndex * 5. / 57.3);
-
-    // radius in pixel units
-    double ry = filterDiscRadius;
-    double rx = ry / coslat;
-
-    // gridsize is 2*radius + 1 cell
-    int nx = ((int) rx) * 2 + 3;
-    int ny = ((int) ry) * 2 + 3;
-
-    System.out.println("nx=" + nx + " ny=" + ny);
-
-    int mx = nx / 2; // mean pixels
-    int my = ny / 2;
-
-    // create a matrix for the relative intergrid-position
-
-    Weights[][] shiftWeights = new Weights[gridSteps + 1][];
-
-    // loop the intergrid-position
-    for (int gx = 0; gx <= gridSteps; gx++) {
-      shiftWeights[gx] = new Weights[gridSteps + 1];
-      double x0 = mx + ((double) gx) / gridSteps;
-
-      for (int gy = 0; gy <= gridSteps; gy++) {
-        double y0 = my + ((double) gy) / gridSteps;
-
-        // create the weight-matrix
-        Weights weights = new Weights(nx, ny);
-        shiftWeights[gx][gy] = weights;
-
-        double sampleStep = 0.001;
-
-        for (double x = -1. + sampleStep / 2.; x < 1.; x += sampleStep) {
-          double mx2 = 1. - x * x;
-
-          int x_idx = (int) (x0 + x * rx);
-
-          for (double y = -1. + sampleStep / 2.; y < 1.; y += sampleStep) {
-            if (y * y > mx2) {
-              continue;
-            }
-            // we are in the ellipse, see what pixel we are on
-            int y_idx = (int) (y0 + y * ry);
-            weights.inc(x_idx, y_idx);
-          }
-        }
-        weights.normalize(true);
-      }
-    }
-    return shiftWeights;
-  }
-
-  @Override
-  public String toString() {
-    return ncols + "," + nrows + "," + halfcol + "," + xllcorner + "," + yllcorner + "," + cellsize + "," + noDataValue + "," + usingWeights;
   }
 }

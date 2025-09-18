@@ -12,7 +12,6 @@ built) from [brouter.de](http://brouter.de/brouter/segments4/) but you can
 also build them yourself from an OSM dump (e.g. planet or [GeoFabrik
 extract](https://download.geofabrik.de/))
 
-
 ## Run the map creation script
 
 If you want to have elevation information in the generated segments files, you
@@ -49,7 +48,6 @@ _Note:_ It is possible that you encounter an error complaining about not being
 able to run `bash^M` on Linux/Mac OS. You can fix this one by running
 `sed -i -e 's/\r$//' process_pbf_planet.sh`.
 
-
 ## Run a generation for elevation data tiles
 
 To match the 5x5 OSM data grid (*.rd5) files from BRouter, there are elevation
@@ -61,7 +59,8 @@ contains negative values. e.g. srtm_34_-1 as a tile above srtm_34_00.
 
 Please see OSM wiki for more info on [srtm](https://wiki.openstreetmap.org/wiki/SRTM).
 
-The converter generates bef tiles from `hgt` files, `zipped hgt` files and `zipped 'ESRI' asc` files.
+The converter generates bef tiles from `hgt` files, `zipped hgt` files and `zipped 'ESRI' asc`
+files.
 
 Converter call with arguments for a single tile generation:
 
@@ -78,7 +77,8 @@ $ ... ElevationRasterTileConverter all ./srtm/hgt1sec ./srtm/srtm1_bef 1
 $ ... ElevationRasterTileConverter all ./srtm/hgt1sec ./srtm/srtm1_bef 1 ./srtm/hgt3sec
 `
 
-To use 1sec and 3sec bef tiles at rd5 generation time you need an extra parameter to the fallback folder.
+To use 1sec and 3sec bef tiles at rd5 generation time you need an extra parameter to the fallback
+folder.
 E.g.
 `$ ... PosUnifier nodes55 unodes55 bordernids.dat bordernodes.dat ../srtm/srtm1_bef ../srtm/srtm3_bef
 `

@@ -87,7 +87,7 @@ abstract class Formatter {
         private fun format1(n: Double): String {
             val s = "" + (n * 10 + 0.5).toLong()
             val len = s.length
-            return s.substring(0, len - 1) + "." + s.get(len - 1)
+            return s.substring(0, len - 1) + "." + s[len - 1]
         }
 
 
@@ -95,7 +95,7 @@ abstract class Formatter {
 
         fun getFormattedTime3(time: Float): String {
             val TIMESTAMP_FORMAT = SimpleDateFormat(dateformat, Locale.US)
-            TIMESTAMP_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
+            TIMESTAMP_FORMAT.timeZone = TimeZone.getTimeZone("UTC")
             // yyyy-mm-ddThh:mm:ss.SSSZ
             val d = Date((time * 1000f).toLong())
             return TIMESTAMP_FORMAT.format(d)

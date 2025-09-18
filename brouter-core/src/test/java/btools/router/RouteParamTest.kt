@@ -21,12 +21,12 @@ class RouteParamTest {
         data = "1.0,1.2,Name;2.0,2.2"
         map = rpc.getWayPointList(data)
 
-        Assert.assertEquals("result content 3 ", "Name", map.get(0)!!.name)
+        Assert.assertEquals("result content 3 ", "Name", map[0]!!.name)
 
         data = "1.0,1.2,d;2.0,2.2"
         map = rpc.getWayPointList(data)
 
-        Assert.assertTrue("result content 4 ", map.get(0)!!.direct)
+        Assert.assertTrue("result content 4 ", map[0]!!.direct)
     }
 
     @Test
@@ -42,7 +42,7 @@ class RouteParamTest {
     @Test
     @Throws(UnsupportedEncodingException::class)
     fun readParamsFromList() {
-        val params: MutableMap<String?, String?> = HashMap<String?, String?>()
+        val params: MutableMap<String?, String?> = HashMap()
         params.put("timode", "3")
         val rc = RoutingContext()
         val rpc = RoutingParamCollector()

@@ -28,11 +28,6 @@ import btools.router.RoutingEngine;
 
 public class BRouterService extends Service {
 
-  @Override
-  public IBinder onBind(Intent arg0) {
-    return myBRouterServiceStub;
-  }
-
   private IBRouterService.Stub myBRouterServiceStub = new IBRouterService.Stub() {
     @Override
     public String getTrackFromParams(Bundle params) throws RemoteException {
@@ -291,6 +286,11 @@ public class BRouterService extends Service {
     }
 
   };
+
+  @Override
+  public IBinder onBind(Intent arg0) {
+    return myBRouterServiceStub;
+  }
 
   @Override
   public void onCreate() {

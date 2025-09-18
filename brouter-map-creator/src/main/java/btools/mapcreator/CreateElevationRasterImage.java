@@ -33,6 +33,17 @@ public class CreateElevationRasterImage {
   boolean missingData;
   Map<Short, Color> colorMap;
 
+  public static void main(String[] args) throws Exception {
+    if (args.length < 6) {
+      System.out.println("usage: java CreateLidarImage <lon> <lat> <srtm-folder> <imageFileName> <maxX> <maxY> <downscale> [type] [color_file]");
+      System.out.println("\nwhere: type = [bef|hgt] downscale = [1|2|4|..]");
+      return;
+    }
+    String format = args.length >= 8 ? args[7] : "bef";
+    String colors = args.length == 9 ? args[8] : null;
+    new CreateElevationRasterImage().createImage(Double.parseDouble(args[0]), Double.parseDouble(args[1]), args[2], args[3],
+      Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), format, colors);
+  }
 
   private void createImage(double lon, double lat, String dir, String imageName, int maxX, int maxY, int downscale, String format, String colors) throws Exception {
     srtmdir = dir;
@@ -57,7 +68,7 @@ public class CreateElevationRasterImage {
       System.out.println("no data");
       return;
     }
-    System.out.println("srtm " + srtm.toString());
+    System.out.println("srtm " + srtm);
     //System.out.println("srtm elev " + srtm.getElevation(n.ilon, n.ilat));
     double[] pos = getElevationPos(srtm, n.ilon, n.ilat);
     //System.out.println("srtm pos " + Math.round(pos[0]) + " "  + Math.round(pos[1]));
@@ -250,7 +261,6 @@ public class CreateElevationRasterImage {
     return missingData ? Short.MIN_VALUE : (short) (eval * 4);
   }
 
-
   int getColorForHeight(short h) {
     if (colorMap == null) {
       colorMap = new TreeMap<>();
@@ -319,17 +329,5 @@ public class CreateElevationRasterImage {
       srtmmap.put(filename, lastSrtmRaster);
     }
     return lastSrtmRaster;
-  }
-
-  public static void main(String[] args) throws Exception {
-    if (args.length < 6) {
-      System.out.println("usage: java CreateLidarImage <lon> <lat> <srtm-folder> <imageFileName> <maxX> <maxY> <downscale> [type] [color_file]");
-      System.out.println("\nwhere: type = [bef|hgt] downscale = [1|2|4|..]");
-      return;
-    }
-    String format = args.length >= 8 ? args[7] : "bef";
-    String colors = args.length == 9 ? args[8] : null;
-    new CreateElevationRasterImage().createImage(Double.parseDouble(args[0]), Double.parseDouble(args[1]), args[2], args[3],
-      Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), format, colors);
   }
 }

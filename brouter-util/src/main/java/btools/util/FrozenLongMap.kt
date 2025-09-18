@@ -70,9 +70,9 @@ class FrozenLongMap<V>(map: CompactLongMap<V?>) : CompactLongMap<V?>() {
             offset = offset shr 1
         }
         if (a[n] == id) {
-            value_out = valueList.get(n)
+            value_out = valueList[n]
             if (doPut) {
-                valueList.set(n, value_in)
+                valueList[n] = value_in
             }
             return true
         }
@@ -98,7 +98,7 @@ class FrozenLongMap<V>(map: CompactLongMap<V?>) : CompactLongMap<V?>() {
             offset = offset shr 1
         }
         if (a[n] == id) {
-            return valueList.get(n)
+            return valueList[n]
         }
         return null
     }

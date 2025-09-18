@@ -23,6 +23,7 @@ import java.io.IOException
 import java.util.Collections
 import java.util.TreeMap
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class AreaReader {
     private val logger: Logger = LoggerFactory.getLogger(AreaReader::class.java)
@@ -59,9 +60,9 @@ class AreaReader {
                 val latMod5 = latDegree % 5
 
                 var lon = lonDegree - 180 - lonMod5
-                val slon = if (lon < 0) "W" + (-lon) else "E" + lon
+                val slon = if (lon < 0) "W" + (-lon) else "E$lon"
                 var lat = latDegree - 90 - latMod5
-                val slat = if (lat < 0) "S" + (-lat) else "N" + lat
+                val slat = if (lat < 0) "S" + (-lat) else "N$lat"
                 val filenameBase = slon + "_" + slat
 
                 val lonIdx = tmplon / cellsize
@@ -91,39 +92,39 @@ class AreaReader {
                 dataRect.addVertex(tmplon2, tmplat2)
 
                 var intersects = checkBorder && dataRect.intersects(
-                    searchRect.points.get(0).x,
-                    searchRect.points.get(0).y,
-                    searchRect.points.get(2).x,
-                    searchRect.points.get(2).y
+                    searchRect.points[0].x,
+                    searchRect.points[0].y,
+                    searchRect.points[2].x,
+                    searchRect.points[2].y
                 )
                 if (!intersects && checkBorder) intersects = dataRect.intersects(
-                    searchRect.points.get(1).x,
-                    searchRect.points.get(1).y,
-                    searchRect.points.get(2).x,
-                    searchRect.points.get(3).y
+                    searchRect.points[1].x,
+                    searchRect.points[1].y,
+                    searchRect.points[2].x,
+                    searchRect.points[3].y
                 )
                 if (intersects) {
                     continue
                 }
 
                 intersects = searchRect.intersects(
-                    dataRect.points.get(0).x,
-                    dataRect.points.get(0).y,
-                    dataRect.points.get(2).x,
-                    dataRect.points.get(2).y
+                    dataRect.points[0].x,
+                    dataRect.points[0].y,
+                    dataRect.points[2].x,
+                    dataRect.points[2].y
                 )
                 if (!intersects) intersects = searchRect.intersects(
-                    dataRect.points.get(1).x,
-                    dataRect.points.get(1).y,
-                    dataRect.points.get(3).x,
-                    dataRect.points.get(3).y
+                    dataRect.points[1].x,
+                    dataRect.points[1].y,
+                    dataRect.points[3].x,
+                    dataRect.points[3].y
                 )
                 if (!intersects) intersects = containsRect(
                     searchRect,
-                    dataRect.points.get(0).x,
-                    dataRect.points.get(0).y,
-                    dataRect.points.get(2).x,
-                    dataRect.points.get(2).y
+                    dataRect.points[0].x,
+                    dataRect.points[0].y,
+                    dataRect.points[2].x,
+                    dataRect.points[2].y
                 )
 
                 if (!intersects) {
@@ -136,8 +137,8 @@ class AreaReader {
         }
 
         val list: MutableList<MutableMap.MutableEntry<Long?, String?>> =
-            ArrayList<MutableMap.MutableEntry<Long?, String?>>(tiles.entries)
-        Collections.sort<MutableMap.MutableEntry<Long?, String?>?>(
+            ArrayList(tiles.entries)
+        Collections.sort(
             list,
             Comparator<MutableMap.MutableEntry<Long?, String?>> { e1, e2 -> e1.value!!.compareTo(e2.value!!) })
 
@@ -153,9 +154,9 @@ class AreaReader {
                 // System.out.println("areareader set " + n.getILon() + "_" + n.getILat() + " " + entry.getValue());
                 val filenameBase: String = entry.value!!
                 if (filenameBase != lastFilenameBase) {
-                    if (pf != null) pf.close()
+                    pf?.close()
                     lastFilenameBase = filenameBase
-                    val file = File(segmentFolder, filenameBase + ".rd5")
+                    val file = File(segmentFolder, "$filenameBase.rd5")
                     dataBuffers = DataBuffers()
 
                     pf = PhysicalFile(file, dataBuffers, -1, -1)
@@ -252,7 +253,7 @@ class AreaReader {
     }
 
     fun ignoreCenter(maxscale: Int, idxLon: Int, idxLat: Int): Boolean {
-        val centerScale = Math.round(maxscale * .2).toInt() - 1
+        val centerScale = (maxscale * .2).roundToInt() - 1
         if (centerScale < 0) return false
         return idxLon >= -centerScale && idxLon <= centerScale && idxLat >= -centerScale && idxLat <= centerScale
     }
@@ -283,7 +284,7 @@ class AreaReader {
 
     fun readAreaInfo(fai: File, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
         var dis: DataInputStream? = null
-        var ep: MatchedWaypoint? = null
+        var ep: MatchedWaypoint?
         try {
             dis = DataInputStream(BufferedInputStream(FileInputStream(fai)))
             ep = readFromStream(dis)

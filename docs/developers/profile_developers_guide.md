@@ -9,7 +9,7 @@ Profile developers guide
 Technical reference for BRouter profile scripts
 
 1. TOC
-{:toc}
+   {:toc}
 
 The tag-value lookup table
 --------------------------
@@ -72,107 +72,109 @@ Some variable names are pre-defined and accessed by the routing engine:
 
 - for the global section these are:
 
-  - 11 elevation configuration parameters:
+    - 11 elevation configuration parameters:
 
-    - `downhillcost`
-    - `downhillcutoff`
-    - `downhillmaxslope`
-    - `downhillmaxslopecost`
-    - `uphillcost`
-    - `uphillcutoff`
-    - `uphillmaxslope`
-    - `uphillmaxslopecost`
-    - `elevationpenaltybuffer`
-    - `elevationmaxbuffer`
-    - `elevationbufferreduce`
+        - `downhillcost`
+        - `downhillcutoff`
+        - `downhillmaxslope`
+        - `downhillmaxslopecost`
+        - `uphillcost`
+        - `uphillcutoff`
+        - `uphillmaxslope`
+        - `uphillmaxslopecost`
+        - `elevationpenaltybuffer`
+        - `elevationmaxbuffer`
+        - `elevationbufferreduce`
 
-  - 3 boolean mode-hint flags
+    - 3 boolean mode-hint flags
 
-    - `validForBikes`
-    - `validForFoot`
-    - `validForCars`
+        - `validForBikes`
+        - `validForFoot`
+        - `validForCars`
 
-  - 2 variables to change the heuristic coefficients for the 2 routing passes (
-    <0 disables a routing pass )
+    - 2 variables to change the heuristic coefficients for the 2 routing passes (
+      <0 disables a routing pass )
 
-    - `pass1coefficient`
-    - `pass2coefficient`
+        - `pass1coefficient`
+        - `pass2coefficient`
 
-  - 3 variables to influence the generation of turn-instructions
+    - 3 variables to influence the generation of turn-instructions
 
-    - `turnInstructionMode`          0=none, 1=auto-choose, 2=locus-style,
-      3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style
-    - `turnInstructionCatchingRange` default=40m
-    - `turnInstructionRoundabouts`   default=true generate explicit roundabout
-      hints
+        - `turnInstructionMode`          0=none, 1=auto-choose, 2=locus-style,
+          3=osmand-style, 4=comment-style, 5=gpsies-style, 6=orux-style, 7=locus-old-style
+        - `turnInstructionCatchingRange` default=40m
+        - `turnInstructionRoundabouts`   default=true generate explicit roundabout
+          hints
 
-  - variables to modify BRouter behaviour
+    - variables to modify BRouter behaviour
 
-    - `processUnusedTags` default=false
+        - `processUnusedTags` default=false
 
-       If an OSM tag is unused within the profile, BRouter totally ignores the
-       tag existence. Skipping unused tags improves BRouter speed. As a side
-       effect, the tag is not even listed in the route segment table nor the
-       table exported as CSV. Setting it to true/1, Brouter-web Data page will
-       list all tags present in the RD5 file.
+          If an OSM tag is unused within the profile, BRouter totally ignores the
+          tag existence. Skipping unused tags improves BRouter speed. As a side
+          effect, the tag is not even listed in the route segment table nor the
+          table exported as CSV. Setting it to true/1, Brouter-web Data page will
+          list all tags present in the RD5 file.
 
-    - `use_dynamic_range` default=true
+        - `use_dynamic_range` default=true
 
-       To find the start / end points for a route, BRouter normally uses for all
-       waypoint matches the dynamic range logic instead of the variable
-       `waypointCatchingRange` with a default value of 250 m. In some
-       situations, adding a few meters here is not enough to find a point.
-       With this new variable, it goes deeper and could reach a radius of about 50 km.
+          To find the start / end points for a route, BRouter normally uses for all
+          waypoint matches the dynamic range logic instead of the variable
+          `waypointCatchingRange` with a default value of 250 m. In some
+          situations, adding a few meters here is not enough to find a point.
+          With this new variable, it goes deeper and could reach a radius of about 50 km.
 
-    - `add_beeline` default=false
+        - `add_beeline` default=false
 
-       This enables on dynamic range search the output for the more distant road connection
-       as a beeline.
-       This is helpful in areas with less road coverage like in the Arabic world or
-       similar areas.
+          This enables on dynamic range search the output for the more distant road connection
+          as a beeline.
+          This is helpful in areas with less road coverage like in the Arabic world or
+          similar areas.
 
-    - `check_start_way`  default=false
+        - `check_start_way`  default=false
 
-       This could help to find a better starting point for a route. Some ways, such as
-       highways or ferries, may be excluded as a starting point.
+          This could help to find a better starting point for a route. Some ways, such as
+          highways or ferries, may be excluded as a starting point.
 
-       This needs new defines in profile:
+          This needs new defines in profile:
 
-       `assign check_start_way     = true   # %check_start_way% | Activate a test for the starting way | boolean | noStartWay=route,ferry;highway,motorway;highway,motorway_link`
+          `assign check_start_way     = true   # %check_start_way% | Activate a test for the starting way | boolean | noStartWay=route,ferry;highway,motorway;highway,motorway_link`
 
-       The first is standard: define a variable and its value, then the block for
-       description and variable type.
-       New is an additional block with information on the excluded ways, a list with
-       name `noStartWay` and `name,value;...` entries.
+          The first is standard: define a variable and its value, then the block for
+          description and variable type.
+          New is an additional block with information on the excluded ways, a list with
+          name `noStartWay` and `name,value;...` entries.
 
-    - `correctMisplacedViaPoints`  default = true
+        - `correctMisplacedViaPoints`  default = true
 
-       Searches for incorrectly placed via points and removes the detours.
-       With the parameter `exportCorrectedWaypoints` adds these points to the output formats.
+          Searches for incorrectly placed via points and removes the detours.
+          With the parameter `exportCorrectedWaypoints` adds these points to the output formats.
 
-    - `correctMisplacedViaPointsDistance`  default=0
+        - `correctMisplacedViaPointsDistance`  default=0
 
-       The default setting 0 removes the entire path, with a tolerance limit BRouter finds and removes only paths within this distance.
+          The default setting 0 removes the entire path, with a tolerance limit BRouter finds and
+          removes only paths within this distance.
 
-    - `continueStraight` default = false
+        - `continueStraight` default = false
 
-       After a via point this goes on in the straight direction. This could avoid u-turns on misplaced via points.
+          After a via point this goes on in the straight direction. This could avoid u-turns on
+          misplaced via points.
 
 
 - for the way section these are
 
-  - `turncost`
-  - `initialcost`
-  - `costfactor`
-  - `uphillcostfactor`
-  - `downhillcostfactor`
-  - `nodeaccessgranted`
-  - `initialclassifier`
-  - `priorityclassifier`
+    - `turncost`
+    - `initialcost`
+    - `costfactor`
+    - `uphillcostfactor`
+    - `downhillcostfactor`
+    - `nodeaccessgranted`
+    - `initialclassifier`
+    - `priorityclassifier`
 
 - for the node section this is just
 
-  - `initialcost`
+    - `initialcost`
 
 Operators of the profile scripts
 --------------------------------
@@ -211,29 +213,29 @@ All expressions have one of the following basic forms:
 
 - 1 Operand operators are:
 
-  - `not <boolean expression>`
+    - `not <boolean expression>`
 
 - 2 Operand operators are:
 
-  - `or       <boolean expression 1> <boolean expression 2>`
-  - `and      <boolean expression 1> <boolean expression 2>`
-  - `xor      <boolean expression 1> <boolean expression 2>`
-  - `multiply <numeric expression 1> <numeric expression 2>`
-  - `divide   <numeric expression 1> <numeric expression 2>`
-  - `add      <numeric expression 1> <numeric expression 2>`
-  - `sub      <numeric expression 1> <numeric expression 2>`
-  - `max      <numeric expression 1> <numeric expression 2>`
-  - `min      <numeric expression 1> <numeric expression 2>`
-  - `equal    <numeric expression 1> <numeric expression 2>`
-  - `greater  <numeric expression 1> <numeric expression 2>`
-  - `lesser   <numeric expression 1> <numeric expression 2>`
+    - `or       <boolean expression 1> <boolean expression 2>`
+    - `and      <boolean expression 1> <boolean expression 2>`
+    - `xor      <boolean expression 1> <boolean expression 2>`
+    - `multiply <numeric expression 1> <numeric expression 2>`
+    - `divide   <numeric expression 1> <numeric expression 2>`
+    - `add      <numeric expression 1> <numeric expression 2>`
+    - `sub      <numeric expression 1> <numeric expression 2>`
+    - `max      <numeric expression 1> <numeric expression 2>`
+    - `min      <numeric expression 1> <numeric expression 2>`
+    - `equal    <numeric expression 1> <numeric expression 2>`
+    - `greater  <numeric expression 1> <numeric expression 2>`
+    - `lesser   <numeric expression 1> <numeric expression 2>`
 
 - 3 Operand operators are:
 
-  - `switch <boolean-expression> <true-expression> <false-expression>`
+    - `switch <boolean-expression> <true-expression> <false-expression>`
 
-    So the switch expression has a numeric value which is the true-expression if
-    the boolean expression is true, the false-expression otherwise.
+      So the switch expression has a numeric value which is the true-expression if
+      the boolean expression is true, the false-expression otherwise.
 
 Syntactic Sugar
 ---------------
@@ -331,13 +333,14 @@ converted by `up/downhill[maxslope]cost` ratio to Elevationcost portion of Equiv
 
   The variable value is used for 2 purposes
 
-  - with `buffer content > elevationpenaltybuffer`, it starts partially convert
-    the buffered elevation to ElevationCost by `up/downhillcost`
+    - with `buffer content > elevationpenaltybuffer`, it starts partially convert
+      the buffered elevation to ElevationCost by `up/downhillcost`
 
-  - with `elevation taken = MIN (buffer content - elevationpenaltybuffer, WayLength[km] * elevationbufferreduce*10`
-    The `up/downhillcostfactor` takes place instead of `costfactor` at the percentage
-    of how much is `WayLength[km] * elevationbufferreduce*10` is saturated by
-    the buffer content above elevationpenaltybuffer.
+    - with
+      `elevation taken = MIN (buffer content - elevationpenaltybuffer, WayLength[km] * elevationbufferreduce*10`
+      The `up/downhillcostfactor` takes place instead of `costfactor` at the percentage
+      of how much is `WayLength[km] * elevationbufferreduce*10` is saturated by
+      the buffer content above elevationpenaltybuffer.
 
 - `elevationmaxbuffer` - default 10(m)
 
@@ -383,7 +386,6 @@ All slopes within 0 .. 1.5% are swallowed by the cutoff.
   is full (elevationmaxbuffer), the elevation transforms to elevationcost by
   full rate of 1.0%, i.e. 10 m/km, giving elevationcost 10*60=600 m/km.
 
-
 Technical constraints
 ---------------------
 
@@ -404,7 +406,6 @@ Technical constraints
 
 - Ways with costfactor = 9999 are considered as if they did not exist during
   route calculation, but the navigation hint generator takes them into account.
-
 
 Developing and debugging scripts
 --------------------------------

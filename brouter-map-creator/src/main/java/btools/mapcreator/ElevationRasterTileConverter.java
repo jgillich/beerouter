@@ -93,6 +93,40 @@ public class ElevationRasterTileConverter {
     }
   }
 
+  static String genFilenameOld(int ilon_base, int ilat_base) {
+    int srtmLonIdx = ((ilon_base + 180) / 5) + 1;
+    int srtmLatIdx = (60 - ilat_base) / 5;
+    return String.format(Locale.US, "srtm_%02d_%02d.bef", srtmLonIdx, srtmLatIdx);
+  }
+
+  static String genFilenameRd5(int ilon_base, int ilat_base) {
+    return String.format("srtm_%s_%s.bef", ilon_base < 0 ? "W" + (-ilon_base) : "E" + ilon_base,
+      ilat_base < 0 ? "S" + (-ilat_base) : "N" + ilat_base);
+  }
+
+  private static String formatLon(int lon) {
+    if (lon >= 180)
+      lon -= 180; // TODO: w180 oder E180 ?
+
+    String s = "E";
+    if (lon < 0) {
+      lon = -lon;
+      s = "W";
+    }
+    String n = "000" + lon;
+    return s + n.substring(n.length() - 3);
+  }
+
+  private static String formatLat(int lat) {
+    String s = "N";
+    if (lat < 0) {
+      lat = -lat;
+      s = "S";
+    }
+    String n = "00" + lat;
+    return s + n.substring(n.length() - 2);
+  }
+
   private void doConvertAll(String hgtdata, String outdir, String rlen, String hgtfallbackdata) throws Exception {
     int row_length = SRTM3_ROW_LENGTH;
     if (rlen != null) {
@@ -113,17 +147,6 @@ public class ElevationRasterTileConverter {
     }
   }
 
-  static String genFilenameOld(int ilon_base, int ilat_base) {
-    int srtmLonIdx = ((ilon_base + 180) / 5) + 1;
-    int srtmLatIdx = (60 - ilat_base) / 5;
-    return String.format(Locale.US, "srtm_%02d_%02d.bef", srtmLonIdx, srtmLatIdx);
-  }
-
-  static String genFilenameRd5(int ilon_base, int ilat_base) {
-    return String.format("srtm_%s_%s.bef", ilon_base < 0 ? "W" + (-ilon_base) : "E" + ilon_base,
-      ilat_base < 0 ? "S" + (-ilat_base) : "N" + ilat_base);
-  }
-
   private void readHgtZip(String filename, int rowOffset, int colOffset, int row_length, int scale) throws Exception {
     ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(filename)));
     try {
@@ -139,6 +162,30 @@ public class ElevationRasterTileConverter {
       zis.close();
     }
   }
+
+  /*
+  private void readFallbackFile(File file, int rowOffset, int colOffset, int row_length)
+    throws Exception {
+    int rowLength;
+    int scale;
+    if (file.length() > HGT_3ASEC_FILE_SIZE) {
+      rowLength = HGT_1ASEC_ROWS;
+      scale = 1;
+    } else {
+      rowLength = HGT_3ASEC_ROWS;
+      scale = 3;
+    }
+    if (DEBUG)
+      System.out.println("read fallback: " + file + " " + rowLength);
+
+    FileInputStream fis = new FileInputStream(file);
+    try {
+      readHgtFromStream(fis, rowOffset, colOffset, rowLength, scale);
+    } finally {
+      fis.close();
+    }
+  }
+  */
 
   private void readHgtFromStream(InputStream is, int rowOffset, int colOffset, int rowLength, int scale)
     throws Exception {
@@ -190,30 +237,6 @@ public class ElevationRasterTileConverter {
       fis.close();
     }
   }
-
-  /*
-  private void readFallbackFile(File file, int rowOffset, int colOffset, int row_length)
-    throws Exception {
-    int rowLength;
-    int scale;
-    if (file.length() > HGT_3ASEC_FILE_SIZE) {
-      rowLength = HGT_1ASEC_ROWS;
-      scale = 1;
-    } else {
-      rowLength = HGT_3ASEC_ROWS;
-      scale = 3;
-    }
-    if (DEBUG)
-      System.out.println("read fallback: " + file + " " + rowLength);
-
-    FileInputStream fis = new FileInputStream(file);
-    try {
-      readHgtFromStream(fis, rowOffset, colOffset, rowLength, scale);
-    } finally {
-      fis.close();
-    }
-  }
-  */
 
   private void readAscZip(File file, ElevationRaster raster) throws Exception {
 
@@ -292,7 +315,6 @@ public class ElevationRasterTileConverter {
     br.close();
   }
 
-
   private void setPixel(int row, int col, short val) {
     if (row >= 0 && row < NROWS && col >= 0 && col < NCOLS) {
       imagePixels[row * NCOLS + col] = val;
@@ -305,7 +327,6 @@ public class ElevationRasterTileConverter {
     }
     return NODATA;
   }
-
 
   public void doConvert(String inputDir, int lonDegreeStart, int latDegreeStart, String outputFile, int row_length, String hgtfallbackdata) throws Exception {
     int extraBorder = 0;
@@ -463,30 +484,6 @@ public class ElevationRasterTileConverter {
     }
     imagePixels = null;
   }
-
-  private static String formatLon(int lon) {
-    if (lon >= 180)
-      lon -= 180; // TODO: w180 oder E180 ?
-
-    String s = "E";
-    if (lon < 0) {
-      lon = -lon;
-      s = "W";
-    }
-    String n = "000" + lon;
-    return s + n.substring(n.length() - 3);
-  }
-
-  private static String formatLat(int lat) {
-    String s = "N";
-    if (lat < 0) {
-      lat = -lat;
-      s = "S";
-    }
-    String n = "00" + lat;
-    return s + n.substring(n.length() - 2);
-  }
-
 
   public ElevationRaster getRaster(File f, double lon, double lat) throws Exception {
     long fileSize;

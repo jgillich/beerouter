@@ -10,7 +10,6 @@ BRouter integration in OsmAnd changed a lot during the summer of 2019. This
 guide assumes you are using the BRouter Android app in version 1.5.0 or higher
 as well as OsmAnd in version 3.4 or higher.
 
-
 ## Installing BRouter app on your Android device
 
 First, install the BRouter app on your Android device from
@@ -22,7 +21,6 @@ can also build the BRouter Android app yourself.
 <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="90"/></a>
 <a href="https://play.google.com/store/apps/details?id=btools.routingapp" target="_blank">
 <img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="90"/></a>
-
 
 ## Downloading BRouter segments
 
@@ -38,7 +36,6 @@ for the selected areas.
 Note that you will have to repeat this step periodically, whenever you want to have an
 updated version of the OSM data used for the routing.
 
-
 ## Selecting profiles to use
 
 Once this is done, start again the BRouter app and choose the "BRouter App"
@@ -51,7 +48,6 @@ labelling) in OsmAnd.
 <img src="osmand/brouter-profiles.png" alt="Profiles selection"/>
 
 <img src="osmand/brouter-profiles-summary.png" alt="Profiles selection summary"/>
-
 
 ## Configure OsmAnd to make use of BRouter offline navigation
 
@@ -68,25 +64,29 @@ The BRouter app should be launched before OsmAnd for this specific entry to
 appear in OsmAnd. Therefore, if you cannot find "BRouter (offline)" navigation
 option, you should force quit OsmAnd and restart it.
 
-
 ## OsmAnd version 4.7.1
 
 From version 4.7.1 upwards Osmand supports the profile parameter for mapping:
-Since Osmand version 3, many profiles can be defined in Osmand and the user can easily switch between these profiles.
-This allow now when using the service-interface to address different brouter-profiles in a more flexible and better comprehensive way.
+Since Osmand version 3, many profiles can be defined in Osmand and the user can easily switch
+between these profiles.
+This allow now when using the service-interface to address different brouter-profiles in a more
+flexible and better comprehensive way.
 
 - If in Osmand a profile has "BRouter" defined as navigation service
 - AND the profile-name looks like "Brouter[mysting]
 
 ==> then the profile "mystring" will be used in the Brouter-app!
-(this new mapping replaces in that case the basic mapping defined above and based on the file "serviceconfig.dat)
+(this new mapping replaces in that case the basic mapping defined above and based on the file "
+serviceconfig.dat)
 
 ### Examples: Osmand-profile name	Brouter-app
+
 ```
 [Brouter[trekking]	"trekking" profile will be used (file trekking.brf)
 [Brouter[racebike]	"racebike" profile will be used (file racebike.brf)
 ....
 ```
+
 Remark:
 Currently Osmand do not check the defined name (case sensitiv) for the Brouter-profile (mystring).
 If no profile is found, the routing will fail with "Could not calculate route.."!

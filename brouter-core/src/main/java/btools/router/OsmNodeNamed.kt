@@ -8,22 +8,7 @@ package btools.router
 import btools.mapaccess.OsmNode
 import btools.util.CheapRuler.distance
 import btools.util.CheapRuler.getLonLatToMeterScales
-import kotlin.Boolean
-import kotlin.Int
-import kotlin.String
-import kotlin.collections.minus
-import kotlin.collections.plus
-import kotlin.div
 import kotlin.math.sqrt
-import kotlin.plus
-import kotlin.sequences.minus
-import kotlin.sequences.plus
-import kotlin.text.indexOf
-import kotlin.text.plus
-import kotlin.text.substring
-import kotlin.text.toDouble
-import kotlin.text.toInt
-import kotlin.times
 
 open class OsmNodeNamed : OsmNode {
     @JvmField
@@ -51,8 +36,8 @@ open class OsmNodeNamed : OsmNode {
         lat1: Int,
         lon2: Int,
         lat2: Int,
-        totalSegmentLength: kotlin.Double
-    ): kotlin.Double {
+        totalSegmentLength: Double
+    ): Double {
         var lon1 = lon1
         var lat1 = lat1
         var lon2 = lon2
@@ -84,7 +69,7 @@ open class OsmNodeNamed : OsmNode {
         }
         // Distance between the initial point and projection of center of
         // the circle on the current segment.
-        val initialToProject: kotlin.Double =
+        val initialToProject: Double =
             (((lon2 - lon1) * (iLon - lon1) * lonlat2m!![0] * lonlat2m[0]
                     + (lat2 - lat1) * (iLat - lat1) * lonlat2m[1] * lonlat2m[1]
                     ) / totalSegmentLength)
@@ -113,7 +98,7 @@ open class OsmNodeNamed : OsmNode {
             val idx3 = s.indexOf(',', idx2 + 1)
             if (idx3 == -1) {
                 n.name = s.substring(idx2 + 1)
-                n.nogoWeight = kotlin.Double.Companion.NaN
+                n.nogoWeight = Double.Companion.NaN
             } else {
                 n.name = s.substring(idx2 + 1, idx3)
                 n.nogoWeight = s.substring(idx3 + 1).toDouble()

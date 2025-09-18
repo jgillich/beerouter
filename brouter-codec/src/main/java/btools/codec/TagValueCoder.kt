@@ -29,7 +29,7 @@ class TagValueCoder {
         }
         val tvsProbe = TagValueSet(nextTagValueSetId)
         tvsProbe.data = data
-        var tvs = identityMap!!.get(tvsProbe)
+        var tvs = identityMap!![tvsProbe]
         if (pass == 3) {
             bc!!.encodeBounded(tvs!!.range - 1, tvs.code)
         } else if (pass == 2) {
@@ -54,12 +54,12 @@ class TagValueCoder {
 
     fun encodeDictionary(bc: BitCoderContext) {
         if (++pass == 3) {
-            if (identityMap!!.size == 0) {
+            if (identityMap!!.isEmpty()) {
                 val dummy = TagValueSet(nextTagValueSetId++)
                 identityMap!!.put(dummy, dummy)
             }
             val queue: Queue<TagValueSet> =
-                PriorityQueue<TagValueSet>(2 * identityMap!!.size, FrequencyComparator())
+                PriorityQueue(2 * identityMap!!.size, FrequencyComparator())
             queue.addAll(identityMap!!.values)
             while (queue.size > 1) {
                 val node = TagValueSet(nextTagValueSetId++)
@@ -136,7 +136,7 @@ class TagValueCoder {
             res = validator.unify(buffer, 0, len)
         }
 
-        val accessType = if (validator == null) 2 else validator.accessType(res)
+        val accessType = validator?.accessType(res) ?: 2
         if (accessType > 0) {
             val w = TagValueWrapper()
             w.data = res

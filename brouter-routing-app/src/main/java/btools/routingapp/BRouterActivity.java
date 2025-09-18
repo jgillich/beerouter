@@ -61,6 +61,7 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   //private static final int DIALOG_OLDDATAHINT_ID = 13;
   private static final int DIALOG_SHOW_REPEAT_TIMEOUT_HELP_ID = 16;
   private final Set<Integer> dialogIds = new HashSet<>();
+  ActivityResultLauncher<Intent> someActivityResultLauncher;
   private BRouterView mBRouterView;
   private String[] availableProfiles;
   private String selectedProfile = null;
@@ -79,8 +80,6 @@ public class BRouterActivity extends AppCompatActivity implements ActivityCompat
   private int wpCount;
   private boolean startSilent;
   private String configuredParams = null;
-
-  ActivityResultLauncher<Intent> someActivityResultLauncher;
 
   /**
    * Called when the activity is first created.

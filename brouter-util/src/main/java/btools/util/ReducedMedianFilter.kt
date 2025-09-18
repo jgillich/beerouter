@@ -5,11 +5,10 @@ package btools.util
  */
 class ReducedMedianFilter(size: Int) {
     private var nsamples = 0
-    private val weights: DoubleArray
+    private val weights: DoubleArray = DoubleArray(size)
     private val values: IntArray
 
     init {
-        weights = DoubleArray(size)
         values = IntArray(size)
     }
 

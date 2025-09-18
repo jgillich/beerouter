@@ -43,7 +43,7 @@ public class ServiceModeConfig {
   public String toString() {
     StringBuilder sb = new StringBuilder(100);
     sb.append(mode).append("->").append(profile);
-    sb.append(" [" + nogoVetos.size() + "]" + (params.equals("noparams")?"":" +p"));
+    sb.append(" [" + nogoVetos.size() + "]" + (params.equals("noparams") ? "" : " +p"));
     return sb.toString();
   }
 }

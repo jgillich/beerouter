@@ -18,7 +18,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
         if (statsPerName == null) {
             statsPerName = TreeMap<String?, LongArray>()
         }
-        var stats: LongArray? = statsPerName!!.get(name)
+        var stats: LongArray? = statsPerName!![name]
         if (stats == null) {
             stats = LongArray(2)
             statsPerName!!.put(name, stats)
@@ -258,7 +258,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
                 }
                 val sb = StringBuilder()
                 for (name in statsPerName!!.keys) {
-                    val stats: LongArray = statsPerName!!.get(name)!!
+                    val stats: LongArray = statsPerName!![name]!!
                     sb.append(name + " count=" + stats[1] + " bits=" + stats[0] + "\n")
                 }
                 statsPerName = null

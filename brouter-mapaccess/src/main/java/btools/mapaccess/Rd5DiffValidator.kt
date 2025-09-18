@@ -43,11 +43,11 @@ object Rd5DiffValidator {
 
             val md5New = Rd5DiffManager.getMD5(fn)
 
-            println("name=" + name + " md5=" + md5)
+            println("name=$name md5=$md5")
 
             val specificNewDiffs = File(newDiffDir, basename)
 
-            val diffFileName = md5 + ".df5"
+            val diffFileName = "$md5.df5"
             val diffFile = File(specificNewDiffs, diffFileName)
 
             val fcmp = File(oldDir, name + "_tmp")

@@ -75,11 +75,11 @@ internal class StdPath : OsmPath() {
         }
 
         var downhillmaxslopecostdiv = rc.expctxWay!!.downhillmaxslopecost.toInt()
-        if (downhillmaxslopecostdiv > 0) {
-            downhillmaxslopecostdiv = 1000000 / downhillmaxslopecostdiv
+        downhillmaxslopecostdiv = if (downhillmaxslopecostdiv > 0) {
+            1000000 / downhillmaxslopecostdiv
         } else {
             // if not given, use legacy behavior
-            downhillmaxslopecostdiv = downhillcostdiv
+            downhillcostdiv
         }
 
         uphillcostdiv = rc.expctxWay!!.uphillcost.toInt()
@@ -88,11 +88,11 @@ internal class StdPath : OsmPath() {
         }
 
         var uphillmaxslopecostdiv = rc.expctxWay!!.uphillmaxslopecost.toInt()
-        if (uphillmaxslopecostdiv > 0) {
-            uphillmaxslopecostdiv = 1000000 / uphillmaxslopecostdiv
+        uphillmaxslopecostdiv = if (uphillmaxslopecostdiv > 0) {
+            1000000 / uphillmaxslopecostdiv
         } else {
             // if not given, use legacy behavior
-            uphillmaxslopecostdiv = uphillcostdiv
+            uphillcostdiv
         }
 
         val dist = distance.toInt() // legacy arithmetics needs int

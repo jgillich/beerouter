@@ -1,11 +1,10 @@
 package btools.util
 
 class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : IByteArrayUnifier {
-    private val byteArrayCache: Array<ByteArray?>
+    private val byteArrayCache: Array<ByteArray?> = arrayOfNulls<ByteArray>(size)
     private var crcCrosscheck: IntArray? = null
 
     init {
-        byteArrayCache = arrayOfNulls<ByteArray>(size)
         if (validateImmutability) crcCrosscheck = IntArray(size)
     }
 

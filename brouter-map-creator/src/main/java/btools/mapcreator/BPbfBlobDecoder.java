@@ -29,6 +29,9 @@ public class BPbfBlobDecoder {
   private byte[] rawBlob;
 
   private OsmParser parser;
+  private LongList fromWid;
+  private LongList toWid;
+  private LongList viaNid;
 
   /**
    * Creates a new instance.
@@ -99,7 +102,7 @@ public class BPbfBlobDecoder {
     // We can't continue if there are any unsupported features. We wait
     // until now so that we can display all unsupported features instead of
     // just the first one we encounter.
-    if (unsupportedFeatures.size() > 0) {
+    if (!unsupportedFeatures.isEmpty()) {
       throw new RuntimeException("PBF file contains unsupported features " + unsupportedFeatures);
     }
 
@@ -186,10 +189,6 @@ public class BPbfBlobDecoder {
       parser.addWay(way.getId(), tags, wayNodes);
     }
   }
-
-  private LongList fromWid;
-  private LongList toWid;
-  private LongList viaNid;
 
   private LongList addLong(LongList ll, long l) {
     if (ll == null) {

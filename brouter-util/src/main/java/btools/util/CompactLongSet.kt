@@ -7,13 +7,13 @@ package btools.util
  */
 open class CompactLongSet {
     private var al: Array<LongArray?>?
-    private val pa: IntArray
+
+    // pointer array
+    private val pa: IntArray = IntArray(MAXLISTS)
     private var size = 0
     private val _maxKeepExponent = 14 // the maximum exponent to keep the invalid arrays
 
     init {
-        // pointer array
-        pa = IntArray(MAXLISTS)
 
         // allocate key lists
         al = arrayOfNulls<LongArray?>(MAXLISTS)
@@ -88,7 +88,7 @@ open class CompactLongSet {
             }
 
             // current maximum found, copy to target array
-            require(!(n < al!![idx]!!.size && maxId == al!![idx]!![n])) { "duplicate key found in late check: " + maxId }
+            require(!(n < al!![idx]!!.size && maxId == al!![idx]!![n])) { "duplicate key found in late check: $maxId" }
             --n
             al!![idx]!![n] = maxId
 
@@ -165,7 +165,7 @@ open class CompactLongSet {
             faid[ti] = minId
             pa[minIdx]++
 
-            require(!(ti > 0 && faid[ti - 1] == minId)) { "duplicate key found in late check: " + minId }
+            require(!(ti > 0 && faid[ti - 1] == minId)) { "duplicate key found in late check: $minId" }
         }
 
         // free the non-frozen array

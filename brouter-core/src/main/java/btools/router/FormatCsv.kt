@@ -21,7 +21,7 @@ class FormatCsv(rc: RoutingContext) : Formatter(rc) {
         for (m in t.aggregateMessages()) {
             dumpLine(bw, m!!)
         }
-        if (bw != null) bw.close()
+        bw?.close()
     }
 
     @Throws(Exception::class)

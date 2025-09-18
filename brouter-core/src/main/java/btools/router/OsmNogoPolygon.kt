@@ -56,7 +56,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
 
         // first calculate a starting center point as center of boundingbox
         for (i in points.indices) {
-            val p = points.get(i)
+            val p = points[i]
             if (p.x < cxmin) {
                 cxmin = p.x
             }
@@ -86,7 +86,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         do {
             // now identify the point outside of the circle that has the greatest distance
             for (i in points.indices) {
-                val p = points.get(i)
+                val p = points[i]
 
                 // to get precisely the same results as in RoutingContext.calcDistance()
                 // it's crucial to use the factors of the center!
@@ -108,7 +108,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
             }
             val dd = 0.5 * (1 - rad / dmax)
 
-            val p = points.get(i_max) // calculate new radius to just include this point
+            val p = points[i_max] // calculate new radius to just include this point
             cx += (dd * (p.x - cx) + 0.5).toInt() // shift center toward point
             cy += (dd * (p.y - cy) + 0.5).toInt()
 
@@ -147,9 +147,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         val p0 = Point(lon0, lat0)
         val p1 = Point(lon1, lat1)
         val i_last = points.size - 1
-        var p2 = points.get(if (isClosed) i_last else 0)
+        var p2 = points[if (isClosed) i_last else 0]
         for (i in (if (isClosed) 0 else 1)..i_last) {
-            val p3 = points.get(i)
+            val p3 = points[i]
             // does it intersect with at least one of the polygon's segments?
             if (intersect2D_2Segments(p0, p1, p2, p3) > 0) {
                 return true
@@ -161,9 +161,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
 
     fun isOnPolyline(px: Long, py: Long): Boolean {
         val i_last = points.size - 1
-        var p1 = points.get(0)
+        var p1 = points[0]
         for (i in 1..i_last) {
-            val p2 = points.get(i)
+            val p2 = points[i]
             if (isOnLine(px, py, p1.x.toLong(), p1.y.toLong(), p2.x.toLong(), p2.y.toLong())) {
                 return true
             }
@@ -190,12 +190,12 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
 
         // loop through all edges of the polygon
         val i_last = points.size - 1
-        val p0 = points.get(if (isClosed) i_last else 0)
+        val p0 = points[if (isClosed) i_last else 0]
         var p0x = p0.x.toLong() // need to use long to avoid overflow in products
         var p0y = p0.y.toLong()
 
         for (i in (if (isClosed) 0 else 1)..i_last) { // edge from v[i] to v[i+1]
-            val p1 = points.get(i)
+            val p1 = points[i]
 
             val p1x = p1.x.toLong()
             val p1y = p1.y.toLong()
@@ -253,8 +253,8 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         var i = (if (isClosed) 0 else 1)
         var j = (if (isClosed) i_last else 0)
         while (i <= i_last) {
-            val edgePoint1 = points.get(j)
-            val edgePoint2 = points.get(i)
+            val edgePoint1 = points[j]
+            val edgePoint2 = points[i]
             val intersectsEdge: Int = intersect2D_2Segments(p1, p2, edgePoint1, edgePoint2)
 
             if (isClosed && intersectsEdge == 1) {

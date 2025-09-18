@@ -11,12 +11,6 @@ public class Area {
   private List<Polygon> poslist = new ArrayList<>();
   private List<Polygon> neglist = new ArrayList<>();
 
-  public static void main(String[] args) throws IOException {
-    Area a = new Area(new File(args[0]));
-
-    System.out.println(args[1] + " is in " + args[0] + "=" + a.isInArea(Long.parseLong(args[1])));
-  }
-
   public Area(File f) throws IOException {
     BufferedReader br = new BufferedReader(new FileReader(f));
     br.readLine();
@@ -33,6 +27,12 @@ public class Area {
         poslist.add(pol);
       }
     }
+  }
+
+  public static void main(String[] args) throws IOException {
+    Area a = new Area(new File(args[0]));
+
+    System.out.println(args[1] + " is in " + args[0] + "=" + a.isInArea(Long.parseLong(args[1])));
   }
 
   public boolean isInArea(long id) {

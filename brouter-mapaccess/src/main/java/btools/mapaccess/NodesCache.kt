@@ -11,16 +11,6 @@ import btools.codec.WaypointMatcher
 import btools.expressions.BExpressionContextWay
 import java.io.File
 import java.io.IOException
-import kotlin.Array
-import kotlin.Double
-import kotlin.Exception
-import kotlin.Int
-import kotlin.Long
-import kotlin.RuntimeException
-import kotlin.String
-import kotlin.Throws
-import kotlin.arrayOfNulls
-import kotlin.require
 
 class NodesCache(
     private var segmentDir: File,
@@ -54,7 +44,7 @@ class NodesCache(
     var first_file_access_name: String?
 
     private var cacheSum: Long = 0
-    private var maxmemtiles: Long
+    private var maxmemtiles: Long = maxmem / 8
     private var detailed: Boolean // NOPMD used in constructor
 
     private var garbageCollectionEnabled = false
@@ -68,11 +58,10 @@ class NodesCache(
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
 
     fun formatStatus(): String {
-        return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup
+        return "collecting=$garbageCollectionEnabled noGhosts=$ghostCleaningDone cacheSum=$cacheSum cacheSumClean=$cacheSumClean ghostSum=$ghostSum ghostWakeup=$ghostWakeup"
     }
 
     init {
-        this.maxmemtiles = maxmem / 8
         this.nodesMap = OsmNodesMap()
         this.nodesMap.maxmem = (2L * maxmem) / 3L
         this.expCtxWay = ctxWay
@@ -88,7 +77,7 @@ class NodesCache(
         first_file_access_failed = false
         first_file_access_name = null
 
-        if (!this.segmentDir.isDirectory()) throw RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist")
+        if (!this.segmentDir.isDirectory()) throw RuntimeException("segment directory " + segmentDir.absolutePath + " does not exist")
 
         if (oldCache != null) {
             fileCache = oldCache.fileCache
@@ -116,7 +105,7 @@ class NodesCache(
         ghostSum = cacheSum
     }
 
-    fun clean(all: kotlin.Boolean) {
+    fun clean(all: Boolean) {
         for (fileRow in fileRows) {
             if (fileRow == null) continue
             for (osmf in fileRow) {
@@ -138,10 +127,10 @@ class NodesCache(
                 continue
             }
             for (osmf in fileRow) {
-                if (garbageCollectionEnabled && !ghostCleaningDone) {
-                    cacheSum -= osmf!!.cleanGhosts()
+                cacheSum -= if (garbageCollectionEnabled && !ghostCleaningDone) {
+                    osmf!!.cleanGhosts()
                 } else {
-                    cacheSum -= osmf!!.collectAll()
+                    osmf!!.collectAll()
                 }
             }
         }
@@ -157,7 +146,7 @@ class NodesCache(
 
     fun loadSegmentFor(ilon: Int, ilat: Int): Int {
         val mc = getSegmentFor(ilon, ilat)
-        return if (mc == null) 0 else mc.size
+        return mc?.size ?: 0
     }
 
     fun getSegmentFor(ilon: Int, ilat: Int): MicroCache? {
@@ -166,7 +155,7 @@ class NodesCache(
             val latDegree = ilat / 1000000
             var osmf: OsmFile? = null
             val fileRow = fileRows[latDegree]
-            val ndegrees = if (fileRow == null) 0 else fileRow.size
+            val ndegrees = fileRow?.size ?: 0
             for (i in 0..<ndegrees) {
                 if (fileRow!![i]!!.lonDegree == lonDegree) {
                     osmf = fileRow[i]
@@ -212,7 +201,7 @@ class NodesCache(
         } catch (re: RuntimeException) {
             throw re
         } catch (e: Exception) {
-            throw RuntimeException("error reading datafile " + currentFileName + ": " + e, e)
+            throw RuntimeException("error reading datafile $currentFileName: $e", e)
         }
     }
 
@@ -223,7 +212,7 @@ class NodesCache(
      *
      * @return true if successfull, false if node is still hollow
      */
-    fun obtainNonHollowNode(node: OsmNode): kotlin.Boolean {
+    fun obtainNonHollowNode(node: OsmNode): Boolean {
         if (!node.isHollow) return true
 
         val segment = getSegmentFor(node.iLon, node.iLat)
@@ -262,7 +251,7 @@ class NodesCache(
     /**
      * make sure all link targets of the given node are non-hollow
      */
-    fun hasHollowLinkTargets(n: OsmNode): kotlin.Boolean {
+    fun hasHollowLinkTargets(n: OsmNode): Boolean {
         var link = n.firstlink
         while (link != null) {
             if (link.getTarget(n)!!.isHollow) {
@@ -311,7 +300,7 @@ class NodesCache(
         unmatchedWaypoints: MutableList<MatchedWaypoint>,
         maxDistance: Double,
         islandNodePairs: OsmNodePairSet?
-    ): kotlin.Boolean {
+    ): Boolean {
         waypointMatcher = WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs!!)
         for (mwp in unmatchedWaypoints) {
             var cellsize = 12500
@@ -328,14 +317,12 @@ class NodesCache(
             }
         }
 
-        require(!first_file_access_failed) { "datafile " + first_file_access_name + " not found" }
+        require(!first_file_access_failed) { "datafile $first_file_access_name not found" }
         val len = unmatchedWaypoints.size
         for (i in 0..<len) {
-            val mwp = unmatchedWaypoints.get(i)
+            val mwp = unmatchedWaypoints[i]
             if (mwp.crosspoint == null) {
-                if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints.get(
-                        i - 1
-                    ).direct
+                if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].direct
                 ) {
                     mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
                     mwp.direct = true
@@ -344,9 +331,7 @@ class NodesCache(
                     return false
                 }
             }
-            if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints.get(
-                    i - 1
-                ).direct
+            if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].direct
             ) {
                 mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
                 mwp.direct = true
@@ -359,12 +344,12 @@ class NodesCache(
         n: OsmNode,
         d: Int,
         maxscale: Int,
-        bUseDynamicRange: kotlin.Boolean
+        bUseDynamicRange: Boolean
     ) {
         first_file_access_failed = false
         first_file_access_name = null
         loadSegmentFor(n.iLon, n.iLat)
-        require(!first_file_access_failed) { "datafile " + first_file_access_name + " not found" }
+        require(!first_file_access_failed) { "datafile $first_file_access_name not found" }
         var scale = 1
         while (scale < maxscale) {
             for (idxLat in -scale..scale) for (idxLon in -scale..scale) {
@@ -383,25 +368,25 @@ class NodesCache(
         val latMod5 = latDegree % 5
 
         val lon = lonDegree - 180 - lonMod5
-        val slon = if (lon < 0) "W" + (-lon) else "E" + lon
+        val slon = if (lon < 0) "W" + (-lon) else "E$lon"
         val lat = latDegree - 90 - latMod5
 
-        val slat = if (lat < 0) "S" + (-lat) else "N" + lat
+        val slat = if (lat < 0) "S" + (-lat) else "N$lat"
         val filenameBase = slon + "_" + slat
 
-        currentFileName = filenameBase + ".rd5"
+        currentFileName = "$filenameBase.rd5"
 
         var ra: PhysicalFile? = null
         if (!fileCache!!.containsKey(filenameBase)) {
             var f: File? = null
             if (!forceSecondaryData) {
-                val primary = File(segmentDir, filenameBase + ".rd5")
+                val primary = File(segmentDir, "$filenameBase.rd5")
                 if (primary.exists()) {
                     f = primary
                 }
             }
             if (f == null) {
-                val secondary = File(secondarySegmentsDir, filenameBase + ".rd5")
+                val secondary = File(secondarySegmentsDir, "$filenameBase.rd5")
                 if (secondary.exists()) {
                     f = secondary
                 }
@@ -412,7 +397,7 @@ class NodesCache(
             }
             fileCache!!.put(filenameBase, ra)
         }
-        ra = fileCache!!.get(filenameBase)
+        ra = fileCache!![filenameBase]
         val osmf = OsmFile(ra, lonDegree, latDegree, dataBuffers)
 
         if (first_file_access_name == null) {
@@ -437,7 +422,7 @@ class NodesCache(
         val lonDegree = ilon / 1000000
         val latDegree = ilat / 1000000
         val fileRow = fileRows[latDegree]
-        val ndegrees = if (fileRow == null) 0 else fileRow.size
+        val ndegrees = fileRow?.size ?: 0
         for (i in 0..<ndegrees) {
             if (fileRow!![i]!!.lonDegree == lonDegree) {
                 val osmf = fileRow[i]

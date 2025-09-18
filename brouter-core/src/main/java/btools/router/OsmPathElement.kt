@@ -6,6 +6,7 @@ import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
  * Container for link between two Osm nodes
@@ -54,12 +55,10 @@ class OsmPathElement protected constructor() : OsmPos {
 
     override fun calcDistance(p: OsmPos): Int {
         return max(
-            1.0, Math.round(
-                distance(
-                    this.iLon,
-                    this.iLat, p.iLon, p.iLat
-                )
-            ).toDouble()
+            1.0, distance(
+                this.iLon,
+                this.iLat, p.iLon, p.iLat
+            ).roundToInt().toDouble()
         ).toInt()
     }
 

@@ -18,10 +18,10 @@ import btools.router.OsmNodeNamed;
 import btools.router.SuspectInfo;
 
 public class SuspectManager extends Thread {
-  private static SimpleDateFormat dfTimestampZ = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-
   static NearRecentWps nearRecentWps = new NearRecentWps();
   static NearRecentWps hiddenWps = new NearRecentWps();
+  private static SimpleDateFormat dfTimestampZ = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+  private static Map<String, SuspectList> allSuspectsMap = new HashMap<>();
 
   private static String formatZ(Date date) {
     synchronized (dfTimestampZ) {
@@ -62,7 +62,6 @@ public class SuspectManager extends Thread {
         return "none";
     }
   }
-
 
   private static void markFalsePositive(SuspectList suspects, long id) throws IOException {
     new File("falsepositives/" + id).createNewFile();
@@ -545,43 +544,10 @@ public class SuspectManager extends Thread {
     bw.flush();
   }
 
-
   private static boolean isFixed(long id, long timestamp) {
     File fixedEntry = new File("fixedsuspects/" + id);
     return fixedEntry.exists() && fixedEntry.lastModified() > timestamp;
   }
-
-
-  private static final class SuspectList {
-    int cnt;
-    long[] ids;
-    int[] prios;
-    int[] triggers;
-    boolean[] newOrConfirmed;
-    boolean[] falsePositive;
-    long timestamp;
-
-    SuspectList(int count, long time) {
-      cnt = count;
-      ids = new long[cnt];
-      prios = new int[cnt];
-      triggers = new int[cnt];
-      newOrConfirmed = new boolean[cnt];
-      falsePositive = new boolean[cnt];
-      timestamp = time;
-    }
-
-    int trigger4Id(long id) {
-      for (int i = 0; i < cnt; i++) {
-        if (id == ids[i]) {
-          return triggers[i];
-        }
-      }
-      return 0;
-    }
-  }
-
-  private static Map<String, SuspectList> allSuspectsMap = new HashMap<>();
 
   private static SuspectList getDailySuspectsIfLoaded() throws IOException {
     synchronized (allSuspectsMap) {
@@ -640,6 +606,35 @@ public class SuspectManager extends Thread {
       r.close();
       allSuspectsMap.put(suspectFileName, allSuspects);
       return allSuspects;
+    }
+  }
+
+  private static final class SuspectList {
+    int cnt;
+    long[] ids;
+    int[] prios;
+    int[] triggers;
+    boolean[] newOrConfirmed;
+    boolean[] falsePositive;
+    long timestamp;
+
+    SuspectList(int count, long time) {
+      cnt = count;
+      ids = new long[cnt];
+      prios = new int[cnt];
+      triggers = new int[cnt];
+      newOrConfirmed = new boolean[cnt];
+      falsePositive = new boolean[cnt];
+      timestamp = time;
+    }
+
+    int trigger4Id(long id) {
+      for (int i = 0; i < cnt; i++) {
+        if (id == ids[i]) {
+          return triggers[i];
+        }
+      }
+      return 0;
     }
   }
 }

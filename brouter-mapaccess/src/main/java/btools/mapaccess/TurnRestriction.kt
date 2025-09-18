@@ -26,7 +26,7 @@ class TurnRestriction {
     }
 
     override fun toString(): String {
-        return "pos=" + isPositive + " fromLon=" + fromLon + " fromLat=" + fromLat + " toLon=" + toLon + " toLat=" + toLat
+        return "pos=$isPositive fromLon=$fromLon fromLat=$fromLat toLon=$toLon toLat=$toLat"
     }
 
     companion object {

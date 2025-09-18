@@ -17,13 +17,12 @@ class SearchBoundary(n: OsmNode, private val radius: Int, var direction: Int) {
     private val minlat: Int
     private val maxlon: Int
     private val maxlat: Int
-    private val p: OsmNode
+    private val p: OsmNode = OsmNode(n.iLon, n.iLat)
 
     /**
      * @param radius Search radius in meters.
      */
     init {
-        p = OsmNode(n.iLon, n.iLat)
 
         val lon: Int = (n.iLon / 5000000) * 5000000
         val lat = (n.iLat / 5000000) * 5000000
@@ -50,12 +49,12 @@ class SearchBoundary(n: OsmNode, private val radius: Int, var direction: Int) {
     }
 
     fun getBoundaryDistance(n: OsmNode): Int {
-        when (direction) {
-            0 -> return n.calcDistance(OsmNode(n.iLon, minlat))
-            1 -> return n.calcDistance(OsmNode(minlon, n.iLat))
-            2 -> return n.calcDistance(OsmNode(n.iLon, maxlat))
-            3 -> return n.calcDistance(OsmNode(maxlon, n.iLat))
-            else -> throw IllegalArgumentException("undefined direction: " + direction)
+        return when (direction) {
+            0 -> n.calcDistance(OsmNode(n.iLon, minlat))
+            1 -> n.calcDistance(OsmNode(minlon, n.iLat))
+            2 -> n.calcDistance(OsmNode(n.iLon, maxlat))
+            3 -> n.calcDistance(OsmNode(maxlon, n.iLat))
+            else -> throw IllegalArgumentException("undefined direction: $direction")
         }
     }
 
@@ -67,8 +66,8 @@ class SearchBoundary(n: OsmNode, private val radius: Int, var direction: Int) {
             val dlon = lon / 1000000 - 180
             val dlat = lat / 1000000 - 90
 
-            val slon = if (dlon < 0) "W" + (-dlon) else "E" + dlon
-            val slat = if (dlat < 0) "S" + (-dlat) else "N" + dlat
+            val slon = if (dlon < 0) "W" + (-dlon) else "E$dlon"
+            val slat = if (dlat < 0) "S" + (-dlat) else "N$dlat"
             return slon + "_" + slat + ".trf"
         }
     }

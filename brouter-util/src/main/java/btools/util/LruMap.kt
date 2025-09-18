@@ -11,11 +11,7 @@ class LruMap(private val hashbins: Int, private val maxsize: Int) {
     private var lru: LruMapNode? = null
     private var mru: LruMapNode? = null
 
-    private val binArray: Array<LruMapNode?>
-
-    init {
-        binArray = arrayOfNulls<LruMapNode>(hashbins)
-    }
+    private val binArray: Array<LruMapNode?> = arrayOfNulls<LruMapNode>(hashbins)
 
     fun get(key: LruMapNode): LruMapNode? {
         val bin = (key.hash and 0xfffffff) % hashbins

@@ -1,3 +1,5 @@
+@file:Suppress("LiftReturnOrAssignment")
+
 package btools.router
 
 import btools.mapaccess.MatchedWaypoint
@@ -35,7 +37,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             for (i in t.messageList!!.indices.reversed()) {
                 var message = t.messageList!![i]
                 if (i < t.messageList!!.size - 1) message =
-                    "(alt-index " + i + ": " + message + " )"
+                    "(alt-index $i: $message )"
                 if (message != null) sb.append("<!-- ").append(message).append(" -->\n")
             }
         }
@@ -51,8 +53,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                         "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
                         hint!!.getCommandString(turnInstructionMode),
                         hint.indexInTrack,
-                        Formatter.Companion.formatILon(hint.ilon),
-                        Formatter.Companion.formatILat(hint.ilat),
+                        formatILon(hint.ilon),
+                        formatILat(hint.ilat),
                         (hint.distanceToNext).toInt(),
                         hint.formatGeometry()
                     )
@@ -81,7 +83,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             sb.append("  <name>").append(t.name).append("</name>\n")
             sb.append("  <extensions>\n")
             sb.append("   <brouter:info>").append(t.messageList!![0]).append("</brouter:info>\n")
-            if (t.params != null && t.params!!.size > 0) {
+            if (t.params != null && t.params!!.isNotEmpty()) {
                 sb.append("   <brouter:params><![CDATA[")
                 var i = 0
                 for (e in t.params!!.entries) {
@@ -103,8 +105,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             // define start point
             run {
                 first.append("  <rtept lat=\"")
-                    .append(Formatter.Companion.formatILat(t.nodes.get(0).iLat)).append("\" lon=\"")
-                    .append(Formatter.Companion.formatILon(t.nodes.get(0).iLon)).append("\">\n")
+                    .append(formatILat(t.nodes[0].iLat)).append("\" lon=\"")
+                    .append(formatILon(t.nodes[0].iLon)).append("\">\n")
                     .append("   <desc>start</desc>\n   <extensions>\n")
                 if (rteTime != lastRteTime) { // add timing only if available
                     val ti = (rteTime - lastRteTime).toDouble()
@@ -125,9 +127,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
             for (i in t.voiceHints.list.indices) {
                 val hint = t.voiceHints!!.list[i]
-                sb.append("  <rtept lat=\"").append(Formatter.Companion.formatILat(hint.ilat))
+                sb.append("  <rtept lat=\"").append(formatILat(hint.ilat))
                     .append("\" lon=\"")
-                    .append(Formatter.Companion.formatILon(hint!!.ilon)).append("\">\n")
+                    .append(formatILon(hint!!.ilon)).append("\">\n")
                     .append("   <desc>")
                     .append(
                         if (turnInstructionMode == 3) hint!!.getMessageString(
@@ -150,9 +152,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                     .append("</offset>\n  </extensions>\n </rtept>\n")
             }
             sb.append("  <rtept lat=\"")
-                .append(Formatter.Companion.formatILat(t.nodes.get(t.nodes.size - 1).iLat))
+                .append(formatILat(t.nodes[t.nodes.size - 1].iLat))
                 .append("\" lon=\"")
-                .append(Formatter.Companion.formatILon(t.nodes.get(t.nodes.size - 1).iLon))
+                .append(formatILon(t.nodes[t.nodes.size - 1].iLon))
                 .append("\">\n")
                 .append("   <desc>destination</desc>\n   <extensions>\n")
             sb.append("    <time>0</time>\n")
@@ -166,10 +168,10 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             var lastRteTime = t.getVoiceHintTime(0)
 
             for (i in t.voiceHints.list.indices) {
-                val hint = t.voiceHints.list.get(i)
-                sb.append(" <wpt lon=\"").append(Formatter.Companion.formatILon(hint!!.ilon))
+                val hint = t.voiceHints.list[i]
+                sb.append(" <wpt lon=\"").append(formatILon(hint!!.ilon))
                     .append("\" lat=\"")
-                    .append(Formatter.Companion.formatILat(hint.ilat)).append("\">")
+                    .append(formatILat(hint.ilat)).append("\">")
                     .append(if (hint.selev == Short.Companion.MIN_VALUE) "" else "<ele>" + (hint.selev / 4.0) + "</ele>")
                     .append("<name>")
                     .append(hint.getMessageString(turnInstructionMode))
@@ -191,9 +193,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         }
         if (turnInstructionMode == 5) { // gpsies style
             for (hint in t.voiceHints.list) {
-                sb.append(" <wpt lon=\"").append(Formatter.Companion.formatILon(hint.ilon))
+                sb.append(" <wpt lon=\"").append(formatILon(hint.ilon))
                     .append("\" lat=\"")
-                    .append(Formatter.Companion.formatILat(hint.ilat)).append("\">")
+                    .append(formatILat(hint.ilat)).append("\">")
                     .append("<name>").append(hint.getMessageString(turnInstructionMode))
                     .append("</name>")
                     .append("<sym>").append(
@@ -207,9 +209,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
         if (turnInstructionMode == 6) { // orux style
             for (hint in t.voiceHints.list) {
-                sb.append(" <wpt lat=\"").append(Formatter.Companion.formatILat(hint.ilat))
+                sb.append(" <wpt lat=\"").append(formatILat(hint.ilat))
                     .append("\" lon=\"")
-                    .append(Formatter.Companion.formatILon(hint!!.ilon)).append("\">")
+                    .append(formatILon(hint!!.ilon)).append("\">")
                     .append(if (hint!!.selev == Short.Companion.MIN_VALUE) "" else "<ele>" + (hint.selev / 4.0) + "</ele>")
                     .append(
                         "<extensions>\n" +
@@ -226,25 +228,31 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         }
 
         for (i in 0..t.pois.size - 1) {
-            val poi = t.pois.get(i)
+            val poi = t.pois[i]
             formatWaypointGpx(sb, poi!!, "poi")
         }
 
         if (t.exportWaypoints) {
             for (i in 0..t.matchedWaypoints!!.size - 1) {
-                val wt = t.matchedWaypoints!!.get(i)
-                if (i == 0) {
-                    formatWaypointGpx(sb, wt, "from")
-                } else if (i == t.matchedWaypoints!!.size - 1) {
-                    formatWaypointGpx(sb, wt, "to")
-                } else {
-                    formatWaypointGpx(sb, wt, "via")
+                val wt = t.matchedWaypoints!![i]
+                when (i) {
+                    0 -> {
+                        formatWaypointGpx(sb, wt, "from")
+                    }
+
+                    t.matchedWaypoints!!.size - 1 -> {
+                        formatWaypointGpx(sb, wt, "to")
+                    }
+
+                    else -> {
+                        formatWaypointGpx(sb, wt, "via")
+                    }
                 }
             }
         }
         if (t.exportCorrectedWaypoints) {
             for (i in 0..t.matchedWaypoints!!.size - 1) {
-                val wt = t.matchedWaypoints!!.get(i)
+                val wt = t.matchedWaypoints!![i]
                 if (wt.correctedpoint != null) {
                     val n = OsmNodeNamed(wt.correctedpoint!!)
                     n.name = wt.name + "_corr"
@@ -278,13 +286,13 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         var aSpeed: String?
 
         for (idx in t.nodes.indices) {
-            val n = t.nodes.get(idx)
+            val n = t.nodes[idx]
             var sele = if (n.sElev == Short.Companion.MIN_VALUE) "" else "<ele>" + n.elev + "</ele>"
             val hint = t.getVoiceHint(idx)
             val mwpt = t.getMatchedWaypoint(idx)
 
             if (t.showTime) {
-                sele += "<time>" + Formatter.Companion.getFormattedTime3(n.time) + "</time>"
+                sele += "<time>" + getFormattedTime3(n.time) + "</time>"
             }
             if (turnInstructionMode == 8) {
                 if (mwpt != null && !mwpt.name!!.startsWith("via") && !mwpt.name!!.startsWith("from") && !mwpt.name!!.startsWith(
@@ -294,7 +302,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                     sele += "<name>" + mwpt.name + "</name>"
                 }
             }
-            var bNeedHeader = false
+            var bNeedHeader: Boolean
             if (turnInstructionMode == 9) { // trkpt/sym style
 
                 if (hint != null) {
@@ -336,10 +344,10 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                     sele += "</extensions>"
                 }
                 if (idx == 0 && hint == null) {
-                    if (mwpt != null && mwpt.direct) {
-                        sele += "<desc>beeline</desc>"
+                    sele += if (mwpt != null && mwpt.direct) {
+                        "<desc>beeline</desc>"
                     } else {
-                        sele += "<desc>start</desc>"
+                        "<desc>start</desc>"
                     }
                     sele += "<type>Via</type>"
                 } else if (idx == t.nodes.size - 1 && hint == null) {
@@ -347,11 +355,11 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                     sele += "<type>Via</type>"
                 } else {
                     if (mwpt != null && hint == null) {
-                        if (mwpt.direct) {
+                        sele += if (mwpt.direct) {
                             // bNextDirect = true;
-                            sele += "<desc>beeline</desc>"
+                            "<desc>beeline</desc>"
                         } else {
-                            sele += "<desc>" + mwpt.name + "</desc>"
+                            "<desc>" + mwpt.name + "</desc>"
                         }
                         sele += "<type>Via</type>"
                         bNextDirect = false
@@ -401,8 +409,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                             sele += "<src>" + hint.locusSymbolString + "</src><sym>pass_place</sym><type>Shaping</type>"
                             // bNextDirect = false;
                         } else if (mwpt.direct) {
-                            if (idx == 0) sele += "<sym>pass_place</sym><type>Via</type>"
-                            else sele += "<sym>pass_place</sym><type>Shaping</type>"
+                            sele += if (idx == 0) "<sym>pass_place</sym><type>Via</type>"
+                            else "<sym>pass_place</sym><type>Shaping</type>"
                             bNextDirect = true
                         } else if (bNextDirect) {
                             sele += "<src>beeline</src><sym>" + hint.locusSymbolString + "</sym><type>Shaping</type>"
@@ -447,8 +455,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                             if (mwpt.direct && bNextDirect) {
                                 sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>"
                             } else if (mwpt.direct) {
-                                if (idx == 0) sele += "<sym>pass_place</sym><type>Via</type>"
-                                else sele += "<sym>pass_place</sym><type>Shaping</type>"
+                                sele += if (idx == 0) "<sym>pass_place</sym><type>Via</type>"
+                                else "<sym>pass_place</sym><type>Shaping</type>"
                                 bNextDirect = true
                             } else if (bNextDirect) {
                                 sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>"
@@ -457,10 +465,10 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                                 mwpt.name!!.startsWith("from") ||
                                 mwpt.name!!.startsWith("to")
                             ) {
-                                if (bNextDirect) {
-                                    sele += "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>"
+                                sele += if (bNextDirect) {
+                                    "<src>beeline</src><sym>pass_place</sym><type>Shaping</type>"
                                 } else {
-                                    sele += "<sym>pass_place</sym><type>Via</type>"
+                                    "<sym>pass_place</sym><type>Via</type>"
                                 }
                                 bNextDirect = false
                             } else {
@@ -471,9 +479,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                     }
                 }
             }
-            sb.append("   <trkpt lon=\"").append(Formatter.Companion.formatILon(n.iLon))
+            sb.append("   <trkpt lon=\"").append(formatILon(n.iLon))
                 .append("\" lat=\"")
-                .append(Formatter.Companion.formatILat(n.iLat)).append("\">").append(sele)
+                .append(formatILat(n.iLat)).append("\">").append(sele)
                 .append("</trkpt>\n")
 
             nn = n
@@ -518,8 +526,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
     @Throws(IOException::class)
     fun formatWaypointGpx(sb: BufferedWriter, n: OsmNodeNamed, type: String?) {
-        sb.append(" <wpt lon=\"").append(Formatter.Companion.formatILon(n.iLon)).append("\" lat=\"")
-            .append(Formatter.Companion.formatILat(n.iLat)).append("\">")
+        sb.append(" <wpt lon=\"").append(formatILon(n.iLon)).append("\" lat=\"")
+            .append(formatILat(n.iLat)).append("\">")
         if (n.sElev != Short.Companion.MIN_VALUE) {
             sb.append("<ele>").append("" + n.elev).append("</ele>")
         }
@@ -539,14 +547,14 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
     @Throws(IOException::class)
     fun formatWaypointGpx(sb: BufferedWriter, wp: MatchedWaypoint, type: String?) {
-        sb.append(" <wpt lon=\"").append(Formatter.Companion.formatILon(wp.waypoint!!.iLon))
+        sb.append(" <wpt lon=\"").append(formatILon(wp.waypoint!!.iLon))
             .append("\" lat=\"")
-            .append(Formatter.Companion.formatILat(wp.waypoint!!.iLat)).append("\">")
+            .append(formatILat(wp.waypoint!!.iLat)).append("\">")
         if (wp.waypoint!!.sElev != Short.Companion.MIN_VALUE) {
             sb.append("<ele>").append("" + wp.waypoint!!.elev).append("</ele>")
         }
         if (wp.name != null) {
-            sb.append("<name>").append(StringUtils.escapeXml10(wp.name!!)).append("</name>")
+            sb.append("<name>").append(escapeXml10(wp.name!!)).append("</name>")
         }
         if (type != null) {
             sb.append("<type>").append(type).append("</type>")
@@ -591,9 +599,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
     companion object {
         fun getWaypoint(ilon: Int, ilat: Int, name: String?, desc: String?): String {
-            return "<wpt lon=\"" + Formatter.Companion.formatILon(ilon) + "\" lat=\"" + Formatter.Companion.formatILat(
+            return "<wpt lon=\"" + formatILon(ilon) + "\" lat=\"" + formatILat(
                 ilat
-            ) + "\"><name>" + name + "</name>" + (if (desc != null) "<desc>" + desc + "</desc>" else "") + "</wpt>"
+            ) + "\"><name>" + name + "</name>" + (if (desc != null) "<desc>$desc</desc>" else "") + "</wpt>"
         }
     }
 }

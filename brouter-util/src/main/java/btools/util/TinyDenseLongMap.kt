@@ -12,15 +12,15 @@ package btools.util
  */
 class TinyDenseLongMap : DenseLongMap() {
     private val al: Array<LongArray?>
-    private val pa: IntArray
+
+    // pointer array
+    private val pa: IntArray = IntArray(MAXLISTS)
     private var size = 0
     private val _maxKeepExponent = 14 // the maximum exponent to keep the invalid arrays
 
     private val vla: Array<ByteArray?> // value list array
 
     init {
-        // pointer array
-        pa = IntArray(MAXLISTS)
 
         // allocate key lists
         al = arrayOfNulls<LongArray>(MAXLISTS)
@@ -110,7 +110,7 @@ class TinyDenseLongMap : DenseLongMap() {
             }
 
             // current maximum found, copy to target array
-            require(!(n < al[idx]!!.size && maxId == al[idx]!![n])) { "duplicate key found in late check: " + maxId }
+            require(!(n < al[idx]!!.size && maxId == al[idx]!![n])) { "duplicate key found in late check: $maxId" }
             --n
             al[idx]!![n] = maxId
             vla[idx]!![n] = vla[maxIdx]!![pa[maxIdx] - 1]

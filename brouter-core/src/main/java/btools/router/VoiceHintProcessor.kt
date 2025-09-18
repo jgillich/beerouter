@@ -27,7 +27,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
         var distance = 0.0
         var angle = 0f
         while (offset >= 0 && distance < range) {
-            val input = inputs.get(offset--)
+            val input = inputs[offset--]
             if (input.turnAngleConsumed || input.command == VoiceHint.Companion.BL || input.command == VoiceHint.Companion.END) {
                 break
             }
@@ -59,7 +59,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
      * @return voice hints, in forward order
      */
     fun process(inputs: MutableList<VoiceHint>): MutableList<VoiceHint> {
-        val results: MutableList<VoiceHint> = ArrayList<VoiceHint>()
+        val results: MutableList<VoiceHint> = ArrayList()
         var distance = 0.0
         var roundAboutTurnAngle = 0f // sums up angles in roundabout
 
@@ -67,7 +67,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
         var roundaboudStartIdx = -1
 
         for (hintIdx in inputs.indices) {
-            val input = inputs.get(hintIdx)
+            val input = inputs[hintIdx]
 
             if (input.command == VoiceHint.Companion.BL) {
                 results.add(input)
@@ -127,10 +127,10 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
                 input.exitNumber = if (roundAboutTurnAngle < 0) roundaboutExit else -roundaboutExit
                 var tmpangle = 0f
                 val tmpRndAbt = VoiceHint()
-                tmpRndAbt.badWays = ArrayList<MessageData>()
+                tmpRndAbt.badWays = ArrayList()
                 for (i in hintIdx - 1 downTo roundaboudStartIdx + 1) {
-                    val vh = inputs.get(i)
-                    tmpangle += inputs.get(i).goodWay!!.turnangle
+                    val vh = inputs[i]
+                    tmpangle += inputs[i].goodWay!!.turnangle
                     if (vh.badWays != null) {
                         for (badWay in vh.badWays) {
                             if (!badWay.isBadOneway) {
@@ -251,8 +251,8 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
                 distance = 0.0
                 results.add(input)
             }
-            if (results.size > 0 && distance < INTERNAL_CATCHING_RANGE_NEAR) { //catchingRange
-                results.get(results.size - 1).angle += sumNonConsumedWithinCatchingRange(
+            if (results.isNotEmpty() && distance < INTERNAL_CATCHING_RANGE_NEAR) { //catchingRange
+                results[results.size - 1].angle += sumNonConsumedWithinCatchingRange(
                     inputs,
                     hintIdx,
                     INTERNAL_CATCHING_RANGE_NEAR
@@ -262,10 +262,10 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
 
         // go through the hint list again in reverse order (=travel direction)
         // and filter out non-significant hints and hints too close to its predecessor
-        val results2: MutableList<VoiceHint> = ArrayList<VoiceHint>()
+        val results2: MutableList<VoiceHint> = ArrayList()
         var i = results.size
         while (i > 0) {
-            var hint = results.get(--i)
+            var hint = results[--i]
             if (hint.command == 0) {
                 hint.calcCommand()
             }
@@ -277,7 +277,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
                 var dist = hint.distanceToNext
                 // sum up other hints within the catching range (e.g. 40m)
                 while (dist < INTERNAL_CATCHING_RANGE_NEAR && i > 0) {
-                    val h2 = results.get(i - 1)
+                    val h2 = results[i - 1]
                     dist = h2.distanceToNext
                     hint.distanceToNext += dist
                     hint.angle += h2.angle
@@ -297,7 +297,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
             } else if (hint.command == VoiceHint.Companion.BL) {
                 results2.add(hint)
             } else {
-                if (results2.size > 0) results2.get(results2.size - 1)!!.distanceToNext += hint.distanceToNext
+                if (results2.isNotEmpty()) results2[results2.size - 1]!!.distanceToNext += hint.distanceToNext
             }
         }
         return results2
@@ -314,10 +314,10 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
         var inputLastSaved: VoiceHint? = null
         var hintIdx = 0
         while (hintIdx < inputs.size) {
-            val input = inputs.get(hintIdx)
+            val input = inputs[hintIdx]
             var nextInput: VoiceHint? = null
             if (hintIdx + 1 < inputs.size) {
-                nextInput = inputs.get(hintIdx + 1)
+                nextInput = inputs[hintIdx + 1]
             }
 
             if (input.command == VoiceHint.Companion.BL) {
@@ -477,9 +477,9 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
             inputLast = input
             hintIdx++
         }
-        if (results.size > 0) {
+        if (results.isNotEmpty()) {
             // don't use END tag
-            if (results.get(results.size - 1)!!.command == VoiceHint.Companion.END) results.removeAt(
+            if (results[results.size - 1]!!.command == VoiceHint.Companion.END) results.removeAt(
                 results.size - 1
             )
         }
@@ -494,7 +494,7 @@ class VoiceHintProcessor // this.catchingRange = catchingRange;
     ): Boolean {
         var i = 1
         while (i < testsize + 1 && offset + i < inputs.size) {
-            val prio = inputs.get(offset + i).goodWay!!.priorityclassifier
+            val prio = inputs[offset + i].goodWay!!.priorityclassifier
             if (prio < 29) return true
             if (prio == 30) return false
             i++

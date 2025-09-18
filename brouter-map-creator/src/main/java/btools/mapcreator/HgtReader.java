@@ -25,27 +25,22 @@ import java.util.zip.ZipInputStream;
  * @author Oliver Wieland &lt;oliver.wieland@online.de&gt;
  */
 public class HgtReader {
-  final static boolean DEBUG = false;
-
-  private static final int SECONDS_PER_MINUTE = 60;
-
   public static final String HGT_EXT = ".hgt";
   public static final String ZIP_EXT = ".zip";
-
   // alter these values for different SRTM resolutions
   public static final int HGT3_RES = 3; // resolution in arc seconds
   public static final int HGT3_ROW_LENGTH = 1201; // number of elevation values per line
   public static final int HGT_VOID = -32768; // magic number which indicates 'void data' in HGT file
   public static final int HGT1_RES = 1;  // <<- The new SRTM is 1-ARCSEC
   public static final int HGT1_ROW_LENGTH = 3601; //-- New file resolution is 3601x3601
+  final static boolean DEBUG = false;
+  private static final int SECONDS_PER_MINUTE = 60;
+  private static final Map<String, ShortBuffer> cache = new HashMap<>();
   /**
    * The 'no elevation' data magic.
    */
   public static double NO_ELEVATION = Double.NaN;
-
   private static String srtmFolder = "";
-
-  private static final Map<String, ShortBuffer> cache = new HashMap<>();
 
   public HgtReader(String folder) {
     srtmFolder = folder;

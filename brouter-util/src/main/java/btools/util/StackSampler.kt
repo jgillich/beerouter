@@ -66,8 +66,8 @@ class StackSampler(logfile: File, private val interval: Int) : Thread() {
                     continue
                 }
 
-                sb.append(" (ID=").append(t.getId()).append(" \"").append(t.getName()).append("\" ")
-                    .append(t.getState()).append("\n")
+                sb.append(" (ID=").append(t.id).append(" \"").append(t.name).append("\" ")
+                    .append(t.state).append("\n")
                 for (line in stack) {
                     sb.append("    ").append(line.toString()).append("\n")
                 }

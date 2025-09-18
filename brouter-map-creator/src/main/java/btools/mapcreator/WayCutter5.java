@@ -19,16 +19,15 @@ import btools.util.TinyDenseLongMap;
  * @author ab
  */
 public class WayCutter5 extends MapCreatorBase {
+  public RelationMerger relMerger;
+  public NodeFilter nodeFilter;
+  public NodeCutter nodeCutter;
+  public RestrictionCutter5 restrictionCutter5;
   private DataOutputStream borderNidsOutStream;
   private DenseLongMap tileIndexMap;
   private File nodeTilesIn;
   private int lonoffset;
   private int latoffset;
-
-  public RelationMerger relMerger;
-  public NodeFilter nodeFilter;
-  public NodeCutter nodeCutter;
-  public RestrictionCutter5 restrictionCutter5;
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** WayCutter5: Soft-Cut way-data into tiles");

@@ -20,7 +20,7 @@ class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
      * @param defaultbuffer an optional data array for re-use (gets replaced if too small)
      */
     init {
-        ia = if (defaultbuffer == null) IntArray(nlists * 4) else defaultbuffer
+        ia = defaultbuffer ?: IntArray(nlists * 4)
         startpointer = IntArray(nlists)
     }
 

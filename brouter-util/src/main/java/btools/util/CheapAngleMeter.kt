@@ -51,7 +51,7 @@ class CheapAngleMeter {
     companion object {
         @JvmStatic
         fun getAngle(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
-            var res = 0.0
+            var res: Double
             val xdiff = (lat2 - lat1).toDouble()
             val ydiff = (lon2 - lon1).toDouble()
             res = Math.toDegrees(atan2(ydiff, xdiff))

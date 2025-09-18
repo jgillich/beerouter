@@ -19,21 +19,20 @@ import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 
 public class OsmCutter extends MapCreatorBase {
+  public WayCutter wayCutter;
+  public RestrictionCutter restrictionCutter;
+  public NodeFilter nodeFilter;
   private long recordCnt;
   private long nodesParsed;
   private long waysParsed;
   private long relsParsed;
   private long changesetsParsed;
-
   private DataOutputStream wayDos;
   private DataOutputStream cyclewayDos;
   private DataOutputStream restrictionsDos;
-
-  public WayCutter wayCutter;
-  public RestrictionCutter restrictionCutter;
-  public NodeFilter nodeFilter;
-
   private DatabasePseudoTagProvider dbPseudoTagProvider;
+  private BExpressionContextWay _expctxWay;
+  private BExpressionContextNode _expctxNode;
 
   public static void main(String[] args) throws Exception {
     System.out.println("*** OsmCutter: cut an osm map in node-tiles + a way file");
@@ -54,8 +53,9 @@ public class OsmCutter extends MapCreatorBase {
     );
   }
 
-  private BExpressionContextWay _expctxWay;
-  private BExpressionContextNode _expctxNode;
+  private static short toBit(String tag, int bitpos, String s) {
+    return (short) (s.indexOf(tag) < 0 ? 0 : 1 << bitpos);
+  }
 
   public void process(File lookupFile, File outTileDir, File wayFile, File relFile, File resFile, File profileFile, File mapFile) throws Exception {
     if (!lookupFile.exists()) {
@@ -139,7 +139,6 @@ public class OsmCutter extends MapCreatorBase {
     }
   }
 
-
   private void generatePseudoTags(Map<String, String> map) {
     // add pseudo.tags for concrete:lanes and concrete:plates
 
@@ -161,7 +160,6 @@ public class OsmCutter extends MapCreatorBase {
       map.put("concrete", concrete);
     }
   }
-
 
   @Override
   public void nextWay(WayData w) throws Exception {
@@ -268,10 +266,6 @@ public class OsmCutter extends MapCreatorBase {
         restrictionCutter.nextRestriction(res);
       }
     }
-  }
-
-  private static short toBit(String tag, int bitpos, String s) {
-    return (short) (s.indexOf(tag) < 0 ? 0 : 1 << bitpos);
   }
 
   private int getTileIndex(int ilon, int ilat) {

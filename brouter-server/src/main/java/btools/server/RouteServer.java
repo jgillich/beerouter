@@ -44,28 +44,178 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
   static final String HTTP_STATUS_FORBIDDEN = "403 Forbidden";
   static final String HTTP_STATUS_NOT_FOUND = "404 Not Found";
   static final String HTTP_STATUS_INTERNAL_SERVER_ERROR = "500 Internal Server Error";
-
+  private static final Object threadPoolSync = new Object();
+  private static boolean debug = Boolean.getBoolean("debugThreadPool");
+  private static DateFormat tsFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("en", "US"));
   public ServiceContext serviceContext;
-
   private Socket clientSocket = null;
   private RoutingEngine cr = null;
   private volatile boolean terminated;
   private long starttime;
 
-  private static final Object threadPoolSync = new Object();
-  private static boolean debug = Boolean.getBoolean("debugThreadPool");
-
-  public void stopRouter() {
-    RoutingEngine e = cr;
-    if (e != null) e.terminate();
-  }
-
-  private static DateFormat tsFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", new Locale("en", "US"));
-
   private static String formattedTimeStamp(long t) {
     synchronized (tsFormat) {
       return tsFormat.format(new Date(System.currentTimeMillis()));
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
+    if (args.length != 5 && args.length != 6) {
+      System.out.println("serve BRouter protocol");
+      System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads> [bindaddress]");
+      return;
+    }
+
+    ServiceContext serviceContext = new ServiceContext();
+    serviceContext.segmentDir = new File(args[0]);
+    serviceContext.profileDir = args[1];
+    System.setProperty("profileBaseDir", serviceContext.profileDir);
+    String dirs = args[2];
+    StringTokenizer tk = new StringTokenizer(dirs, ",");
+    serviceContext.customProfileDir = tk.nextToken();
+    serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
+
+    int maxthreads = Integer.parseInt(args[4]);
+
+    ProfileCache.setSize(2 * maxthreads);
+
+    Queue<RouteServer> threadQueue = new PriorityQueue<>();
+
+    ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
+
+    // stacksample for performance profiling
+    // ( caution: start stacksampler only after successfully creating the server socket
+    //   because that thread prevents the process from terminating, so the start-attempt
+    //   by the watchdog cron would create zombies )
+    File stackLog = new File("stacks.txt");
+    if (stackLog.exists()) {
+      StackSampler stackSampler = new StackSampler(stackLog, 1000);
+      stackSampler.start();
+      System.out.println("*** sampling stacks into stacks.txt *** ");
+    }
+
+    for (; ; ) {
+      Socket clientSocket = serverSocket.accept();
+      RouteServer server = new RouteServer();
+      server.serviceContext = serviceContext;
+      server.clientSocket = clientSocket;
+      server.starttime = System.currentTimeMillis();
+
+      // kill an old thread if thread limit reached
+
+      cleanupThreadQueue(threadQueue);
+
+      if (debug) System.out.println("threadQueue.size()=" + threadQueue.size());
+      if (threadQueue.size() >= maxthreads) {
+        synchronized (threadPoolSync) {
+          // wait up to 2000ms (maybe notified earlier)
+          // to prevent killing short-running threads
+          long maxage = server.starttime - threadQueue.peek().starttime;
+          long maxWaitTime = 2000L - maxage;
+          if (debug) System.out.println("maxage=" + maxage + " maxWaitTime=" + maxWaitTime);
+          if (debug) {
+            for (RouteServer t : threadQueue) {
+              System.out.println("age=" + (server.starttime - t.starttime));
+            }
+          }
+          if (maxWaitTime > 0) {
+            threadPoolSync.wait(maxWaitTime);
+          }
+          long t = System.currentTimeMillis();
+          System.out.println(formattedTimeStamp(t) + " contention! ms waited " + (t - server.starttime));
+        }
+        cleanupThreadQueue(threadQueue);
+        if (threadQueue.size() >= maxthreads) {
+          if (debug) System.out.println("stopping oldest thread...");
+          // no way... stop the oldest thread
+          RouteServer oldest = threadQueue.poll();
+          oldest.stopRouter();
+          long t = System.currentTimeMillis();
+          System.out.println(formattedTimeStamp(t) + " contention! ms killed " + (t - oldest.starttime));
+        }
+      }
+
+      threadQueue.add(server);
+
+      server.start();
+      if (debug) System.out.println("thread started...");
+    }
+  }
+
+  private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
+    Map<String, String> params = new HashMap<>();
+    String decoded = URLDecoder.decode(url, StandardCharsets.UTF_8);
+    StringTokenizer tk = new StringTokenizer(decoded, "?&");
+    while (tk.hasMoreTokens()) {
+      String t = tk.nextToken();
+      StringTokenizer tk2 = new StringTokenizer(t, "=");
+      if (tk2.hasMoreTokens()) {
+        String key = tk2.nextToken();
+        if (tk2.hasMoreTokens()) {
+          String value = tk2.nextToken();
+          params.put(key, value);
+        }
+      }
+    }
+    return params;
+  }
+
+  private static long getMaxRunningTime() {
+    long maxRunningTime = 60000;
+    String sMaxRunningTime = System.getProperty("maxRunningTime");
+    if (sMaxRunningTime != null) {
+      maxRunningTime = Long.parseLong(sMaxRunningTime) * 1000;
+    }
+    return maxRunningTime;
+  }
+
+  private static void writeHttpHeader(BufferedWriter bw, String status) throws IOException {
+    writeHttpHeader(bw, "text/plain", status);
+  }
+
+  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String status) throws IOException {
+    writeHttpHeader(bw, mimeType, null, status);
+  }
+
+  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String fileName, String status) throws IOException {
+    writeHttpHeader(bw, mimeType, fileName, null, status);
+  }
+
+  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String fileName, String headers, String status) throws IOException {
+    // http-header
+    bw.write(String.format("HTTP/1.1 %s\r\n", status));
+    bw.write("Connection: close\r\n");
+    bw.write("Content-Type: " + mimeType + "; charset=utf-8\r\n");
+    if (fileName != null) {
+      bw.write("Content-Disposition: attachment; filename=\"" + fileName + "\"\r\n");
+    }
+    bw.write("Access-Control-Allow-Origin: *\r\n");
+    if (headers != null) {
+      bw.write(headers);
+    }
+    bw.write("\r\n");
+  }
+
+  private static void cleanupThreadQueue(Queue<RouteServer> threadQueue) {
+    for (; ; ) {
+      boolean removedItem = false;
+      for (RouteServer t : threadQueue) {
+        if (t.terminated) {
+          threadQueue.remove(t);
+          removedItem = true;
+          break;
+        }
+      }
+      if (!removedItem) {
+        break;
+      }
+    }
+  }
+
+  public void stopRouter() {
+    RoutingEngine e = cr;
+    if (e != null) e.terminate();
   }
 
   public void run() {
@@ -281,162 +431,6 @@ public class RouteServer extends Thread implements Comparable<RouteServer> {
       long t = System.currentTimeMillis();
       long ms = t - starttime;
       System.out.println(formattedTimeStamp(t) + sessionInfo + " ip=" + sIp + " ms=" + ms + " -> " + getline);
-    }
-  }
-
-
-  public static void main(String[] args) throws Exception {
-    System.out.println("BRouter " + OsmTrack.version + " / " + OsmTrack.versionDate);
-    if (args.length != 5 && args.length != 6) {
-      System.out.println("serve BRouter protocol");
-      System.out.println("usage: java RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads> [bindaddress]");
-      return;
-    }
-
-    ServiceContext serviceContext = new ServiceContext();
-    serviceContext.segmentDir = new File(args[0]);
-    serviceContext.profileDir = args[1];
-    System.setProperty("profileBaseDir", serviceContext.profileDir);
-    String dirs = args[2];
-    StringTokenizer tk = new StringTokenizer(dirs, ",");
-    serviceContext.customProfileDir = tk.nextToken();
-    serviceContext.sharedProfileDir = tk.hasMoreTokens() ? tk.nextToken() : serviceContext.customProfileDir;
-
-    int maxthreads = Integer.parseInt(args[4]);
-
-    ProfileCache.setSize(2 * maxthreads);
-
-    Queue<RouteServer> threadQueue = new PriorityQueue<>();
-
-    ServerSocket serverSocket = args.length > 5 ? new ServerSocket(Integer.parseInt(args[3]), 100, InetAddress.getByName(args[5])) : new ServerSocket(Integer.parseInt(args[3]));
-
-    // stacksample for performance profiling
-    // ( caution: start stacksampler only after successfully creating the server socket
-    //   because that thread prevents the process from terminating, so the start-attempt
-    //   by the watchdog cron would create zombies )
-    File stackLog = new File("stacks.txt");
-    if (stackLog.exists()) {
-      StackSampler stackSampler = new StackSampler(stackLog, 1000);
-      stackSampler.start();
-      System.out.println("*** sampling stacks into stacks.txt *** ");
-    }
-
-    for (; ; ) {
-      Socket clientSocket = serverSocket.accept();
-      RouteServer server = new RouteServer();
-      server.serviceContext = serviceContext;
-      server.clientSocket = clientSocket;
-      server.starttime = System.currentTimeMillis();
-
-      // kill an old thread if thread limit reached
-
-      cleanupThreadQueue(threadQueue);
-
-      if (debug) System.out.println("threadQueue.size()=" + threadQueue.size());
-      if (threadQueue.size() >= maxthreads) {
-        synchronized (threadPoolSync) {
-          // wait up to 2000ms (maybe notified earlier)
-          // to prevent killing short-running threads
-          long maxage = server.starttime - threadQueue.peek().starttime;
-          long maxWaitTime = 2000L - maxage;
-          if (debug) System.out.println("maxage=" + maxage + " maxWaitTime=" + maxWaitTime);
-          if (debug) {
-            for (RouteServer t : threadQueue) {
-              System.out.println("age=" + (server.starttime - t.starttime));
-            }
-          }
-          if (maxWaitTime > 0) {
-            threadPoolSync.wait(maxWaitTime);
-          }
-          long t = System.currentTimeMillis();
-          System.out.println(formattedTimeStamp(t) + " contention! ms waited " + (t - server.starttime));
-        }
-        cleanupThreadQueue(threadQueue);
-        if (threadQueue.size() >= maxthreads) {
-          if (debug) System.out.println("stopping oldest thread...");
-          // no way... stop the oldest thread
-          RouteServer oldest = threadQueue.poll();
-          oldest.stopRouter();
-          long t = System.currentTimeMillis();
-          System.out.println(formattedTimeStamp(t) + " contention! ms killed " + (t - oldest.starttime));
-        }
-      }
-
-      threadQueue.add(server);
-
-      server.start();
-      if (debug) System.out.println("thread started...");
-    }
-  }
-
-
-  private static Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    Map<String, String> params = new HashMap<>();
-    String decoded = URLDecoder.decode(url, StandardCharsets.UTF_8);
-    StringTokenizer tk = new StringTokenizer(decoded, "?&");
-    while (tk.hasMoreTokens()) {
-      String t = tk.nextToken();
-      StringTokenizer tk2 = new StringTokenizer(t, "=");
-      if (tk2.hasMoreTokens()) {
-        String key = tk2.nextToken();
-        if (tk2.hasMoreTokens()) {
-          String value = tk2.nextToken();
-          params.put(key, value);
-        }
-      }
-    }
-    return params;
-  }
-
-  private static long getMaxRunningTime() {
-    long maxRunningTime = 60000;
-    String sMaxRunningTime = System.getProperty("maxRunningTime");
-    if (sMaxRunningTime != null) {
-      maxRunningTime = Long.parseLong(sMaxRunningTime) * 1000;
-    }
-    return maxRunningTime;
-  }
-
-  private static void writeHttpHeader(BufferedWriter bw, String status) throws IOException {
-    writeHttpHeader(bw, "text/plain", status);
-  }
-
-  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String status) throws IOException {
-    writeHttpHeader(bw, mimeType, null, status);
-  }
-
-  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String fileName, String status) throws IOException {
-    writeHttpHeader(bw, mimeType, fileName, null, status);
-  }
-
-  private static void writeHttpHeader(BufferedWriter bw, String mimeType, String fileName, String headers, String status) throws IOException {
-    // http-header
-    bw.write(String.format("HTTP/1.1 %s\r\n", status));
-    bw.write("Connection: close\r\n");
-    bw.write("Content-Type: " + mimeType + "; charset=utf-8\r\n");
-    if (fileName != null) {
-      bw.write("Content-Disposition: attachment; filename=\"" + fileName + "\"\r\n");
-    }
-    bw.write("Access-Control-Allow-Origin: *\r\n");
-    if (headers != null) {
-      bw.write(headers);
-    }
-    bw.write("\r\n");
-  }
-
-  private static void cleanupThreadQueue(Queue<RouteServer> threadQueue) {
-    for (; ; ) {
-      boolean removedItem = false;
-      for (RouteServer t : threadQueue) {
-        if (t.terminated) {
-          threadQueue.remove(t);
-          removedItem = true;
-          break;
-        }
-      }
-      if (!removedItem) {
-        break;
-      }
     }
   }
 

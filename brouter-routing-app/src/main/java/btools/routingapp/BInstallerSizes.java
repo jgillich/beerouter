@@ -3,10 +3,6 @@ package btools.routingapp;
 
 public class BInstallerSizes {
 
-  public static int getRd5Size(int idx) {
-    return rd5_sizes[idx];
-  }
-
   // Generated using ReadSizes.java
   private static int[] rd5_sizes = {
     0, 0, 0, 4443, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -226,4 +222,8 @@ public class BInstallerSizes {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   };
+
+  public static int getRd5Size(int idx) {
+    return rd5_sizes[idx];
+  }
 }

@@ -35,40 +35,6 @@ public class ServerConfig {
     readConfigFile(file);
   }
 
-  private void readConfigFile(File file) {
-    if (file.exists()) {
-      BufferedReader br = null;
-      try {
-        br = new BufferedReader(new FileReader(file));
-        for (; ; ) {
-          String line = br.readLine();
-          if (line == null) break;
-          if (line.trim().startsWith("segment_url=")) {
-            mSegmentUrl = line.substring(12);
-          } else if (line.trim().startsWith("lookup_url=")) {
-            mLookupsUrl = line.substring(11);
-          } else if (line.trim().startsWith("profiles_url=")) {
-            mProfilesUrl = line.substring(13);
-          } else if (line.trim().startsWith("check_lookup=")) {
-            mLookups = line.substring(13).split(",");
-          } else if (line.trim().startsWith("check_profiles=")) {
-            mProfiles = line.substring(15).split(",");
-          }
-        }
-      } catch (IOException e) {
-        Log.e(TAG, Log.getStackTraceString(e));
-      } finally {
-        try {
-          if (br != null) br.close();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-    }
-
-  }
-
   public static void checkForUpdate(Context context, File path, String assetZip) {
     if (assetZip != null) {
       writeTmpFromAsset(context, path, assetZip);
@@ -137,6 +103,40 @@ public class ServerConfig {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private void readConfigFile(File file) {
+    if (file.exists()) {
+      BufferedReader br = null;
+      try {
+        br = new BufferedReader(new FileReader(file));
+        for (; ; ) {
+          String line = br.readLine();
+          if (line == null) break;
+          if (line.trim().startsWith("segment_url=")) {
+            mSegmentUrl = line.substring(12);
+          } else if (line.trim().startsWith("lookup_url=")) {
+            mLookupsUrl = line.substring(11);
+          } else if (line.trim().startsWith("profiles_url=")) {
+            mProfilesUrl = line.substring(13);
+          } else if (line.trim().startsWith("check_lookup=")) {
+            mLookups = line.substring(13).split(",");
+          } else if (line.trim().startsWith("check_profiles=")) {
+            mProfiles = line.substring(15).split(",");
+          }
+        }
+      } catch (IOException e) {
+        Log.e(TAG, Log.getStackTraceString(e));
+      } finally {
+        try {
+          if (br != null) br.close();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+    }
+
   }
 
   public String getSegmentUrl() {

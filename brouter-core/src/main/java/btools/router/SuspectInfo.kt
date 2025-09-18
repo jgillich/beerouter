@@ -19,7 +19,7 @@ class SuspectInfo {
 
         fun addSuspect(map: MutableMap<Long?, SuspectInfo?>, id: Long, prio: Int, trigger: Int) {
             val iD = id
-            var info = map.get(iD)
+            var info = map[iD]
             if (info == null) {
                 info = SuspectInfo()
                 map.put(iD, info)
@@ -54,7 +54,7 @@ class SuspectInfo {
 
         private fun addText(sb: StringBuilder, text: String?, mask: Int, bit: Int) {
             if ((bit and mask) == 0) return
-            if (sb.length > 0) sb.append(",")
+            if (sb.isNotEmpty()) sb.append(",")
             sb.append(text)
         }
     }

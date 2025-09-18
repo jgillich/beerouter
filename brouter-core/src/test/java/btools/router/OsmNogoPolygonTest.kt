@@ -26,7 +26,7 @@ class OsmNogoPolygonTest {
             val dpy: Double = (toOsmLat(lats[i], OFFSET_Y) - polygon!!.iLat) * dlat2m
             val r1 = sqrt(dpx * dpx + dpy * dpy)
             val diff = r - r1
-            Assert.assertTrue("i: " + i + " r(" + r + ") >= r1(" + r1 + ")", diff >= 0)
+            Assert.assertTrue("i: $i r($r) >= r1($r1)", diff >= 0)
         }
         polyline!!.calcBoundingCircle()
         r = polyline!!.radius
@@ -35,7 +35,7 @@ class OsmNogoPolygonTest {
             val dpy: Double = (toOsmLat(lats[i], OFFSET_Y) - polyline!!.iLat) * dlat2m
             val r1 = sqrt(dpx * dpx + dpy * dpy)
             val diff = r - r1
-            Assert.assertTrue("i: " + i + " r(" + r + ") >= r1(" + r1 + ")", diff >= 0)
+            Assert.assertTrue("i: $i r($r) >= r1($r1)", diff >= 0)
         }
     }
 

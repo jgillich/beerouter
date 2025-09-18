@@ -8,6 +8,7 @@ BRouter calculates voice hints but they are not present in all export formats. A
 how they are presented will vary.
 
 There are gpx formats for
+
 * OsmAnd
 * Locus
 * Comment-style
@@ -19,6 +20,7 @@ used on this junction). So e.g. an almost 90 degree hint can become "sharp right
 way is at 110 degrees.
 
 And there are other rules
+
 * show 'continue' only if the way crosses a higher priority way
 * roundabouts have an exit marker
 * u-turn between -179 and +179 degree
@@ -28,30 +30,31 @@ And there are other rules
 * junction on motorway via motorway_link and next way less then motorway_link is a motorway exit
 
 There are some variables in the profiles that affect on the voice hint generation:
+
 * considerTurnRestrictions -
 * turnInstructionCatchingRange - check distance to merge voice hints
 * turnInstructionRoundabouts - use voice hints on roundabouts
 
 Voice hint variables
 
-| short    | description |
-| :-----     | :----- |
-| C        | continue (go straight) |
-| TL       | turn left |
-| TSLL     | turn slightly left |
-| TSHL     | turn sharply left |
-| TR       | turn right |
-| TSLR     | turn slightly right |
-| TSHR     | turn sharply right |
-| KL       | keep left |
-| KR       | keep right |
-| TLU      | u-turn left |
-| TU       | 180 degree u-turn |
-| TRU      | u-turn right |
-| OFFR     | off route |
-| RNDB     | roundabout |
-| RNLB     | roundabout left |
-| BL       | beeline routing |
-| EL       | exit left |
-| ER       | exit right |
+| short | description            |
+|:------|:-----------------------|
+| C     | continue (go straight) |
+| TL    | turn left              |
+| TSLL  | turn slightly left     |
+| TSHL  | turn sharply left      |
+| TR    | turn right             |
+| TSLR  | turn slightly right    |
+| TSHR  | turn sharply right     |
+| KL    | keep left              |
+| KR    | keep right             |
+| TLU   | u-turn left            |
+| TU    | 180 degree u-turn      |
+| TRU   | u-turn right           |
+| OFFR  | off route              |
+| RNDB  | roundabout             |
+| RNLB  | roundabout left        |
+| BL    | beeline routing        |
+| EL    | exit left              |
+| ER    | exit right             |
 

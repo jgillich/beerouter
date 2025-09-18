@@ -28,7 +28,7 @@ class GeometryDecoder {
         targetNode: OsmNode,
         reverseLink: Boolean
     ): OsmTransferNode? {
-        if ((lastGeometry == geometry) && (lastReverse == reverseLink)) {
+        if ((lastGeometry.contentEquals(geometry)) && (lastReverse == reverseLink)) {
             return firstTransferNode
         }
 

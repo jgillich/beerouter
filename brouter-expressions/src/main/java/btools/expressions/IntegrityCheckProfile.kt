@@ -7,11 +7,11 @@ class IntegrityCheckProfile {
         val files = profileDir.listFiles()
 
         if (files == null) {
-            System.err.println("no files " + profileDir)
+            System.err.println("no files $profileDir")
             return
         }
         if (!lookupFile.exists()) {
-            System.err.println("no lookup file " + lookupFile)
+            System.err.println("no lookup file $lookupFile")
             return
         }
 

@@ -29,8 +29,8 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
         sb.append("         <coordinates>")
 
         for (n in t.nodes) {
-            sb.append(Formatter.Companion.formatILon(n.iLon)).append(",")
-                .append(Formatter.Companion.formatILat(n.iLat)).append("\n")
+            sb.append(formatILon(n.iLon)).append(",")
+                .append(formatILat(n.iLat)).append("\n")
         }
 
         sb.append("          </coordinates>\n")
@@ -42,7 +42,7 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
                 sb.append("    <Folder>\n")
                 sb.append("      <name>poi</name>\n")
                 for (i in t.pois.indices) {
-                    val poi = t.pois.get(i)!!
+                    val poi = t.pois[i]!!
                     createPlaceMark(sb, poi.name!!, poi.iLat, poi.iLon)
                 }
                 sb.append("    </Folder>\n")
@@ -59,7 +59,7 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
             if (t.exportCorrectedWaypoints) {
                 val list: MutableList<OsmNodeNamed> = ArrayList()
                 for (i in t.matchedWaypoints.indices) {
-                    val wp = t.matchedWaypoints.get(i)
+                    val wp = t.matchedWaypoints[i]
                     if (wp.correctedpoint != null) {
                         val n = OsmNodeNamed(wp.correctedpoint!!)
                         n.name = wp.name + "_corr"
@@ -82,9 +82,9 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
         waypoints: MutableList<MatchedWaypoint>
     ) {
         sb.append("    <Folder>\n")
-        sb.append("      <name>" + type + "</name>\n")
+        sb.append("      <name>$type</name>\n")
         for (i in waypoints.indices) {
-            val wp = waypoints.get(i)
+            val wp = waypoints[i]
             createPlaceMark(sb, wp.name!!, wp.waypoint!!.iLat, wp.waypoint!!.iLon)
         }
         sb.append("    </Folder>\n")
@@ -97,9 +97,9 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
     ) {
         if (waypoints.isEmpty()) return
         sb.append("    <Folder>\n")
-        sb.append("      <name>" + type + "</name>\n")
+        sb.append("      <name>$type</name>\n")
         for (i in waypoints.indices) {
-            val wp = waypoints.get(i)
+            val wp = waypoints[i]
             createPlaceMark(sb, wp.name!!, wp.iLat, wp.iLon)
         }
         sb.append("    </Folder>\n")
@@ -110,7 +110,7 @@ class FormatKml(rc: RoutingContext) : Formatter(rc) {
         sb.append("        <name>" + escapeXml10(name) + "</name>\n")
         sb.append("        <Point>\n")
         sb.append(
-            "         <coordinates>" + Formatter.Companion.formatILon(ilon) + "," + Formatter.Companion.formatILat(
+            "         <coordinates>" + formatILon(ilon) + "," + formatILat(
                 ilat
             ) + "</coordinates>\n"
         )

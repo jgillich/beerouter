@@ -4,9 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.Random;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class ConstantOptimizerTest {
   @Test
@@ -37,7 +37,7 @@ public class ConstantOptimizerTest {
     Assert.assertEquals(7f, expctx1.getVariableValue("global_inject3", 0f), d);
     Assert.assertEquals(3f, expctx1.getVariableValue("global_inject4", 3f), d); // un-assigned
 
-    Assert.assertTrue("expected far less exporessions nodes if optimized",  expctx2.expressionNodeCount - expctx1.expressionNodeCount >= 311-144);
+    Assert.assertTrue("expected far less exporessions nodes if optimized", expctx2.expressionNodeCount - expctx1.expressionNodeCount >= 311 - 144);
 
     Random rnd = new Random(17464); // fixed seed for unit test...
     for (int i = 0; i < 10000; i++) {

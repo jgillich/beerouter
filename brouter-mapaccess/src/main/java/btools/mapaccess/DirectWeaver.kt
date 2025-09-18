@@ -73,27 +73,33 @@ class DirectWeaver(
                 if (featureId == 0) break
                 val bitsize = bc.decodeNoisyNumber(5)
 
-                if (featureId == 2) { // exceptions to turn-restriction
-                    trExceptions = bc.decodeBounded(1023).toShort()
-                } else if (featureId == 1) { // turn-restriction
-                    val tr = TurnRestriction()
-                    tr.exceptions = trExceptions
-                    trExceptions = 0
-                    tr.isPositive = bc.decodeBit()
-                    tr.fromLon = ilon + bc.decodeNoisyDiff(10)
-                    tr.fromLat = ilat + bc.decodeNoisyDiff(10)
-                    tr.toLon = ilon + bc.decodeNoisyDiff(10)
-                    tr.toLat = ilat + bc.decodeNoisyDiff(10)
-                    node.addTurnRestriction(tr)
-                } else {
-                    for (i in 0..<bitsize) bc.decodeBit() // unknown feature, just skip
+                when (featureId) {
+                    2 -> { // exceptions to turn-restriction
+                        trExceptions = bc.decodeBounded(1023).toShort()
+                    }
+
+                    1 -> { // turn-restriction
+                        val tr = TurnRestriction()
+                        tr.exceptions = trExceptions
+                        trExceptions = 0
+                        tr.isPositive = bc.decodeBit()
+                        tr.fromLon = ilon + bc.decodeNoisyDiff(10)
+                        tr.fromLat = ilat + bc.decodeNoisyDiff(10)
+                        tr.toLon = ilon + bc.decodeNoisyDiff(10)
+                        tr.toLat = ilat + bc.decodeNoisyDiff(10)
+                        node.addTurnRestriction(tr)
+                    }
+
+                    else -> {
+                        for (i in 0..<bitsize) bc.decodeBit() // unknown feature, just skip
+                    }
                 }
             }
 
             selev += nodeEleDiff.decodeSignedValue()
             node.sElev = selev.toShort()
             val nodeTags = nodeTagCoder.decodeTagValueSet()
-            node.nodeDescription = if (nodeTags == null) null else nodeTags.data // TODO: unified?
+            node.nodeDescription = nodeTags?.data // TODO: unified?
 
             val links = bc.decodeNoisyNumber(1)
             for (li in 0..<links) {
@@ -145,12 +151,12 @@ class DirectWeaver(
                             writeVarLengthSigned(elediff)
                         }
 
-                        if (matcher != null) matcher.transferNode(
+                        matcher?.transferNode(
                             ilontarget - dlon_remaining,
                             ilattarget - dlat_remaining
                         )
                     }
-                    if (matcher != null) matcher.end()
+                    matcher?.end()
                 }
 
                 if (wayTags != null) {

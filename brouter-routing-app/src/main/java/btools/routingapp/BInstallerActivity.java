@@ -46,16 +46,14 @@ import btools.router.RoutingHelper;
 
 public class BInstallerActivity extends AppCompatActivity {
 
+  public static final int MY_PERMISSIONS_REQUEST_NITIFICATION = 100;
   private static final String TAG = "BInstallerActivity";
-
   private static final int DIALOG_CONFIRM_DELETE_ID = 1;
   private static final int DIALOG_CONFIRM_NEXTSTEPS_ID = 2;
   private static final int DIALOG_CONFIRM_GETDIFFS_ID = 3;
   private static final int DIALOG_NEW_APP_NEEDED_ID = 4;
-
-  public static final int MY_PERMISSIONS_REQUEST_NITIFICATION = 100;
-
   public static boolean downloadCanceled = false;
+  BInstallerView.OnSelectListener onSelectListener;
   private File mBaseDir;
   private BInstallerView mBInstallerView;
   private Button mButtonDownload;
@@ -63,8 +61,6 @@ public class BInstallerActivity extends AppCompatActivity {
   private TextView mDownloadSummaryInfo;
   private LinearProgressIndicator mProgressIndicator;
   private ArrayList<Integer> selectedTiles;
-
-  BInstallerView.OnSelectListener onSelectListener;
 
   @SuppressLint("UsableSpace")
   public static long getAvailableSpace(String baseDir) {

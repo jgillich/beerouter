@@ -68,50 +68,6 @@ public class WayLinker extends MapCreatorBase implements Runnable {
   private boolean isSlave;
   private ThreadController tc;
 
-  public static final class ThreadController {
-    long maxFileSize = 0L;
-    long currentSlaveSize;
-    long currentMasterSize = 2000000000L;
-
-    synchronized boolean setCurrentMasterSize(long size) {
-      try {
-        if (size <= currentSlaveSize) {
-          maxFileSize = Long.MAX_VALUE;
-          return false;
-        }
-        currentMasterSize = size;
-        if (maxFileSize == 0L) {
-          maxFileSize = size;
-        }
-        return true;
-      } finally {
-        notify();
-      }
-    }
-
-    synchronized boolean setCurrentSlaveSize(long size) throws Exception {
-      if (size >= currentMasterSize) {
-        return false;
-      }
-
-      while (size + currentMasterSize + 50000000L > maxFileSize) {
-        System.out.println("****** slave thread waiting for permission to process file of size " + size
-          + " currentMaster=" + currentMasterSize + " maxFileSize=" + maxFileSize);
-        wait(10000);
-      }
-      currentSlaveSize = size;
-      return true;
-    }
-  }
-
-
-  private void reset() {
-    minLon = -1;
-    minLat = -1;
-    nodesMap = new CompactLongMap<>();
-    borderSet = new CompactLongSet();
-  }
-
   public static void main(String[] args) throws Exception {
     System.out.println("*** WayLinker: Format a region of an OSM map for routing");
     if (args.length != 8) {
@@ -125,6 +81,13 @@ public class WayLinker extends MapCreatorBase implements Runnable {
 
     System.out.println("dumping bad TRs");
     RestrictionData.dumpBadTRs();
+  }
+
+  private void reset() {
+    minLon = -1;
+    minLat = -1;
+    nodesMap = new CompactLongMap<>();
+    borderSet = new CompactLongSet();
   }
 
   public void process(File nodeTilesIn, File wayTilesIn, File borderFileIn, File restrictionsFileIn, File lookupFile, File profileFile, File dataTilesOut,
@@ -567,5 +530,41 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     }
     dos.close();
     return bos.toByteArray();
+  }
+
+  public static final class ThreadController {
+    long maxFileSize = 0L;
+    long currentSlaveSize;
+    long currentMasterSize = 2000000000L;
+
+    synchronized boolean setCurrentMasterSize(long size) {
+      try {
+        if (size <= currentSlaveSize) {
+          maxFileSize = Long.MAX_VALUE;
+          return false;
+        }
+        currentMasterSize = size;
+        if (maxFileSize == 0L) {
+          maxFileSize = size;
+        }
+        return true;
+      } finally {
+        notify();
+      }
+    }
+
+    synchronized boolean setCurrentSlaveSize(long size) throws Exception {
+      if (size >= currentMasterSize) {
+        return false;
+      }
+
+      while (size + currentMasterSize + 50000000L > maxFileSize) {
+        System.out.println("****** slave thread waiting for permission to process file of size " + size
+          + " currentMaster=" + currentMasterSize + " maxFileSize=" + maxFileSize);
+        wait(10000);
+      }
+      currentSlaveSize = size;
+      return true;
+    }
   }
 }
