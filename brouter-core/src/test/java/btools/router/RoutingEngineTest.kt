@@ -30,8 +30,12 @@ class RoutingEngineTest {
 
     @Test
     fun routeDestinationPointFarOff() {
-        val msg = calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", RoutingContext())
-        Assert.assertTrue(msg, msg != null && msg.contains("not found"))
+        try {
+            calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", RoutingContext())
+            Assert.fail("IllegalArgumentException expected")
+        } catch (e: IllegalArgumentException) {
+            Assert.assertTrue("datafile not found", e.message!!.contains("not found"))
+        }
     }
 
     @Test

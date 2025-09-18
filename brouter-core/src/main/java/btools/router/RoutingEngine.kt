@@ -255,13 +255,6 @@ class RoutingEngine @JvmOverloads constructor(
             }
             val endTime = System.currentTimeMillis()
             logger.info("execution time={} seconds", (endTime - startTime0) / 1000.0)
-        } catch (e: IllegalArgumentException) {
-            logger.error(e.message)
-        } catch (e: Exception) {
-            logger.error(e.message, e)
-        } catch (e: Error) {
-            cleanOnOOM()
-            logger.error(e.message, e)
         } finally {
             if (routingContext.expctxWay != null) {
                 logger.info("expression cache stats={}", routingContext.expctxWay!!.cacheStats())
@@ -761,34 +754,22 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
     fun doSearch() {
-        try {
-            val seedPoint = MatchedWaypoint()
-            seedPoint.waypoint = waypoints[0]
-            val listOne: MutableList<MatchedWaypoint> = ArrayList()
-            listOne.add(seedPoint)
-            matchWaypointsToNodes(listOne)
+        val seedPoint = MatchedWaypoint()
+        seedPoint.waypoint = waypoints[0]
+        val listOne: MutableList<MatchedWaypoint> = ArrayList()
+        listOne.add(seedPoint)
+        matchWaypointsToNodes(listOne)
 
-            findTrack("seededSearch", seedPoint, null, null, null, false)
-        } catch (e: IllegalArgumentException) {
-            logger.error(e.message)
-        } catch (e: Exception) {
-            logger.error(e.message, e)
-        } catch (e: Error) {
-            cleanOnOOM()
-            logger.error(e.message, e)
-        } finally {
-            ProfileCache.Companion.releaseProfile(routingContext)
-            if (nodesCache != null) {
-                nodesCache!!.close()
-                nodesCache = null
-            }
-            openSet.clear()
-            this.isFinished = true // this signals termination to outside
+        findTrack("seededSearch", seedPoint, null, null, null, false)
+
+
+        ProfileCache.Companion.releaseProfile(routingContext)
+        if (nodesCache != null) {
+            nodesCache!!.close()
+            nodesCache = null
         }
-    }
-
-    fun cleanOnOOM() {
-        terminate()
+        openSet.clear()
+        this.isFinished = true // this signals termination to outside
     }
 
     private fun findTrack(refTracks: Array<OsmTrack?>, lastTracks: Array<OsmTrack?>): OsmTrack? {
