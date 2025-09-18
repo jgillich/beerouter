@@ -1,5 +1,5 @@
-package btools.util;
+package btools.util
 
-public interface IByteArrayUnifier {
-  byte[] unify(byte[] ab, int offset, int len);
+interface IByteArrayUnifier {
+    fun unify(ab: ByteArray, offset: Int, len: Int): ByteArray?
 }

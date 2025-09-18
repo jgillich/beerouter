@@ -1,7 +1,15 @@
 plugins {
     id 'brouter.library-conventions'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 dependencies {
     implementation project(':brouter-util')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+kotlin {
+    jvmToolchain(11)
 }

@@ -3,54 +3,58 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmTransferNode;
+internal class KinematicPrePath : OsmPrePath() {
+    var angle: Double = 0.0
+    var priorityclassifier: Int = 0
+    var classifiermask: Int = 0
 
-final class KinematicPrePath extends OsmPrePath {
-  public double angle;
-  public int priorityclassifier;
-  public int classifiermask;
+    override fun initPrePath(origin: OsmPath, rc: RoutingContext) {
+        var description = link!!.descriptionBitmap
+        if (description == null) {
+            //throw new IllegalArgumentException("null description for: " + link);
+            description =
+                (if (targetNode!!.descriptionBitmap != null) targetNode!!.descriptionBitmap else byteArrayOf(
+                    0,
+                    1,
+                    0
+                ))
+        }
 
-  protected void initPrePath(OsmPath origin, RoutingContext rc) {
-    byte[] description = link.descriptionBitmap;
-    if (description == null) {
-      //throw new IllegalArgumentException("null description for: " + link);
-      description = (targetNode.descriptionBitmap != null ? targetNode.descriptionBitmap : new byte[] {0, 1, 0});
+        // extract the 3 positions of the first section
+        val lon0 = origin.originLon
+        val lat0 = origin.originLat
+
+        val p1 = sourceNode!!
+        val lon1 = p1.iLon
+        val lat1 = p1.iLat
+
+        val isReverse = link!!.isReverse(sourceNode)
+
+        // evaluate the way tags
+        rc.expctxWay!!.evaluate(rc.inverseDirection xor isReverse, description!!)
+
+        val transferNode = if (link!!.geometry == null)
+            null
+        else
+            rc.geometryDecoder.decodeGeometry(link!!.geometry!!, p1, targetNode!!, isReverse)
+
+        val lon2: Int
+        val lat2: Int
+
+        if (transferNode == null) {
+            lon2 = targetNode!!.iLon
+            lat2 = targetNode!!.iLat
+        } else {
+            lon2 = transferNode.ilon
+            lat2 = transferNode.ilat
+        }
+
+        val dist = rc.calcDistance(lon1, lat1, lon2, lat2)
+
+        angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
+        priorityclassifier = rc.expctxWay!!.priorityClassifier.toInt()
+        classifiermask = rc.expctxWay!!.classifierMask.toInt()
     }
-
-    // extract the 3 positions of the first section
-    int lon0 = origin.originLon;
-    int lat0 = origin.originLat;
-
-    OsmNode p1 = sourceNode;
-    int lon1 = p1.getILon();
-    int lat1 = p1.getILat();
-
-    boolean isReverse = link.isReverse(sourceNode);
-
-    // evaluate the way tags
-    rc.expctxWay.evaluate(rc.inverseDirection ^ isReverse, description);
-
-    OsmTransferNode transferNode = link.geometry == null ? null
-      : rc.geometryDecoder.decodeGeometry(link.geometry, p1, targetNode, isReverse);
-
-    int lon2;
-    int lat2;
-
-    if (transferNode == null) {
-      lon2 = targetNode.ilon;
-      lat2 = targetNode.ilat;
-    } else {
-      lon2 = transferNode.ilon;
-      lat2 = transferNode.ilat;
-    }
-
-    int dist = rc.calcDistance(lon1, lat1, lon2, lat2);
-
-    angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2);
-    priorityclassifier = (int) rc.expctxWay.getPriorityClassifier();
-    classifiermask = (int) rc.expctxWay.getClassifierMask();
-  }
 }

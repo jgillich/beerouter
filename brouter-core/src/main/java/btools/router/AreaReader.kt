@@ -1,274 +1,319 @@
-package btools.router;
+package btools.router
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import btools.codec.DataBuffers
+import btools.expressions.BExpressionContextWay
+import btools.mapaccess.MatchedWaypoint
+import btools.mapaccess.MatchedWaypoint.Companion.readFromStream
+import btools.mapaccess.NodesCache
+import btools.mapaccess.OsmFile
+import btools.mapaccess.OsmLink
+import btools.mapaccess.OsmNode
+import btools.mapaccess.OsmNodesMap
+import btools.mapaccess.PhysicalFile
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.util.Collections
+import java.util.TreeMap
+import kotlin.math.abs
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+class AreaReader {
+    private val logger: Logger = LoggerFactory.getLogger(AreaReader::class.java)
 
-import btools.codec.DataBuffers;
-import btools.codec.MicroCache;
-import btools.expressions.BExpressionContextWay;
-import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.NodesCache;
-import btools.mapaccess.OsmFile;
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmNodesMap;
-import btools.mapaccess.PhysicalFile;
+    var segmentFolder: File? = null
 
-public class AreaReader {
-  private Logger logger = LoggerFactory.getLogger(AreaReader.class);
+    fun getDirectAllData(
+        folder: File,
+        rc: RoutingContext,
+        wp: OsmNodeNamed,
+        maxscale: Int,
+        expctxWay: BExpressionContextWay,
+        searchRect: OsmNogoPolygon,
+        ais: MutableList<AreaInfo>
+    ) {
+        this.segmentFolder = folder
 
-  File segmentFolder;
+        val div = 32
+        val cellsize = 1000000 / div
+        val scale = maxscale
+        var count = 0
+        var used = 0
+        val checkBorder = maxscale > 7
 
-  public void getDirectAllData(File folder, RoutingContext rc, OsmNodeNamed wp, int maxscale, BExpressionContextWay expctxWay, OsmNogoPolygon searchRect, List<AreaInfo> ais) {
-    this.segmentFolder = folder;
+        val tiles: MutableMap<Long?, String?> = TreeMap<Long?, String?>()
+        for (idxLat in -scale..scale) {
+            for (idxLon in -scale..scale) {
+                if (ignoreCenter(maxscale, idxLon, idxLat)) continue
+                val tmplon: Int = wp.iLon + cellsize * idxLon
+                val tmplat = wp.iLat + cellsize * idxLat
+                val lonDegree = tmplon / 1000000
+                val latDegree = tmplat / 1000000
+                val lonMod5 = lonDegree % 5
+                val latMod5 = latDegree % 5
 
-    int div = 32;
-    int cellsize = 1000000 / div;
-    int scale = maxscale;
-    int count = 0;
-    int used = 0;
-    boolean checkBorder = maxscale > 7;
+                var lon = lonDegree - 180 - lonMod5
+                val slon = if (lon < 0) "W" + (-lon) else "E" + lon
+                var lat = latDegree - 90 - latMod5
+                val slat = if (lat < 0) "S" + (-lat) else "N" + lat
+                val filenameBase = slon + "_" + slat
 
-    Map<Long, String> tiles = new TreeMap<>();
-    for (int idxLat = -scale; idxLat <= scale; idxLat++) {
-      for (int idxLon = -scale; idxLon <= scale; idxLon++) {
-        if (ignoreCenter(maxscale, idxLon, idxLat)) continue;
-        int tmplon = wp.ilon + cellsize * idxLon;
-        int tmplat = wp.ilat + cellsize * idxLat;
-        int lonDegree = tmplon / 1000000;
-        int latDegree = tmplat / 1000000;
-        int lonMod5 = (int) lonDegree % 5;
-        int latMod5 = (int) latDegree % 5;
+                val lonIdx = tmplon / cellsize
+                val latIdx = tmplat / cellsize
+                val subIdx = (latIdx - div * latDegree) * div + (lonIdx - div * lonDegree)
 
-        int lon = (int) lonDegree - 180 - lonMod5;
-        String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-        int lat = (int) latDegree - 90 - latMod5;
-        String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-        String filenameBase = slon + "_" + slat;
+                val subLonIdx = (lonIdx - div * lonDegree)
+                val subLatIdx = (latIdx - div * latDegree)
 
-        int lonIdx = tmplon / cellsize;
-        int latIdx = tmplat / cellsize;
-        int subIdx = (latIdx - div * latDegree) * div + (lonIdx - div * lonDegree);
+                val dataRect = OsmNogoPolygon(true)
+                lon = lonDegree * 1000000
+                lat = latDegree * 1000000
+                var tmplon2 = lon + cellsize * (subLonIdx)
+                var tmplat2 = lat + cellsize * (subLatIdx)
+                dataRect.addVertex(tmplon2, tmplat2)
 
-        int subLonIdx = (lonIdx - div * lonDegree);
-        int subLatIdx = (latIdx - div * latDegree);
+                tmplon2 = lon + cellsize * (subLonIdx + 1)
+                tmplat2 = lat + cellsize * (subLatIdx)
+                dataRect.addVertex(tmplon2, tmplat2)
 
-        OsmNogoPolygon dataRect = new OsmNogoPolygon(true);
-        lon = lonDegree * 1000000;
-        lat = latDegree * 1000000;
-        int tmplon2 = lon + cellsize * (subLonIdx);
-        int tmplat2 = lat + cellsize * (subLatIdx);
-        dataRect.addVertex(tmplon2, tmplat2);
+                tmplon2 = lon + cellsize * (subLonIdx + 1)
+                tmplat2 = lat + cellsize * (subLatIdx + 1)
+                dataRect.addVertex(tmplon2, tmplat2)
 
-        tmplon2 = lon + cellsize * (subLonIdx + 1);
-        tmplat2 = lat + cellsize * (subLatIdx);
-        dataRect.addVertex(tmplon2, tmplat2);
+                tmplon2 = lon + cellsize * (subLonIdx)
+                tmplat2 = lat + cellsize * (subLatIdx + 1)
+                dataRect.addVertex(tmplon2, tmplat2)
 
-        tmplon2 = lon + cellsize * (subLonIdx + 1);
-        tmplat2 = lat + cellsize * (subLatIdx + 1);
-        dataRect.addVertex(tmplon2, tmplat2);
-
-        tmplon2 = lon + cellsize * (subLonIdx);
-        tmplat2 = lat + cellsize * (subLatIdx + 1);
-        dataRect.addVertex(tmplon2, tmplat2);
-
-        boolean intersects = checkBorder && dataRect.intersects(searchRect.points.get(0).x, searchRect.points.get(0).y, searchRect.points.get(2).x, searchRect.points.get(2).y);
-        if (!intersects && checkBorder)
-          intersects = dataRect.intersects(searchRect.points.get(1).x, searchRect.points.get(1).y, searchRect.points.get(2).x, searchRect.points.get(3).y);
-        if (intersects) {
-          continue;
-        }
-
-        intersects = searchRect.intersects(dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
-        if (!intersects)
-          intersects = searchRect.intersects(dataRect.points.get(1).x, dataRect.points.get(1).y, dataRect.points.get(3).x, dataRect.points.get(3).y);
-        if (!intersects)
-          intersects = containsRect(searchRect, dataRect.points.get(0).x, dataRect.points.get(0).y, dataRect.points.get(2).x, dataRect.points.get(2).y);
-
-        if (!intersects) {
-          continue;
-        }
-
-        tiles.put(((long) tmplon) << 32 | tmplat, filenameBase);
-        count++;
-      }
-    }
-
-    List<Map.Entry<Long, String>> list = new ArrayList<>(tiles.entrySet());
-    Collections.sort(list, new Comparator<>() {
-      @Override
-      public int compare(Map.Entry<Long, String> e1, Map.Entry<Long, String> e2) {
-        return e1.getValue().compareTo(e2.getValue());
-      }
-    });
-
-    long maxmem = rc.memoryclass * 1024L * 1024L; // in MB
-    NodesCache nodesCache = new NodesCache(segmentFolder, expctxWay, rc.forceSecondaryData, maxmem, null, false);
-    PhysicalFile pf = null;
-    String lastFilenameBase = "";
-    DataBuffers dataBuffers = null;
-    try {
-      for (Map.Entry<Long, String> entry : list) {
-        OsmNode n = new OsmNode(entry.getKey());
-        // System.out.println("areareader set " + n.getILon() + "_" + n.getILat() + " " + entry.getValue());
-        String filenameBase = entry.getValue();
-        if (!filenameBase.equals(lastFilenameBase)) {
-          if (pf != null) pf.close();
-          lastFilenameBase = filenameBase;
-          File file = new File(segmentFolder, filenameBase + ".rd5");
-          dataBuffers = new DataBuffers();
-
-          pf = new PhysicalFile(file, dataBuffers, -1, -1);
-        }
-        if (getDirectData(pf, dataBuffers, n.getILon(), n.getILat(), rc, expctxWay, ais))
-          used++;
-      }
-    } catch (Exception e) {
-      logger.error("error after used={} / count={}", used, count, e);
-      ais.clear();
-    } finally {
-      if (pf != null)
-        try {
-          pf.close();
-        } catch (Exception ee) {
-        }
-      nodesCache.close();
-    }
-  }
-
-  public boolean getDirectData(PhysicalFile pf, DataBuffers dataBuffers, int inlon, int inlat, RoutingContext rc, BExpressionContextWay expctxWay, List<AreaInfo> ais) {
-
-    int lonDegree = inlon / 1000000;
-    int latDegree = inlat / 1000000;
-
-    OsmNodesMap nodesMap = new OsmNodesMap();
-
-    try {
-      int div = pf.divisor;
-
-      OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
-      if (osmf.hasData()) {
-        int cellsize = 1000000 / div;
-        int tmplon = inlon;
-        int tmplat = inlat;
-        int lonIdx = tmplon / cellsize;
-        int latIdx = tmplat / cellsize;
-
-        MicroCache segment = osmf.createMicroCache(lonIdx, latIdx, dataBuffers, expctxWay, null, true, null);
-
-        if (segment != null) {
-          int size = segment.getSize();
-          for (int i = 0; i < size; i++) {
-            long id = segment.getIdForIndex(i);
-            OsmNode node = new OsmNode(id);
-            if (segment.getAndClear(id)) {
-              node.parseNodeBody(segment, nodesMap, expctxWay);
-              if (node.firstlink instanceof OsmLink) {
-                for (OsmLink link = node.firstlink; link != null; link = link.getNext(node)) {
-                  OsmNode nextNode = link.getTarget(node);
-                  if (nextNode.firstlink == null)
-                    continue; // don't care about dead ends
-                  if (nextNode.firstlink.descriptionBitmap == null)
-                    continue;
-
-                  for (AreaInfo ai : ais) {
-                    if (ai.polygon.isWithin(node.ilon, node.ilat)) {
-                      ai.checkAreaInfo(expctxWay, node.getElev(), nextNode.firstlink.descriptionBitmap);
-                      break;
-                    }
-                  }
-                  break;
+                var intersects = checkBorder && dataRect.intersects(
+                    searchRect.points.get(0).x,
+                    searchRect.points.get(0).y,
+                    searchRect.points.get(2).x,
+                    searchRect.points.get(2).y
+                )
+                if (!intersects && checkBorder) intersects = dataRect.intersects(
+                    searchRect.points.get(1).x,
+                    searchRect.points.get(1).y,
+                    searchRect.points.get(2).x,
+                    searchRect.points.get(3).y
+                )
+                if (intersects) {
+                    continue
                 }
-              }
+
+                intersects = searchRect.intersects(
+                    dataRect.points.get(0).x,
+                    dataRect.points.get(0).y,
+                    dataRect.points.get(2).x,
+                    dataRect.points.get(2).y
+                )
+                if (!intersects) intersects = searchRect.intersects(
+                    dataRect.points.get(1).x,
+                    dataRect.points.get(1).y,
+                    dataRect.points.get(3).x,
+                    dataRect.points.get(3).y
+                )
+                if (!intersects) intersects = containsRect(
+                    searchRect,
+                    dataRect.points.get(0).x,
+                    dataRect.points.get(0).y,
+                    dataRect.points.get(2).x,
+                    dataRect.points.get(2).y
+                )
+
+                if (!intersects) {
+                    continue
+                }
+
+                tiles.put((tmplon.toLong()) shl 32 or tmplat.toLong(), filenameBase)
+                count++
             }
-          }
         }
-        return true;
-      }
-    } catch (Exception e) {
-      System.err.println("AreaReader: " + e.getMessage());
+
+        val list: MutableList<MutableMap.MutableEntry<Long?, String?>> =
+            ArrayList<MutableMap.MutableEntry<Long?, String?>>(tiles.entries)
+        Collections.sort<MutableMap.MutableEntry<Long?, String?>?>(
+            list,
+            Comparator<MutableMap.MutableEntry<Long?, String?>> { e1, e2 -> e1.value!!.compareTo(e2.value!!) })
+
+        val maxmem = rc.memoryclass * 1024L * 1024L // in MB
+        val nodesCache =
+            NodesCache(segmentFolder!!, expctxWay, rc.forceSecondaryData, maxmem, null, false)
+        var pf: PhysicalFile? = null
+        var lastFilenameBase = ""
+        var dataBuffers: DataBuffers? = null
+        try {
+            for (entry in list) {
+                val n = OsmNode(entry.key!!)
+                // System.out.println("areareader set " + n.getILon() + "_" + n.getILat() + " " + entry.getValue());
+                val filenameBase: String = entry.value!!
+                if (filenameBase != lastFilenameBase) {
+                    if (pf != null) pf.close()
+                    lastFilenameBase = filenameBase
+                    val file = File(segmentFolder, filenameBase + ".rd5")
+                    dataBuffers = DataBuffers()
+
+                    pf = PhysicalFile(file, dataBuffers, -1, -1)
+                }
+                if (getDirectData(pf!!, dataBuffers!!, n.iLon, n.iLat, rc, expctxWay, ais)) used++
+            }
+        } catch (e: Exception) {
+            logger.error("error after used={} / count={}", used, count, e)
+            ais.clear()
+        } finally {
+            if (pf != null) try {
+                pf.close()
+            } catch (ee: Exception) {
+            }
+            nodesCache.close()
+        }
     }
-    return false;
-  }
 
-  boolean ignoreCenter(int maxscale, int idxLon, int idxLat) {
-    int centerScale = (int) Math.round(maxscale * .2) - 1;
-    if (centerScale < 0) return false;
-    return idxLon >= -centerScale && idxLon <= centerScale &&
-      idxLat >= -centerScale && idxLat <= centerScale;
-  }
+    fun getDirectData(
+        pf: PhysicalFile,
+        dataBuffers: DataBuffers,
+        inlon: Int,
+        inlat: Int,
+        rc: RoutingContext?,
+        expctxWay: BExpressionContextWay,
+        ais: MutableList<AreaInfo>
+    ): Boolean {
+        val lonDegree = inlon / 1000000
+        val latDegree = inlat / 1000000
 
-  /*
+        val nodesMap = OsmNodesMap()
+
+        try {
+            val div = pf.divisor
+
+            val osmf = OsmFile(pf, lonDegree, latDegree, dataBuffers)
+            if (osmf.hasData()) {
+                val cellsize = 1000000 / div
+                val tmplon = inlon
+                val tmplat = inlat
+                val lonIdx = tmplon / cellsize
+                val latIdx = tmplat / cellsize
+
+                val segment =
+                    osmf.createMicroCache(lonIdx, latIdx, dataBuffers, expctxWay, null, true, null)
+
+                if (segment != null) {
+                    val size = segment.size
+                    for (i in 0..<size) {
+                        val id = segment.getIdForIndex(i)
+                        val node = OsmNode(id)
+                        if (segment.getAndClear(id)) {
+                            node.parseNodeBody(segment, nodesMap, expctxWay)
+                            if (node.firstlink is OsmLink) {
+                                var link = node.firstlink
+                                while (link != null) {
+                                    val nextNode = link.getTarget(node)
+                                    if (nextNode!!.firstlink == null) {
+                                        link = link.getNext(node)
+                                        continue  // don't care about dead ends
+                                    }
+                                    if (nextNode.firstlink!!.descriptionBitmap == null) {
+                                        link = link.getNext(node)
+                                        continue
+                                    }
+
+                                    for (ai in ais) {
+                                        if (ai.polygon!!.isWithin(
+                                                node.iLon.toLong(),
+                                                node.iLat.toLong()
+                                            )
+                                        ) {
+                                            ai.checkAreaInfo(
+                                                expctxWay,
+                                                node.elev,
+                                                nextNode.firstlink!!.descriptionBitmap!!
+                                            )
+                                            break
+                                        }
+                                    }
+                                    break
+                                    link = link.getNext(node)
+                                }
+                            }
+                        }
+                    }
+                }
+                return true
+            }
+        } catch (e: Exception) {
+            System.err.println("AreaReader: " + e.message)
+        }
+        return false
+    }
+
+    fun ignoreCenter(maxscale: Int, idxLon: Int, idxLat: Int): Boolean {
+        val centerScale = Math.round(maxscale * .2).toInt() - 1
+        if (centerScale < 0) return false
+        return idxLon >= -centerScale && idxLon <= centerScale && idxLat >= -centerScale && idxLat <= centerScale
+    }
+
+    /*
     in this case the polygon is 'only' a rectangle
   */
-  boolean containsRect(OsmNogoPolygon searchRect, int p1x, int p1y, int p2x, int p2y) {
-    return searchRect.isWithin((long) p1x, (long) p1y) &&
-      searchRect.isWithin(p2x, p2y);
-  }
-
-  public void writeAreaInfo(String filename, MatchedWaypoint wp, List<AreaInfo> ais) throws Exception {
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
-
-    wp.writeToStream(dos);
-    for (AreaInfo ai : ais) {
-      dos.writeInt(ai.direction);
-      dos.writeDouble(ai.elevStart);
-      dos.writeInt(ai.ways);
-      dos.writeInt(ai.greenWays);
-      dos.writeInt(ai.riverWays);
-      dos.writeInt(ai.elev50);
+    fun containsRect(searchRect: OsmNogoPolygon, p1x: Int, p1y: Int, p2x: Int, p2y: Int): Boolean {
+        return searchRect.isWithin(p1x.toLong(), p1y.toLong()) &&
+                searchRect.isWithin(p2x.toLong(), p2y.toLong())
     }
-    dos.close();
-  }
 
-  public void readAreaInfo(File fai, MatchedWaypoint wp, List<AreaInfo> ais) {
-    DataInputStream dis = null;
-    MatchedWaypoint ep = null;
-    try {
-      dis = new DataInputStream(new BufferedInputStream(new FileInputStream(fai)));
-      ep = MatchedWaypoint.readFromStream(dis);
-      if (Math.abs(ep.waypoint.ilon - wp.waypoint.ilon) > 500 &&
-        Math.abs(ep.waypoint.ilat - wp.waypoint.ilat) > 500) {
-        return;
-      }
-      if (Math.abs(ep.radius - wp.radius) > 500) {
-        return;
-      }
-      for (int i = 0; i < 4; i++) {
-        int direction = dis.readInt();
-        AreaInfo ai = new AreaInfo(direction);
-        ai.elevStart = dis.readDouble();
-        ai.ways = dis.readInt();
-        ai.greenWays = dis.readInt();
-        ai.riverWays = dis.readInt();
-        ai.elev50 = dis.readInt();
-        ais.add(ai);
-      }
-    } catch (IOException e) {
-      ais.clear();
-    } finally {
-      if (dis != null) {
-        try {
-          dis.close();
-        } catch (IOException e) {
+    @Throws(Exception::class)
+    fun writeAreaInfo(filename: String, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
+        val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(filename)))
+
+        wp.writeToStream(dos)
+        for (ai in ais) {
+            dos.writeInt(ai.direction)
+            dos.writeDouble(ai.elevStart)
+            dos.writeInt(ai.ways)
+            dos.writeInt(ai.greenWays)
+            dos.writeInt(ai.riverWays)
+            dos.writeInt(ai.elev50)
         }
-      }
+        dos.close()
     }
-  }
 
+    fun readAreaInfo(fai: File, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
+        var dis: DataInputStream? = null
+        var ep: MatchedWaypoint? = null
+        try {
+            dis = DataInputStream(BufferedInputStream(FileInputStream(fai)))
+            ep = readFromStream(dis)
+            if (abs(ep.waypoint!!.iLon - wp.waypoint!!.iLon) > 500 &&
+                abs(ep.waypoint!!.iLat - wp.waypoint!!.iLat) > 500
+            ) {
+                return
+            }
+            if (abs(ep.radius - wp.radius) > 500) {
+                return
+            }
+            for (i in 0..3) {
+                val direction = dis.readInt()
+                val ai = AreaInfo(direction)
+                ai.elevStart = dis.readDouble()
+                ai.ways = dis.readInt()
+                ai.greenWays = dis.readInt()
+                ai.riverWays = dis.readInt()
+                ai.elev50 = dis.readInt()
+                ais.add(ai)
+            }
+        } catch (e: IOException) {
+            ais.clear()
+        } finally {
+            if (dis != null) {
+                try {
+                    dis.close()
+                } catch (e: IOException) {
+                }
+            }
+        }
+    }
 }

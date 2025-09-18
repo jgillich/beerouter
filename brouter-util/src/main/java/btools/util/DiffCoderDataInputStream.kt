@@ -3,41 +3,39 @@
  *
  * @author ab
  */
-package btools.util;
+package btools.util
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.DataInputStream
+import java.io.IOException
+import java.io.InputStream
 
+class DiffCoderDataInputStream(`is`: InputStream) : DataInputStream(`is`) {
+    private val lastValues = LongArray(10)
 
-public final class DiffCoderDataInputStream extends DataInputStream {
-  private long[] lastValues = new long[10];
-
-  public DiffCoderDataInputStream(InputStream is) {
-    super(is);
-  }
-
-  public long readDiffed(int idx) throws IOException {
-    long d = readSigned();
-    long v = lastValues[idx] + d;
-    lastValues[idx] = v;
-    return v;
-  }
-
-  public long readSigned() throws IOException {
-    long v = readUnsigned();
-    return (v & 1) == 0 ? v >> 1 : -(v >> 1);
-  }
-
-  public long readUnsigned() throws IOException {
-    long v = 0;
-    int shift = 0;
-    for (; ; ) {
-      long i7 = readByte() & 0xff;
-      v |= ((i7 & 0x7f) << shift);
-      if ((i7 & 0x80) == 0) break;
-      shift += 7;
+    @Throws(IOException::class)
+    fun readDiffed(idx: Int): Long {
+        val d = readSigned()
+        val v = lastValues[idx] + d
+        lastValues[idx] = v
+        return v
     }
-    return v;
-  }
+
+    @Throws(IOException::class)
+    fun readSigned(): Long {
+        val v = readUnsigned()
+        return if ((v and 1L) == 0L) v shr 1 else -(v shr 1)
+    }
+
+    @Throws(IOException::class)
+    fun readUnsigned(): Long {
+        var v: Long = 0
+        var shift = 0
+        while (true) {
+            val i7 = (readByte().toInt() and 0xff).toLong()
+            v = v or ((i7 and 0x7fL) shl shift)
+            if ((i7 and 0x80L) == 0L) break
+            shift += 7
+        }
+        return v
+    }
 }

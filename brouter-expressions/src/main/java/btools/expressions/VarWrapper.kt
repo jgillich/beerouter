@@ -1,23 +1,19 @@
-package btools.expressions;
+package btools.expressions
 
-import java.util.Arrays;
+import btools.util.LruMapNode
 
-import btools.util.LruMapNode;
+class VarWrapper : LruMapNode() {
+    var vars: FloatArray? = null
 
-public final class VarWrapper extends LruMapNode {
-  float[] vars;
-
-  @Override
-  public int hashCode() {
-    return hash;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    VarWrapper n = (VarWrapper) o;
-    if (hash != n.hash) {
-      return false;
+    override fun hashCode(): Int {
+        return hash
     }
-    return Arrays.equals(vars, n.vars);
-  }
+
+    override fun equals(o: Any?): Boolean {
+        val n = o as VarWrapper
+        if (hash != n.hash) {
+            return false
+        }
+        return vars.contentEquals(n.vars)
+    }
 }

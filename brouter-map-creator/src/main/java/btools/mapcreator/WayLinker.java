@@ -163,8 +163,8 @@ public class WayLinker extends MapCreatorBase implements Runnable {
     expctxWay = new BExpressionContextWay(meta);
     meta.readMetaData(lookupFile);
 
-    lookupVersion = meta.lookupVersion;
-    lookupMinorVersion = meta.lookupMinorVersion;
+    lookupVersion = meta.getLookupVersion();
+    lookupMinorVersion = meta.getLookupMinorVersion();
 
     expctxWay.parseFile(profileFile, "global");
 
@@ -500,10 +500,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
                     // ..and check if still the same
                     String diffMessage = mc.compareWith(mc2);
                     if (diffMessage != null) {
-                      if (MicroCache.debug)
-                        throw new RuntimeException("encoding crosscheck failed: " + diffMessage);
-                      else
-                        MicroCache.debug = true;
+                      throw new RuntimeException("encoding crosscheck failed: " + diffMessage);
                     } else
                       break;
                   }
@@ -547,7 +544,7 @@ public class WayLinker extends MapCreatorBase implements Runnable {
       ra.write(abFileIndex, 0, abFileIndex.length);
       ra.close();
     }
-    System.out.println("**** codec stats: *******\n" + StatCoderContext.getBitReport());
+    System.out.println("**** codec stats: *******\n" + StatCoderContext.Companion.getBitReport());
   }
 
   private byte[] compileFileIndex(long[] fileIndex, short lookupVersion, short lookupMinorVersion) throws Exception {

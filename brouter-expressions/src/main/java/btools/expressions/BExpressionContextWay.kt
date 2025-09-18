@@ -3,132 +3,124 @@
 // - the local variables
 // - the local variable names
 // - the lookup-input variables
+package btools.expressions
 
-package btools.expressions;
+import btools.codec.TagValueValidator
 
-import btools.codec.TagValueValidator;
+class BExpressionContextWay : BExpressionContext, TagValueValidator {
+    private var decodeForbidden = true
 
-public final class BExpressionContextWay extends BExpressionContext implements TagValueValidator {
-  private boolean decodeForbidden = true;
+    override val buildInVariableNames: Array<String?> = buildInVariables
 
-  private static String[] buildInVariables =
-    {"costfactor", "turncost", "uphillcostfactor", "downhillcostfactor", "initialcost", "nodeaccessgranted", "initialclassifier", "trafficsourcedensity", "istrafficbackbone", "priorityclassifier", "classifiermask", "maxspeed", "uphillcost", "downhillcost", "uphillcutoff", "downhillcutoff", "uphillmaxslope", "downhillmaxslope", "uphillmaxslopecost", "downhillmaxslopecost"};
+    val costfactor: Float
+        get() = getBuildInVariable(0)
 
-  protected String[] getBuildInVariableNames() {
-    return buildInVariables;
-  }
+    val turncost: Float
+        get() = getBuildInVariable(1)
 
-  public float getCostfactor() {
-    return getBuildInVariable(0);
-  }
+    val uphillCostfactor: Float
+        get() = getBuildInVariable(2)
 
-  public float getTurncost() {
-    return getBuildInVariable(1);
-  }
+    val downhillCostfactor: Float
+        get() = getBuildInVariable(3)
 
-  public float getUphillCostfactor() {
-    return getBuildInVariable(2);
-  }
+    val initialcost: Float
+        get() = getBuildInVariable(4)
 
-  public float getDownhillCostfactor() {
-    return getBuildInVariable(3);
-  }
+    val nodeAccessGranted: Float
+        get() = getBuildInVariable(5)
 
-  public float getInitialcost() {
-    return getBuildInVariable(4);
-  }
+    val initialClassifier: Float
+        get() = getBuildInVariable(6)
 
-  public float getNodeAccessGranted() {
-    return getBuildInVariable(5);
-  }
+    val trafficSourceDensity: Float
+        get() = getBuildInVariable(7)
 
-  public float getInitialClassifier() {
-    return getBuildInVariable(6);
-  }
+    val isTrafficBackbone: Float
+        get() = getBuildInVariable(8)
 
-  public float getTrafficSourceDensity() {
-    return getBuildInVariable(7);
-  }
+    val priorityClassifier: Float
+        get() = getBuildInVariable(9)
 
-  public float getIsTrafficBackbone() {
-    return getBuildInVariable(8);
-  }
+    val classifierMask: Float
+        get() = getBuildInVariable(10)
 
-  public float getPriorityClassifier() {
-    return getBuildInVariable(9);
-  }
+    val maxspeed: Float
+        get() = getBuildInVariable(11)
 
-  public float getClassifierMask() {
-    return getBuildInVariable(10);
-  }
+    val uphillcost: Float
+        get() = getBuildInVariable(12)
 
-  public float getMaxspeed() {
-    return getBuildInVariable(11);
-  }
+    val downhillcost: Float
+        get() = getBuildInVariable(13)
 
-  public float getUphillcost() {
-    return getBuildInVariable(12);
-  }
+    val uphillcutoff: Float
+        get() = getBuildInVariable(14)
 
-  public float getDownhillcost() {
-    return getBuildInVariable(13);
-  }
+    val downhillcutoff: Float
+        get() = getBuildInVariable(15)
 
-  public float getUphillcutoff() {
-    return getBuildInVariable(14);
-  }
+    val uphillmaxslope: Float
+        get() = getBuildInVariable(16)
 
-  public float getDownhillcutoff() {
-    return getBuildInVariable(15);
-  }
+    val downhillmaxslope: Float
+        get() = getBuildInVariable(17)
 
-  public float getUphillmaxslope() {
-    return getBuildInVariable(16);
-  }
+    val uphillmaxslopecost: Float
+        get() = getBuildInVariable(18)
 
-  public float getDownhillmaxslope() {
-    return getBuildInVariable(17);
-  }
+    val downhillmaxslopecost: Float
+        get() = getBuildInVariable(19)
 
-  public float getUphillmaxslopecost() {
-    return getBuildInVariable(18);
-  }
+    constructor(meta: BExpressionMetaData) : super("way", meta)
 
-  public float getDownhillmaxslopecost() {
-    return getBuildInVariable(19);
-  }
+    /**
+     * Create an Expression-Context for way context
+     *
+     * @param hashSize size of hashmap for result caching
+     */
+    constructor(hashSize: Int, meta: BExpressionMetaData) : super("way", hashSize, meta)
 
-  public BExpressionContextWay(BExpressionMetaData meta) {
-    super("way", meta);
-  }
-
-  /**
-   * Create an Expression-Context for way context
-   *
-   * @param hashSize size of hashmap for result caching
-   */
-  public BExpressionContextWay(int hashSize, BExpressionMetaData meta) {
-    super("way", hashSize, meta);
-  }
-
-  @Override
-  public int accessType(byte[] description) {
-    evaluate(false, description);
-    float minCostFactor = getCostfactor();
-    if (minCostFactor >= 9999.f) {
-      setInverseVars();
-      float reverseCostFactor = getCostfactor();
-      if (reverseCostFactor < minCostFactor) {
-        minCostFactor = reverseCostFactor;
-      }
+    override fun accessType(description: ByteArray?): Int {
+        evaluate(false, description!!)
+        var minCostFactor = this.costfactor
+        if (minCostFactor >= 9999f) {
+            setInverseVars()
+            val reverseCostFactor = this.costfactor
+            if (reverseCostFactor < minCostFactor) {
+                minCostFactor = reverseCostFactor
+            }
+        }
+        return if (minCostFactor < 9999f) 2 else if (decodeForbidden) (if (minCostFactor < 10000f) 1 else 0) else 0
     }
-    return minCostFactor < 9999.f ? 2 : decodeForbidden ? (minCostFactor < 10000.f ? 1 : 0) : 0;
-  }
 
-  @Override
-  public void setDecodeForbidden(boolean decodeForbidden) {
-    this.decodeForbidden = decodeForbidden;
-  }
+    override fun setDecodeForbidden(decodeForbidden: Boolean) {
+        this.decodeForbidden = decodeForbidden
+    }
 
 
+    companion object {
+        private val buildInVariables = arrayOf<String?>(
+            "costfactor",
+            "turncost",
+            "uphillcostfactor",
+            "downhillcostfactor",
+            "initialcost",
+            "nodeaccessgranted",
+            "initialclassifier",
+            "trafficsourcedensity",
+            "istrafficbackbone",
+            "priorityclassifier",
+            "classifiermask",
+            "maxspeed",
+            "uphillcost",
+            "downhillcost",
+            "uphillcutoff",
+            "downhillcutoff",
+            "uphillmaxslope",
+            "downhillmaxslope",
+            "uphillmaxslopecost",
+            "downhillmaxslopecost"
+        )
+    }
 }

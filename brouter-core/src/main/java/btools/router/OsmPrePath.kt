@@ -3,24 +3,24 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import btools.mapaccess.OsmLink;
-import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmLink
+import btools.mapaccess.OsmNode
 
-public abstract class OsmPrePath {
-  protected OsmNode sourceNode;
-  protected OsmNode targetNode;
-  protected OsmLink link;
+abstract class OsmPrePath {
+    protected var sourceNode: OsmNode? = null
+    protected var targetNode: OsmNode? = null
+    protected var link: OsmLink? = null
 
-  public OsmPrePath next;
+    var next: OsmPrePath? = null
 
-  public void init(OsmPath origin, OsmLink link, RoutingContext rc) {
-    this.link = link;
-    this.sourceNode = origin.getTargetNode();
-    this.targetNode = link.getTarget(sourceNode);
-    initPrePath(origin, rc);
-  }
+    fun init(origin: OsmPath, link: OsmLink, rc: RoutingContext) {
+        this.link = link
+        this.sourceNode = origin.targetNode!!
+        this.targetNode = link.getTarget(sourceNode)
+        initPrePath(origin, rc)
+    }
 
-  protected abstract void initPrePath(OsmPath origin, RoutingContext rc);
+    protected abstract fun initPrePath(origin: OsmPath, rc: RoutingContext)
 }

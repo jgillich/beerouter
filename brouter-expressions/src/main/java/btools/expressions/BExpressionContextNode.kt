@@ -3,33 +3,27 @@
 // - the local variables
 // - the local variable names
 // - the lookup-input variables
-
-package btools.expressions;
-
-
-public final class BExpressionContextNode extends BExpressionContext {
-  private static String[] buildInVariables =
-    {"initialcost"};
-
-  protected String[] getBuildInVariableNames() {
-    return buildInVariables;
-  }
-
-  public float getInitialcost() {
-    return getBuildInVariable(0);
-  }
+package btools.expressions
 
 
-  public BExpressionContextNode(BExpressionMetaData meta) {
-    super("node", meta);
-  }
+class BExpressionContextNode : BExpressionContext {
+    override val buildInVariableNames: Array<String?>
+        get() = buildInVariables
 
-  /**
-   * Create an Expression-Context for way context
-   *
-   * @param hashSize size of hashmap for result caching
-   */
-  public BExpressionContextNode(int hashSize, BExpressionMetaData meta) {
-    super("node", hashSize, meta);
-  }
+    val initialcost: Float
+        get() = getBuildInVariable(0)
+
+
+    constructor(meta: BExpressionMetaData) : super("node", meta)
+
+    /**
+     * Create an Expression-Context for way context
+     *
+     * @param hashSize size of hashmap for result caching
+     */
+    constructor(hashSize: Int, meta: BExpressionMetaData) : super("node", hashSize, meta)
+
+    companion object {
+        private val buildInVariables = arrayOf<String?>("initialcost")
+    }
 }

@@ -3,123 +3,124 @@
  *
  * @author ab
  */
-package btools.util;
+package btools.util
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.DataInputStream
+import java.io.IOException
+import java.io.InputStream
 
+class MixCoderDataInputStream(`is`: InputStream) : DataInputStream(`is`) {
+    private var lastValue = 0
+    private var repCount = 0
+    private var diffshift = 0
 
-public final class MixCoderDataInputStream extends DataInputStream {
-  private int lastValue;
-  private int repCount;
-  private int diffshift;
+    private var bits = 0 // bits left in buffer
+    private var b = 0 // buffer word
 
-  private int bits; // bits left in buffer
-  private int b; // buffer word
-
-  private static final int[] vl_values = BitCoderContext.vl_values;
-  private static final int[] vl_length = BitCoderContext.vl_length;
-
-  public MixCoderDataInputStream(InputStream is) {
-    super(is);
-  }
-
-  public int readMixed() throws IOException {
-    if (repCount == 0) {
-      boolean negative = decodeBit();
-      int d = decodeVarBits() + diffshift;
-      repCount = decodeVarBits() + 1;
-      lastValue += negative ? -d : d;
-      diffshift = 1;
+    @Throws(IOException::class)
+    fun readMixed(): Int {
+        if (repCount == 0) {
+            val negative = decodeBit()
+            val d = decodeVarBits() + diffshift
+            repCount = decodeVarBits() + 1
+            lastValue += if (negative) -d else d
+            diffshift = 1
+        }
+        repCount--
+        return lastValue
     }
-    repCount--;
-    return lastValue;
-  }
 
-  public boolean decodeBit() throws IOException {
-    fillBuffer();
-    boolean value = ((b & 1) != 0);
-    b >>>= 1;
-    bits--;
-    return value;
-  }
-
-  public int decodeVarBits2() throws IOException {
-    int range = 0;
-    while (!decodeBit()) {
-      range = 2 * range + 1;
+    @Throws(IOException::class)
+    fun decodeBit(): Boolean {
+        fillBuffer()
+        val value = ((b and 1) != 0)
+        b = b ushr 1
+        bits--
+        return value
     }
-    return range + decodeBounded(range);
-  }
 
-  /**
-   * decode an integer in the range 0..max (inclusive).
-   *
-   * @see #encodeBounded
-   */
-  public int decodeBounded(int max) throws IOException {
-    int value = 0;
-    int im = 1; // integer mask
-    while ((value | im) <= max) {
-      if (decodeBit()) {
-        value |= im;
-      }
-      im <<= 1;
+    @Throws(IOException::class)
+    fun decodeVarBits2(): Int {
+        var range = 0
+        while (!decodeBit()) {
+            range = 2 * range + 1
+        }
+        return range + decodeBounded(range)
     }
-    return value;
-  }
 
-
-  /**
-   * @see #encodeVarBits
-   */
-
-  public int decodeVarBits() throws IOException {
-    fillBuffer();
-    int b12 = b & 0xfff;
-    int len = vl_length[b12];
-    if (len <= 12) {
-      b >>>= len;
-      bits -= len;
-      return vl_values[b12]; // full value lookup
+    /**
+     * decode an integer in the range 0..max (inclusive).
+     *
+     * @see .encodeBounded
+     */
+    @Throws(IOException::class)
+    fun decodeBounded(max: Int): Int {
+        var value = 0
+        var im = 1 // integer mask
+        while ((value or im) <= max) {
+            if (decodeBit()) {
+                value = value or im
+            }
+            im = im shl 1
+        }
+        return value
     }
-    if (len <= 23) { // // only length lookup
-      int len2 = len >> 1;
-      b >>>= (len2 + 1);
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len;
-      return mask;
-    }
-    if ((b & 0xffffff) != 0) {
-      // here we just know len in [25..47]
-      // ( fillBuffer guarantees only 24 bits! )
-      b >>>= 12;
-      int len3 = 1 + (vl_length[b & 0xfff] >> 1);
-      b >>>= len3;
-      int len2 = 11 + len3;
-      bits -= len2 + 1;
-      fillBuffer();
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len2;
-      return mask;
-    }
-    return decodeVarBits2(); // no chance, use the slow one
-  }
 
-  private void fillBuffer() throws IOException {
-    while (bits < 24) {
-      int nextByte = read();
 
-      if (nextByte != -1) {
-        b |= (nextByte & 0xff) << bits;
-      }
-      bits += 8;
+    /**
+     * @see .encodeVarBits
+     */
+    @Throws(IOException::class)
+    fun decodeVarBits(): Int {
+        fillBuffer()
+        val b12 = b and 0xfff
+        val len: Int = vl_length[b12]
+        if (len <= 12) {
+            b = b ushr len
+            bits -= len
+            return vl_values[b12] // full value lookup
+        }
+        if (len <= 23) { // // only length lookup
+            val len2 = len shr 1
+            b = b ushr (len2 + 1)
+            var mask = -0x1 ushr (32 - len2)
+            mask += b and mask
+            b = b ushr len2
+            bits -= len
+            return mask
+        }
+        if ((b and 0xffffff) != 0) {
+            // here we just know len in [25..47]
+            // ( fillBuffer guarantees only 24 bits! )
+            b = b ushr 12
+            val len3: Int = 1 + (vl_length[b and 0xfff] shr 1)
+            b = b ushr len3
+            val len2 = 11 + len3
+            bits -= len2 + 1
+            fillBuffer()
+            var mask = -0x1 ushr (32 - len2)
+            mask += b and mask
+            b = b ushr len2
+            bits -= len2
+            return mask
+        }
+        return decodeVarBits2() // no chance, use the slow one
     }
-  }
 
+    @Throws(IOException::class)
+    private fun fillBuffer() {
+        while (bits < 24) {
+            val nextByte = read()
+
+            if (nextByte != -1) {
+                b = b or ((nextByte and 0xff) shl bits)
+            }
+            bits += 8
+        }
+    }
+
+    companion object {
+        private val vl_values = BitCoderContext.vl_values
+        private val vl_length = BitCoderContext.vl_length
+    }
 }

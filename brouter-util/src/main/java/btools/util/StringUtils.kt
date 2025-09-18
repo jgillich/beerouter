@@ -1,48 +1,51 @@
-package btools.util;
+package btools.util
 
 /**
  * Some methods for String handling
  */
-public class StringUtils {
-  private static char[] xmlChr = new char[]{'&', '<', '>', '\'', '"', '\t', '\n', '\r'};
-  private static String[] xmlEsc = new String[]{"&amp;", "&lt;", "&gt;", "&apos;", "&quot;", "&#x9;", "&#xA;", "&#xD;"};
+object StringUtils {
+    private val xmlChr = charArrayOf('&', '<', '>', '\'', '"', '\t', '\n', '\r')
+    private val xmlEsc: Array<String> =
+        arrayOf<String>("&amp;", "&lt;", "&gt;", "&apos;", "&quot;", "&#x9;", "&#xA;", "&#xD;")
 
-  private static char[] jsnChr = new char[]{'\'', '"', '\\', '/'};
-  private static String[] jsnEsc = new String[]{"\\'", "\\\"", "\\\\", "\\/"};
+    private val jsnChr = charArrayOf('\'', '"', '\\', '/')
+    private val jsnEsc: Array<String> = arrayOf<String>("\\'", "\\\"", "\\\\", "\\/")
 
-  /**
-   * Escape a literal to put into a json document
-   */
-  public static String escapeJson(String s) {
-    return escape(s, jsnChr, jsnEsc);
-  }
-
-  /**
-   * Escape a literal to put into a xml document
-   */
-  public static String escapeXml10(String s) {
-    return escape(s, xmlChr, xmlEsc);
-  }
-
-  private static String escape(String s, char[] chr, String[] esc) {
-    StringBuilder sb = null;
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      int j = 0;
-      while (j < chr.length) {
-        if (c == chr[j]) {
-          if (sb == null) {
-            sb = new StringBuilder(s.substring(0, i));
-          }
-          sb.append(esc[j]);
-          break;
-        }
-        j++;
-      }
-      if (sb != null && j == chr.length) {
-        sb.append(c);
-      }
+    /**
+     * Escape a literal to put into a json document
+     */
+    @JvmStatic
+    fun escapeJson(s: String): String {
+        return escape(s, jsnChr, jsnEsc)
     }
-    return sb == null ? s : sb.toString();
-  }
+
+    /**
+     * Escape a literal to put into a xml document
+     */
+    @JvmStatic
+    fun escapeXml10(s: String): String {
+        return escape(s, xmlChr, xmlEsc)
+    }
+
+    private fun escape(s: String, chr: CharArray, esc: Array<String>): String {
+        var sb: StringBuilder? = null
+        for (i in 0..<s.length) {
+            val c = s.get(i)
+            var j = 0
+            while (j < chr.size) {
+                if (c == chr[j]) {
+                    if (sb == null) {
+                        sb = StringBuilder(s.substring(0, i))
+                    }
+                    sb.append(esc[j])
+                    break
+                }
+                j++
+            }
+            if (sb != null && j == chr.size) {
+                sb.append(c)
+            }
+        }
+        return if (sb == null) s else sb.toString()
+    }
 }

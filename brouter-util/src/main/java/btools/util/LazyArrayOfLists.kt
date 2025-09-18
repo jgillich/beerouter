@@ -1,7 +1,4 @@
-package btools.util;
-
-import java.util.ArrayList;
-import java.util.List;
+package btools.util
 
 /**
  * Behaves like an Array of list
@@ -9,37 +6,36 @@ import java.util.List;
  *
  * @author ab
  */
-@SuppressWarnings("PMD.LooseCoupling")
-public class LazyArrayOfLists<E> {
-  private List<ArrayList<E>> lists;
+class LazyArrayOfLists<E>(size: Int) {
+    private val lists: MutableList<ArrayList<E?>?>
 
-  public LazyArrayOfLists(int size) {
-    lists = new ArrayList<>(size);
-    for (int i = 0; i < size; i++) {
-      lists.add(null);
+    init {
+        lists = ArrayList<ArrayList<E?>?>(size)
+        for (i in 0..<size) {
+            lists.add(null)
+        }
     }
-  }
 
-  public List<E> getList(int idx) {
-    ArrayList<E> list = lists.get(idx);
-    if (list == null) {
-      list = new ArrayList<>();
-      lists.set(idx, list);
+    fun getList(idx: Int): MutableList<E?> {
+        var list = lists.get(idx)
+        if (list == null) {
+            list = ArrayList<E?>()
+            lists.set(idx, list)
+        }
+        return list
     }
-    return list;
-  }
 
-  public int getSize(int idx) {
-    List<E> list = lists.get(idx);
-    return list == null ? 0 : list.size();
-  }
-
-  public void trimAll() {
-    for (int idx = 0; idx < lists.size(); idx++) {
-      ArrayList<E> list = lists.get(idx);
-      if (list != null) {
-        list.trimToSize();
-      }
+    fun getSize(idx: Int): Int {
+        val list: MutableList<E?>? = lists.get(idx)
+        return if (list == null) 0 else list.size
     }
-  }
+
+    fun trimAll() {
+        for (idx in lists.indices) {
+            val list = lists.get(idx)
+            if (list != null) {
+                list.trimToSize()
+            }
+        }
+    }
 }

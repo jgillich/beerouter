@@ -1,7 +1,17 @@
-rootProject.name='brouter'
-if (file('local.properties').exists()) {
-    include ':brouter-routing-app'
-} else {
-    println "Note: To include Android app add 'local.properties' with 'sdk.dir=...' "
+pluginManagement {
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version '2.2.0'
+    }
 }
-include ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-codec', ':brouter-map-creator', ':brouter-server'
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+rootProject.name = 'brouter'
+//if (file('local.properties').exists()) {
+//    include ':brouter-routing-app'
+//} else {
+//    println "Note: To include Android app add 'local.properties' with 'sdk.dir=...' "
+//}
+include ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-codec', ':brouter-map-creator'
+
+//':brouter-server'

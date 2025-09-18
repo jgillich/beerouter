@@ -3,10 +3,9 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
-public interface OsmLinkHolder {
-  void setNextForLink(OsmLinkHolder holder);
-
-  OsmLinkHolder getNextForLink();
+interface OsmLinkHolder {
+    //    @JvmField
+    var nextForLink: OsmLinkHolder?
 }

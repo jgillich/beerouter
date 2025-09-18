@@ -1,11 +1,11 @@
-package btools.codec;
+package btools.codec
 
 
 /**
  * TagValueWrapper wrapps a description bitmap
  * to add the access-type
  */
-public final class TagValueWrapper {
-  public byte[] data;
-  public int accessType;
+class TagValueWrapper {
+    var data: ByteArray? = null
+    var accessType: Int = 0
 }

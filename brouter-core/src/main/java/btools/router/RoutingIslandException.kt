@@ -1,4 +1,3 @@
-package btools.router;
+package btools.router
 
-public class RoutingIslandException extends RuntimeException {
-}
+class RoutingIslandException : RuntimeException()

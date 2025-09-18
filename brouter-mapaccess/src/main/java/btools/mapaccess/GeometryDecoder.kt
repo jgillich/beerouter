@@ -3,67 +3,68 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
-import btools.util.ByteDataReader;
+import btools.util.ByteDataReader
 
+class GeometryDecoder {
+    private val r = ByteDataReader()
+    private val cachedNodes: Array<OsmTransferNode>
+    private val nCachedNodes = 128
 
-public final class GeometryDecoder {
-  private ByteDataReader r = new ByteDataReader(null);
-  private OsmTransferNode[] cachedNodes;
-  private int nCachedNodes = 128;
+    // result-cache
+    private var firstTransferNode: OsmTransferNode? = null
+    private var lastReverse = false
+    private var lastGeometry: ByteArray = ByteArray(0)
 
-  // result-cache
-  private OsmTransferNode firstTransferNode;
-  private boolean lastReverse;
-  private byte[] lastGeometry;
-
-  public GeometryDecoder() {
-    // create some caches
-    cachedNodes = new OsmTransferNode[nCachedNodes];
-    for (int i = 0; i < nCachedNodes; i++) {
-      cachedNodes[i] = new OsmTransferNode();
-    }
-  }
-
-  public OsmTransferNode decodeGeometry(byte[] geometry, OsmNode sourceNode, OsmNode targetNode, boolean reverseLink) {
-    if ((lastGeometry == geometry) && (lastReverse == reverseLink)) {
-      return firstTransferNode;
+    init {
+        // create some caches
+        cachedNodes = (0..nCachedNodes).map { OsmTransferNode() }.toTypedArray()
     }
 
-    firstTransferNode = null;
-    OsmTransferNode lastTransferNode = null;
-    OsmNode startnode = reverseLink ? targetNode : sourceNode;
-    r.reset(geometry);
-    int olon = startnode.ilon;
-    int olat = startnode.ilat;
-    int oselev = startnode.selev;
-    int idx = 0;
-    while (r.hasMoreData()) {
-      OsmTransferNode trans = idx < nCachedNodes ? cachedNodes[idx++] : new OsmTransferNode();
-      trans.ilon = olon + r.readVarLengthSigned();
-      trans.ilat = olat + r.readVarLengthSigned();
-      trans.selev = (short) (oselev + r.readVarLengthSigned());
-      olon = trans.ilon;
-      olat = trans.ilat;
-      oselev = trans.selev;
-      if (reverseLink) { // reverse chaining
-        trans.next = firstTransferNode;
-        firstTransferNode = trans;
-      } else {
-        trans.next = null;
-        if (lastTransferNode == null) {
-          firstTransferNode = trans;
-        } else {
-          lastTransferNode.next = trans;
+    fun decodeGeometry(
+        geometry: ByteArray,
+        sourceNode: OsmNode?,
+        targetNode: OsmNode,
+        reverseLink: Boolean
+    ): OsmTransferNode? {
+        if ((lastGeometry == geometry) && (lastReverse == reverseLink)) {
+            return firstTransferNode
         }
-        lastTransferNode = trans;
-      }
+
+        firstTransferNode = null
+        var lastTransferNode: OsmTransferNode? = null
+        val startnode: OsmNode = (if (reverseLink) targetNode else sourceNode)!!
+        r.reset(geometry)
+        var olon = startnode.iLon
+        var olat = startnode.iLat
+        var oselev = startnode.sElev.toInt()
+        var idx = 0
+        while (r.hasMoreData()) {
+            val trans = if (idx < nCachedNodes) cachedNodes[idx++] else OsmTransferNode()
+            trans.ilon = olon + r.readVarLengthSigned()
+            trans.ilat = olat + r.readVarLengthSigned()
+            trans.selev = (oselev + r.readVarLengthSigned()).toShort()
+            olon = trans.ilon
+            olat = trans.ilat
+            oselev = trans.selev.toInt()
+            if (reverseLink) { // reverse chaining
+                trans.next = firstTransferNode
+                firstTransferNode = trans
+            } else {
+                trans.next = null
+                if (lastTransferNode == null) {
+                    firstTransferNode = trans
+                } else {
+                    lastTransferNode.next = trans
+                }
+                lastTransferNode = trans
+            }
+        }
+
+        lastReverse = reverseLink
+        lastGeometry = geometry
+
+        return firstTransferNode
     }
-
-    lastReverse = reverseLink;
-    lastGeometry = geometry;
-
-    return firstTransferNode;
-  }
 }

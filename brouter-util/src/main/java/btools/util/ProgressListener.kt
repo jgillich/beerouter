@@ -1,8 +1,8 @@
-package btools.util;
+package btools.util
 
 
-public interface ProgressListener {
-  void updateProgress(String task, int progress);
+interface ProgressListener {
+    fun updateProgress(task: String?, progress: Int)
 
-  boolean isCanceled();
+    val isCanceled: Boolean
 }

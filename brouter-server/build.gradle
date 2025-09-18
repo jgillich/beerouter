@@ -1,5 +1,6 @@
 plugins {
     id 'brouter.application-conventions'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 application {
@@ -32,7 +33,7 @@ application {
 
 distZip {
     dependsOn fatJar
-    if (file('../local.properties').exists()) dependsOn (':brouter-routing-app:assemble')
+    if (file('../local.properties').exists()) dependsOn(':brouter-routing-app:assemble')
     archiveFileName = 'brouter-' + project.version + '.zip'
 }
 
@@ -52,15 +53,15 @@ distributions {
             exclude('**/all.brf')
             exclude('**/dummy.brf')
             exclude('**/softaccess.brf')
-            from ('../misc') {
+            from('../misc') {
                 include 'readmes/*'
                 include 'readmes/osmand/*'
                 include 'profiles2/*'
             }
-            from ('../brouter-routing-app/build/outputs/apk/release') {
+            from('../brouter-routing-app/build/outputs/apk/release') {
                 include '*.apk'
             }
-             from ('../brouter-server/build/libs') {
+            from('../brouter-server/build/libs') {
                 include 'brouter-*-all.jar'
             }
         }
@@ -76,4 +77,11 @@ dependencies {
     implementation project(':brouter-util')
 
     testImplementation 'org.json:json:20180813'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+kotlin {
+    jvmToolchain(11)
 }

@@ -4,658 +4,470 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import java.util.ArrayList;
-import java.util.List;
+import kotlin.math.abs
 
-public class VoiceHint {
-  public static final int C = 1; // continue (go straight)
-  public static final int TL = 2; // turn left
-  public static final int TSLL = 3; // turn slightly left
-  public static final int TSHL = 4; // turn sharply left
-  public static final int TR = 5; // turn right
-  public static final int TSLR = 6; // turn slightly right
-  public static final int TSHR = 7; // turn sharply right
-  public static final int KL = 8; // keep left
-  public static final int KR = 9; // keep right
-  public static final int TLU = 10; // U-turn
-  public static final int TRU = 11; // Right U-turn
-  public static final int OFFR = 12; // Off route
-  public static final int RNDB = 13; // Roundabout
-  public static final int RNLB = 14; // Roundabout left
-  public static final int TU = 15; // 180 degree u-turn
-  public static final int BL = 16; // Beeline routing
-  public static final int EL = 17; // exit left
-  public static final int ER = 18; // exit right
+class VoiceHint {
+    var ilon: Int = 0
+    var ilat: Int = 0
+    var selev: Short = 0
+    var command: Int = 0
+    var oldWay: MessageData? = null
+    var goodWay: MessageData? = null
+    var badWays: MutableList<MessageData>? = null
+    var distanceToNext: Double = 0.0
+    var indexInTrack: Int = 0
 
-  public static final int END = 100; // end point
+    val time: Float
+        get() = if (oldWay == null) 0f else oldWay!!.time
 
-  int ilon;
-  int ilat;
-  short selev;
-  int cmd;
-  MessageData oldWay;
-  MessageData goodWay;
-  List<MessageData> badWays;
-  double distanceToNext;
-  int indexInTrack;
+    var angle: Float = Float.Companion.MAX_VALUE
+    var lowerBadWayAngle: Float = -181f
+    var higherBadWayAngle: Float = 181f
 
-  public float getTime() {
-    return oldWay == null ? 0.f : oldWay.time;
-  }
+    var turnAngleConsumed: Boolean = false
+    var needsRealTurn: Boolean = false
+    var maxBadPrio: Int = -1
 
-  float angle = Float.MAX_VALUE;
-  float lowerBadWayAngle = -181;
-  float higherBadWayAngle = 181;
+    var exitNumber: Int = 0
 
-  boolean turnAngleConsumed;
-  boolean needsRealTurn;
-  int maxBadPrio = -1;
+    val isRoundabout: Boolean
+        get() = this.exitNumber != 0
 
-  int roundaboutExit;
-
-  boolean isRoundabout() {
-    return roundaboutExit != 0;
-  }
-
-  public int getCommand() {
-    return cmd;
-  }
-
-  public void addBadWay(MessageData badWay) {
-    if (badWay == null) {
-      return;
+    fun addBadWay(badWay: MessageData?) {
+        if (badWay == null) {
+            return
+        }
+        if (badWays == null) {
+            badWays = ArrayList<MessageData>()
+        }
+        badWays!!.add(badWay)
     }
-    if (badWays == null) {
-      badWays = new ArrayList<>();
+
+    fun getJsonCommandIndex(timode: Int): Int {
+        when (this.command) {
+            TLU -> return 10
+            TU -> return 15
+            TSHL -> return 4
+            TL -> return 2
+            TSLL -> return 3
+            KL -> return 8
+            C -> return 1
+            KR -> return 9
+            TSLR -> return 6
+            TR -> return 5
+            TSHR -> return 7
+            TRU -> return 11
+            RNDB -> return 13
+            RNLB -> return 14
+            BL -> return 16
+            EL -> return if (timode == 2 || timode == 9) 17 else 8
+            ER -> return if (timode == 2 || timode == 9) 18 else 9
+            OFFR -> return 12
+            else -> throw IllegalArgumentException("unknown command: " + this.command)
+        }
     }
-    badWays.add(badWay);
-  }
 
-  public int getJsonCommandIndex(int timode) {
-    switch (cmd) {
-      case TLU:
-        return 10;
-      case TU:
-        return 15;
-      case TSHL:
-        return 4;
-      case TL:
-        return 2;
-      case TSLL:
-        return 3;
-      case KL:
-        return 8;
-      case C:
-        return 1;
-      case KR:
-        return 9;
-      case TSLR:
-        return 6;
-      case TR:
-        return 5;
-      case TSHR:
-        return 7;
-      case TRU:
-        return 11;
-      case RNDB:
-        return 13;
-      case RNLB:
-        return 14;
-      case BL:
-        return 16;
-      case EL:
-        return timode == 2 || timode == 9 ? 17 : 8;
-      case ER:
-        return timode == 2 || timode == 9 ? 18 : 9;
-      case OFFR:
-        return 12;
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  public int getExitNumber() {
-    return roundaboutExit;
-  }
-
-  /*
+    /*
    * used by comment style, osmand style
    */
-  public String getCommandString(int timode) {
-    switch (cmd) {
-      case TLU:
-        return "TU";  // should be changed to TLU when osmand uses new voice hint constants
-      case TU:
-        return "TU";
-      case TSHL:
-        return "TSHL";
-      case TL:
-        return "TL";
-      case TSLL:
-        return "TSLL";
-      case KL:
-        return "KL";
-      case C:
-        return "C";
-      case KR:
-        return "KR";
-      case TSLR:
-        return "TSLR";
-      case TR:
-        return "TR";
-      case TSHR:
-        return "TSHR";
-      case TRU:
-        return "TRU";
-      case RNDB:
-        return "RNDB" + roundaboutExit;
-      case RNLB:
-        return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
-      case EL:
-        return timode == 2 || timode == 9 ? "EL" : "KL";
-      case ER:
-        return timode == 2 || timode == 9 ? "ER" : "KR";
-      case OFFR:
-        return "OFFR";
-      case END:
-        return "END";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
+    fun getCommandString(timode: Int): String {
+        when (this.command) {
+            TLU -> return "TU" // should be changed to TLU when osmand uses new voice hint constants
+            TU -> return "TU"
+            TSHL -> return "TSHL"
+            TL -> return "TL"
+            TSLL -> return "TSLL"
+            KL -> return "KL"
+            C -> return "C"
+            KR -> return "KR"
+            TSLR -> return "TSLR"
+            TR -> return "TR"
+            TSHR -> return "TSHR"
+            TRU -> return "TRU"
+            RNDB -> return "RNDB" + this.exitNumber
+            RNLB -> return "RNLB" + (-this.exitNumber)
+            BL -> return "BL"
+            EL -> return if (timode == 2 || timode == 9) "EL" else "KL"
+            ER -> return if (timode == 2 || timode == 9) "ER" else "KR"
+            OFFR -> return "OFFR"
+            END -> return "END"
+            else -> throw IllegalArgumentException("unknown command: " + this.command)
+        }
     }
-  }
 
-  /*
+    /*
    * used by trkpt/sym style
    */
-  public String getCommandString(int c, int timode) {
-    switch (c) {
-      case TLU:
-        return "TLU";
-      case TU:
-        return "TU";
-      case TSHL:
-        return "TSHL";
-      case TL:
-        return "TL";
-      case TSLL:
-        return "TSLL";
-      case KL:
-        return "KL";
-      case C:
-        return "C";
-      case KR:
-        return "KR";
-      case TSLR:
-        return "TSLR";
-      case TR:
-        return "TR";
-      case TSHR:
-        return "TSHR";
-      case TRU:
-        return "TRU";
-      case RNDB:
-        return "RNDB" + roundaboutExit;
-      case RNLB:
-        return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
-      case EL:
-        return timode == 2 || timode == 9 ? "EL" : "KL";
-      case ER:
-        return timode == 2 || timode == 9 ? "ER" : "KR";
-      case OFFR:
-        return "OFFR";
-      default:
-        return "unknown command: " + c;
+    fun getCommandString(c: Int, timode: Int): String {
+        when (c) {
+            TLU -> return "TLU"
+            TU -> return "TU"
+            TSHL -> return "TSHL"
+            TL -> return "TL"
+            TSLL -> return "TSLL"
+            KL -> return "KL"
+            C -> return "C"
+            KR -> return "KR"
+            TSLR -> return "TSLR"
+            TR -> return "TR"
+            TSHR -> return "TSHR"
+            TRU -> return "TRU"
+            RNDB -> return "RNDB" + this.exitNumber
+            RNLB -> return "RNLB" + (-this.exitNumber)
+            BL -> return "BL"
+            EL -> return if (timode == 2 || timode == 9) "EL" else "KL"
+            ER -> return if (timode == 2 || timode == 9) "ER" else "KR"
+            OFFR -> return "OFFR"
+            else -> return "unknown command: " + c
+        }
     }
-  }
 
-  /*
+    /*
    * used by gpsies style
    */
-  public String getSymbolString(int timode) {
-    switch (cmd) {
-      case TLU:
-        return "TU";
-      case TU:
-        return "TU";
-      case TSHL:
-        return "TSHL";
-      case TL:
-        return "Left";
-      case TSLL:
-        return "TSLL";
-      case KL:
-        return "TSLL"; // ?
-      case C:
-        return "Straight";
-      case KR:
-        return "TSLR"; // ?
-      case TSLR:
-        return "TSLR";
-      case TR:
-        return "Right";
-      case TSHR:
-        return "TSHR";
-      case TRU:
-        return "TU";
-      case RNDB:
-        return "RNDB" + roundaboutExit;
-      case RNLB:
-        return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
-      case EL:
-        return timode == 2 || timode == 9 ? "EL" : "KL";
-      case ER:
-        return timode == 2 || timode == 9 ? "ER" : "KR";
-      case OFFR:
-        return "OFFR";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by new locus trkpt style
-   */
-  public String getLocusSymbolString() {
-    switch (cmd) {
-      case TLU:
-        return "u-turn_left";
-      case TU:
-        return "u-turn";
-      case TSHL:
-        return "left_sharp";
-      case TL:
-        return "left";
-      case TSLL:
-        return "left_slight";
-      case KL:
-        return "stay_left"; // ?
-      case C:
-        return "straight";
-      case KR:
-        return "stay_right"; // ?
-      case TSLR:
-        return "right_slight";
-      case TR:
-        return "right";
-      case TSHR:
-        return "right_sharp";
-      case TRU:
-        return "u-turn_right";
-      case RNDB:
-        return "roundabout_e" + roundaboutExit;
-      case RNLB:
-        return "roundabout_e" + (-roundaboutExit);
-      case BL:
-        return "beeline";
-      case EL:
-        return "exit_left";
-      case ER:
-        return "exit_right";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by osmand style
-   */
-  public String getMessageString(int timode) {
-    switch (cmd) {
-      case TLU:
-        return "u-turn"; // should be changed to u-turn-left when osmand uses new voice hint constants
-      case TU:
-        return "u-turn";
-      case TSHL:
-        return "sharp left";
-      case TL:
-        return "left";
-      case TSLL:
-        return "slight left";
-      case KL:
-        return "keep left";
-      case C:
-        return "straight";
-      case KR:
-        return "keep right";
-      case TSLR:
-        return "slight right";
-      case TR:
-        return "right";
-      case TSHR:
-        return "sharp right";
-      case TRU:
-        return "u-turn";  // should be changed to u-turn-right when osmand uses new voice hint constants
-      case RNDB:
-        return "Take exit " + roundaboutExit;
-      case RNLB:
-        return "Take exit " + (-roundaboutExit);
-      case EL:
-        return timode == 2 || timode == 9 ? "exit left" : "keep left";
-      case ER:
-        return timode == 2 || timode == 9 ? "exit right" : "keep right";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by old locus style
-   */
-  public int getLocusAction() {
-    switch (cmd) {
-      case TLU:
-        return 13;
-      case TU:
-        return 12;
-      case TSHL:
-        return 5;
-      case TL:
-        return 4;
-      case TSLL:
-        return 3;
-      case KL:
-        return 9; // ?
-      case C:
-        return 1;
-      case KR:
-        return 10; // ?
-      case TSLR:
-        return 6;
-      case TR:
-        return 7;
-      case TSHR:
-        return 8;
-      case TRU:
-        return 14;
-      case RNDB:
-        return 26 + roundaboutExit;
-      case RNLB:
-        return 26 - roundaboutExit;
-      case EL:
-        return 9;
-      case ER:
-        return 10;
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by orux style
-   */
-  public int getOruxAction() {
-    switch (cmd) {
-      case TLU:
-        return 1003;
-      case TU:
-        return 1003;
-      case TSHL:
-        return 1019;
-      case TL:
-        return 1000;
-      case TSLL:
-        return 1017;
-      case KL:
-        return 1015; // ?
-      case C:
-        return 1002;
-      case KR:
-        return 1014; // ?
-      case TSLR:
-        return 1016;
-      case TR:
-        return 1001;
-      case TSHR:
-        return 1018;
-      case TRU:
-        return 1003;
-      case RNDB:
-        return 1008 + roundaboutExit;
-      case RNLB:
-        return 1008 + roundaboutExit;
-      case EL:
-        return 1015;
-      case ER:
-        return 1014;
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by cruiser, equivalent to getCommandString() - osmand style - when osmand changes the voice hint  constants
-   */
-  public String getCruiserCommandString() {
-    switch (cmd) {
-      case TLU:
-        return "TLU";
-      case TU:
-        return "TU";
-      case TSHL:
-        return "TSHL";
-      case TL:
-        return "TL";
-      case TSLL:
-        return "TSLL";
-      case KL:
-        return "KL";
-      case C:
-        return "C";
-      case KR:
-        return "KR";
-      case TSLR:
-        return "TSLR";
-      case TR:
-        return "TR";
-      case TSHR:
-        return "TSHR";
-      case TRU:
-        return "TRU";
-      case RNDB:
-        return "RNDB" + roundaboutExit;
-      case RNLB:
-        return "RNLB" + (-roundaboutExit);
-      case BL:
-        return "BL";
-      case EL:
-        return "EL";
-      case ER:
-        return "ER";
-      case OFFR:
-        return "OFFR";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  /*
-   * used by cruiser, equivalent to getMessageString() - osmand style - when osmand changes the voice hint  constants
-   */
-  public String getCruiserMessageString() {
-    switch (cmd) {
-      case TLU:
-        return "u-turn left";
-      case TU:
-        return "u-turn";
-      case TSHL:
-        return "sharp left";
-      case TL:
-        return "left";
-      case TSLL:
-        return "slight left";
-      case KL:
-        return "keep left";
-      case C:
-        return "straight";
-      case KR:
-        return "keep right";
-      case TSLR:
-        return "slight right";
-      case TR:
-        return "right";
-      case TSHR:
-        return "sharp right";
-      case TRU:
-        return "u-turn right";
-      case RNDB:
-        return "take exit " + roundaboutExit;
-      case RNLB:
-        return "take exit " + (-roundaboutExit);
-      case BL:
-        return "beeline";
-      case EL:
-        return "exit left";
-      case ER:
-        return "exit right";
-      case OFFR:
-        return "offroad";
-      default:
-        throw new IllegalArgumentException("unknown command: " + cmd);
-    }
-  }
-
-  public void calcCommand() {
-    if (badWays != null) {
-      for (MessageData badWay : badWays) {
-        if (badWay.isBadOneway()) {
-          continue;
+    fun getSymbolString(timode: Int): String {
+        when (this.command) {
+            TLU -> return "TU"
+            TU -> return "TU"
+            TSHL -> return "TSHL"
+            TL -> return "Left"
+            TSLL -> return "TSLL"
+            KL -> return "TSLL" // ?
+            C -> return "Straight"
+            KR -> return "TSLR" // ?
+            TSLR -> return "TSLR"
+            TR -> return "Right"
+            TSHR -> return "TSHR"
+            TRU -> return "TU"
+            RNDB -> return "RNDB" + this.exitNumber
+            RNLB -> return "RNLB" + (-this.exitNumber)
+            BL -> return "BL"
+            EL -> return if (timode == 2 || timode == 9) "EL" else "KL"
+            ER -> return if (timode == 2 || timode == 9) "ER" else "KR"
+            OFFR -> return "OFFR"
+            else -> throw IllegalArgumentException("unknown command: " + this.command)
         }
-        if (lowerBadWayAngle < badWay.turnangle && badWay.turnangle < goodWay.turnangle) {
-          lowerBadWayAngle = badWay.turnangle;
-        }
-        if (higherBadWayAngle > badWay.turnangle && badWay.turnangle > goodWay.turnangle) {
-          higherBadWayAngle = badWay.turnangle;
-        }
-      }
     }
 
-    float cmdAngle = angle;
+    val locusSymbolString: String
+        /*
+           * used by new locus trkpt style
+           */
+        get() {
+            when (this.command) {
+                TLU -> return "u-turn_left"
+                TU -> return "u-turn"
+                TSHL -> return "left_sharp"
+                TL -> return "left"
+                TSLL -> return "left_slight"
+                KL -> return "stay_left" // ?
+                C -> return "straight"
+                KR -> return "stay_right" // ?
+                TSLR -> return "right_slight"
+                TR -> return "right"
+                TSHR -> return "right_sharp"
+                TRU -> return "u-turn_right"
+                RNDB -> return "roundabout_e" + this.exitNumber
+                RNLB -> return "roundabout_e" + (-this.exitNumber)
+                BL -> return "beeline"
+                EL -> return "exit_left"
+                ER -> return "exit_right"
+                else -> throw IllegalArgumentException("unknown command: " + this.command)
+            }
+        }
 
-    // fall back to local angle if otherwise inconsistent
-    //if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
-    //{
-    //cmdAngle = goodWay.turnangle;
-    //}
-    if (angle == Float.MAX_VALUE) {
-      cmdAngle = goodWay.turnangle;
+    /*
+  * used by osmand style
+  */
+    fun getMessageString(timode: Int): String {
+        when (this.command) {
+            TLU -> return "u-turn" // should be changed to u-turn-left when osmand uses new voice hint constants
+            TU -> return "u-turn"
+            TSHL -> return "sharp left"
+            TL -> return "left"
+            TSLL -> return "slight left"
+            KL -> return "keep left"
+            C -> return "straight"
+            KR -> return "keep right"
+            TSLR -> return "slight right"
+            TR -> return "right"
+            TSHR -> return "sharp right"
+            TRU -> return "u-turn" // should be changed to u-turn-right when osmand uses new voice hint constants
+            RNDB -> return "Take exit " + this.exitNumber
+            RNLB -> return "Take exit " + (-this.exitNumber)
+            EL -> return if (timode == 2 || timode == 9) "exit left" else "keep left"
+            ER -> return if (timode == 2 || timode == 9) "exit right" else "keep right"
+            else -> throw IllegalArgumentException("unknown command: " + this.command)
+        }
     }
-    if (cmd == BL) return;
 
-    if (roundaboutExit > 0) {
-      cmd = RNDB;
-    } else if (roundaboutExit < 0) {
-      cmd = RNLB;
-    } else if (is180DegAngle(cmdAngle) && cmdAngle <= -179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = TU;
-    } else if (cmdAngle < -159.f) {
-      cmd = TLU;
-    } else if (cmdAngle < -135.f) {
-      cmd = TSHL;
-    } else if (cmdAngle < -45.f) {
-      // a TL can be pushed in either direction by a close-by alternative
-      if (cmdAngle < -95.f && higherBadWayAngle < -30.f && lowerBadWayAngle < -180.f) {
-        cmd = TSHL;
-      } else if (cmdAngle > -85.f && lowerBadWayAngle > -180.f && higherBadWayAngle > -10.f) {
-        cmd = TSLL;
-      } else {
-        if (cmdAngle < -110.f) {
-          cmd = TSHL;
-        } else if (cmdAngle > -60.f) {
-          cmd = TSLL;
+    val locusAction: Int
+        /*
+           * used by old locus style
+           */
+        get() {
+            when (this.command) {
+                TLU -> return 13
+                TU -> return 12
+                TSHL -> return 5
+                TL -> return 4
+                TSLL -> return 3
+                KL -> return 9 // ?
+                C -> return 1
+                KR -> return 10 // ?
+                TSLR -> return 6
+                TR -> return 7
+                TSHR -> return 8
+                TRU -> return 14
+                RNDB -> return 26 + this.exitNumber
+                RNLB -> return 26 - this.exitNumber
+                EL -> return 9
+                ER -> return 10
+                else -> throw IllegalArgumentException("unknown command: " + this.command)
+            }
+        }
+
+    val oruxAction: Int
+        /*
+           * used by orux style
+           */
+        get() {
+            when (this.command) {
+                TLU -> return 1003
+                TU -> return 1003
+                TSHL -> return 1019
+                TL -> return 1000
+                TSLL -> return 1017
+                KL -> return 1015 // ?
+                C -> return 1002
+                KR -> return 1014 // ?
+                TSLR -> return 1016
+                TR -> return 1001
+                TSHR -> return 1018
+                TRU -> return 1003
+                RNDB -> return 1008 + this.exitNumber
+                RNLB -> return 1008 + this.exitNumber
+                EL -> return 1015
+                ER -> return 1014
+                else -> throw IllegalArgumentException("unknown command: " + this.command)
+            }
+        }
+
+    val cruiserCommandString: String
+        /*
+           * used by cruiser, equivalent to getCommandString() - osmand style - when osmand changes the voice hint  constants
+           */
+        get() {
+            when (this.command) {
+                TLU -> return "TLU"
+                TU -> return "TU"
+                TSHL -> return "TSHL"
+                TL -> return "TL"
+                TSLL -> return "TSLL"
+                KL -> return "KL"
+                C -> return "C"
+                KR -> return "KR"
+                TSLR -> return "TSLR"
+                TR -> return "TR"
+                TSHR -> return "TSHR"
+                TRU -> return "TRU"
+                RNDB -> return "RNDB" + this.exitNumber
+                RNLB -> return "RNLB" + (-this.exitNumber)
+                BL -> return "BL"
+                EL -> return "EL"
+                ER -> return "ER"
+                OFFR -> return "OFFR"
+                else -> throw IllegalArgumentException("unknown command: " + this.command)
+            }
+        }
+
+    val cruiserMessageString: String
+        /*
+           * used by cruiser, equivalent to getMessageString() - osmand style - when osmand changes the voice hint  constants
+           */
+        get() {
+            when (this.command) {
+                TLU -> return "u-turn left"
+                TU -> return "u-turn"
+                TSHL -> return "sharp left"
+                TL -> return "left"
+                TSLL -> return "slight left"
+                KL -> return "keep left"
+                C -> return "straight"
+                KR -> return "keep right"
+                TSLR -> return "slight right"
+                TR -> return "right"
+                TSHR -> return "sharp right"
+                TRU -> return "u-turn right"
+                RNDB -> return "take exit " + this.exitNumber
+                RNLB -> return "take exit " + (-this.exitNumber)
+                BL -> return "beeline"
+                EL -> return "exit left"
+                ER -> return "exit right"
+                OFFR -> return "offroad"
+                else -> throw IllegalArgumentException("unknown command: " + this.command)
+            }
+        }
+
+    fun calcCommand() {
+        if (badWays != null) {
+            for (badWay in badWays) {
+                if (badWay.isBadOneway) {
+                    continue
+                }
+                if (lowerBadWayAngle < badWay.turnangle && badWay.turnangle < goodWay!!.turnangle) {
+                    lowerBadWayAngle = badWay.turnangle
+                }
+                if (higherBadWayAngle > badWay.turnangle && badWay.turnangle > goodWay!!.turnangle) {
+                    higherBadWayAngle = badWay.turnangle
+                }
+            }
+        }
+
+        var cmdAngle = angle
+
+        // fall back to local angle if otherwise inconsistent
+        //if ( lowerBadWayAngle > angle || higherBadWayAngle < angle )
+        //{
+        //cmdAngle = goodWay.turnangle;
+        //}
+        if (angle == Float.Companion.MAX_VALUE) {
+            cmdAngle = goodWay!!.turnangle
+        }
+        if (this.command == BL) return
+
+        if (this.exitNumber > 0) {
+            this.command = RNDB
+        } else if (this.exitNumber < 0) {
+            this.command = RNLB
+        } else if (is180DegAngle(cmdAngle) && cmdAngle <= -179f && higherBadWayAngle == 181f && lowerBadWayAngle == -181f) {
+            this.command = TU
+        } else if (cmdAngle < -159f) {
+            this.command = TLU
+        } else if (cmdAngle < -135f) {
+            this.command = TSHL
+        } else if (cmdAngle < -45f) {
+            // a TL can be pushed in either direction by a close-by alternative
+            if (cmdAngle < -95f && higherBadWayAngle < -30f && lowerBadWayAngle < -180f) {
+                this.command = TSHL
+            } else if (cmdAngle > -85f && lowerBadWayAngle > -180f && higherBadWayAngle > -10f) {
+                this.command = TSLL
+            } else {
+                if (cmdAngle < -110f) {
+                    this.command = TSHL
+                } else if (cmdAngle > -60f) {
+                    this.command = TSLL
+                } else {
+                    this.command = TL
+                }
+            }
+        } else if (cmdAngle < -21f) {
+            if (this.command != KR) { // don't overwrite KR with TSLL
+                this.command = TSLL
+            }
+        } else if (cmdAngle < -5f) {
+            if (lowerBadWayAngle < -100f && higherBadWayAngle < 45f) {
+                this.command = TSLL
+            } else if (lowerBadWayAngle >= -100f && higherBadWayAngle < 45f) {
+                this.command = KL
+            } else {
+                if (lowerBadWayAngle > -35f && higherBadWayAngle > 55f) {
+                    this.command = KR
+                } else {
+                    this.command = C
+                }
+            }
+        } else if (cmdAngle < 5f) {
+            if (lowerBadWayAngle > -30f) {
+                this.command = KR
+            } else if (higherBadWayAngle < 30f) {
+                this.command = KL
+            } else {
+                this.command = C
+            }
+        } else if (cmdAngle < 21f) {
+            // a TR can be pushed in either direction by a close-by alternative
+            if (lowerBadWayAngle > -45f && higherBadWayAngle > 100f) {
+                this.command = TSLR
+            } else if (lowerBadWayAngle > -45f && higherBadWayAngle <= 100f) {
+                this.command = KR
+            } else {
+                if (lowerBadWayAngle < -55f && higherBadWayAngle < 35f) {
+                    this.command = KL
+                } else {
+                    this.command = C
+                }
+            }
+        } else if (cmdAngle < 45f) {
+            this.command = TSLR
+        } else if (cmdAngle < 135f) {
+            if (cmdAngle < 85f && higherBadWayAngle < 180f && lowerBadWayAngle < 10f) {
+                this.command = TSLR
+            } else if (cmdAngle > 95f && lowerBadWayAngle > 30f && higherBadWayAngle > 180f) {
+                this.command = TSHR
+            } else {
+                if (cmdAngle > 110.0) {
+                    this.command = TSHR
+                } else if (cmdAngle < 60.0) {
+                    this.command = TSLR
+                } else {
+                    this.command = TR
+                }
+            }
+        } else if (cmdAngle < 159f) {
+            this.command = TSHR
+        } else if (is180DegAngle(cmdAngle) && cmdAngle >= 179f && higherBadWayAngle == 181f && lowerBadWayAngle == -181f) {
+            this.command = TU
         } else {
-          cmd = TL;
+            this.command = TRU
         }
-      }
-    } else if (cmdAngle < -21.f) {
-      if (cmd != KR) { // don't overwrite KR with TSLL
-        cmd = TSLL;
-      }
-    } else if (cmdAngle < -5.f) {
-      if (lowerBadWayAngle < -100.f && higherBadWayAngle < 45.f) {
-        cmd = TSLL;
-      } else if (lowerBadWayAngle >= -100.f && higherBadWayAngle < 45.f) {
-        cmd = KL;
-      } else {
-        if (lowerBadWayAngle > -35.f && higherBadWayAngle > 55.f) {
-          cmd = KR;
-        } else {
-          cmd = C;
-        }
-      }
-    } else if (cmdAngle < 5.f) {
-      if (lowerBadWayAngle > -30.f) {
-        cmd = KR;
-      } else if (higherBadWayAngle < 30.f) {
-        cmd = KL;
-      } else {
-        cmd = C;
-      }
-    } else if (cmdAngle < 21.f) {
-      // a TR can be pushed in either direction by a close-by alternative
-      if (lowerBadWayAngle > -45.f && higherBadWayAngle > 100.f) {
-        cmd = TSLR;
-      } else if (lowerBadWayAngle > -45.f && higherBadWayAngle <= 100.f) {
-        cmd = KR;
-      } else {
-        if (lowerBadWayAngle < -55.f && higherBadWayAngle < 35.f) {
-          cmd = KL;
-        } else {
-          cmd = C;
-        }
-      }
-    } else if (cmdAngle < 45.f) {
-      cmd = TSLR;
-    } else if (cmdAngle < 135.f) {
-      if (cmdAngle < 85.f && higherBadWayAngle < 180.f && lowerBadWayAngle < 10.f) {
-        cmd = TSLR;
-      } else if (cmdAngle > 95.f && lowerBadWayAngle > 30.f && higherBadWayAngle > 180.f) {
-        cmd = TSHR;
-      } else {
-        if (cmdAngle > 110.) {
-          cmd = TSHR;
-        } else if (cmdAngle < 60.) {
-          cmd = TSLR;
-        } else {
-          cmd = TR;
-        }
-      }
-    } else if (cmdAngle < 159.f) {
-      cmd = TSHR;
-    } else if (is180DegAngle(cmdAngle) && cmdAngle >= 179.f && higherBadWayAngle == 181.f && lowerBadWayAngle == -181.f) {
-      cmd = TU;
-    } else {
-      cmd = TRU;
     }
-  }
 
-  static boolean is180DegAngle(float angle) {
-    return (Math.abs(angle) <= 180.f && Math.abs(angle) >= 179.f);
-  }
-
-  public String formatGeometry() {
-    float oldPrio = oldWay == null ? 0.f : oldWay.priorityclassifier;
-    StringBuilder sb = new StringBuilder(30);
-    sb.append(' ').append((int) oldPrio);
-    appendTurnGeometry(sb, goodWay);
-    if (badWays != null) {
-      for (MessageData badWay : badWays) {
-        sb.append(" ");
-        appendTurnGeometry(sb, badWay);
-      }
+    fun formatGeometry(): String {
+        val oldPrio = if (oldWay == null) 0f else oldWay!!.priorityclassifier.toFloat()
+        val sb = StringBuilder(30)
+        sb.append(' ').append(oldPrio.toInt())
+        appendTurnGeometry(sb, goodWay!!)
+        if (badWays != null) {
+            for (badWay in badWays) {
+                sb.append(" ")
+                appendTurnGeometry(sb, badWay)
+            }
+        }
+        return sb.toString()
     }
-    return sb.toString();
-  }
 
-  private void appendTurnGeometry(StringBuilder sb, MessageData msg) {
-    sb.append("(").append((int) (msg.turnangle + 0.5)).append(")").append((int) (msg.priorityclassifier));
-  }
+    private fun appendTurnGeometry(sb: StringBuilder, msg: MessageData) {
+        sb.append("(").append((msg.turnangle + 0.5).toInt()).append(")")
+            .append((msg.priorityclassifier))
+    }
 
+    companion object {
+        const val C: Int = 1 // continue (go straight)
+        const val TL: Int = 2 // turn left
+        const val TSLL: Int = 3 // turn slightly left
+        const val TSHL: Int = 4 // turn sharply left
+        const val TR: Int = 5 // turn right
+        const val TSLR: Int = 6 // turn slightly right
+        const val TSHR: Int = 7 // turn sharply right
+        const val KL: Int = 8 // keep left
+        const val KR: Int = 9 // keep right
+        const val TLU: Int = 10 // U-turn
+        const val TRU: Int = 11 // Right U-turn
+        const val OFFR: Int = 12 // Off route
+        const val RNDB: Int = 13 // Roundabout
+        const val RNLB: Int = 14 // Roundabout left
+        const val TU: Int = 15 // 180 degree u-turn
+        const val BL: Int = 16 // Beeline routing
+        const val EL: Int = 17 // exit left
+        const val ER: Int = 18 // exit right
+
+        const val END: Int = 100 // end point
+
+        fun is180DegAngle(angle: Float): Boolean {
+            return (abs(angle) <= 180f && abs(angle) >= 179f)
+        }
+    }
 }

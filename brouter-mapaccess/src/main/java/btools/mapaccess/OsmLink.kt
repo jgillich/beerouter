@@ -3,45 +3,46 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
 
-public class OsmLink {
-  /**
-   * The description bitmap contains the waytags (valid for both directions)
-   */
-  public byte[] descriptionBitmap;
+open class OsmLink {
+    /**
+     * The description bitmap contains the waytags (valid for both directions)
+     */
+    @JvmField
+    var descriptionBitmap: ByteArray? = null
 
-  /**
-   * The geometry contains intermediate nodes, null for none (valid for both directions)
-   */
-  public byte[] geometry;
+    /**
+     * The geometry contains intermediate nodes, null for none (valid for both directions)
+     */
+    @JvmField
+    var geometry: ByteArray? = null
 
-  // a link logically knows only its target, but for the reverse link, source and target are swapped
-  protected OsmNode n1;
-  protected OsmNode n2;
+    // a link logically knows only its target, but for the reverse link, source and target are swapped
+    var n1: OsmNode? = null
+    var n2: OsmNode? = null
 
-  // same for the next-link-for-node pointer: previous applies to the reverse link
-  protected OsmLink previous;
-  protected OsmLink next;
+    // same for the next-link-for-node pointer: previous applies to the reverse link
+    var previous: OsmLink? = null
+    var next: OsmLink? = null
 
-  private OsmLinkHolder reverselinkholder = null;
-  private OsmLinkHolder firstlinkholder = null;
+    private var reverselinkholder: OsmLinkHolder? = null
+    private var firstlinkholder: OsmLinkHolder? = null
 
-  protected OsmLink() {
-  }
+    constructor()
 
-  public OsmLink(OsmNode source, OsmNode target) {
-    n1 = source;
-    n2 = target;
-  }
+    constructor(source: OsmNode?, target: OsmNode?) {
+        n1 = source
+        n2 = target
+    }
 
-  /**
-   * Get the relevant target-node for the given source
-   */
-  public final OsmNode getTarget(OsmNode source) {
-    return n2 != source && n2 != null ? n2 : n1;
-    /* if ( n2 != null && n2 != source )
+    /**
+     * Get the relevant target-node for the given source
+     */
+    fun getTarget(source: OsmNode?): OsmNode? {
+        return if (n2 !== source && n2 != null) n2 else n1
+        /* if ( n2 != null && n2 != source )
     {
       return n2;
     }
@@ -50,18 +51,18 @@ public class OsmLink {
       return n1;
     }
     else
-    {    
+    {
       new Throwable( "ups" ).printStackTrace();
       throw new IllegalArgumentException( "internal error: getTarget: unknown source; " + source + " n1=" + n1 + " n2=" + n2 );
     } */
-  }
+    }
 
-  /**
-   * Get the relevant next-pointer for the given source
-   */
-  public final OsmLink getNext(OsmNode source) {
-    return n2 != source && n2 != null ? next : previous;
-    /* if ( n2 != null && n2 != source )
+    /**
+     * Get the relevant next-pointer for the given source
+     */
+    fun getNext(source: OsmNode?): OsmLink? {
+        return if (n2 !== source && n2 != null) next else previous
+        /* if ( n2 != null && n2 != source )
     {
       return next;
     }
@@ -73,56 +74,56 @@ public class OsmLink {
     {
       throw new IllegalArgumentException( "internal error: gextNext: unknown source" );
     } */
-  }
-
-  /**
-   * Reset this link for the given direction
-   */
-  protected final OsmLink clear(OsmNode source) {
-    OsmLink n;
-    if (n2 != null && n2 != source) {
-      n = next;
-      next = null;
-      n2 = null;
-      firstlinkholder = null;
-    } else if (n1 != null && n1 != source) {
-      n = previous;
-      previous = null;
-      n1 = null;
-      reverselinkholder = null;
-    } else {
-      throw new IllegalArgumentException("internal error: setNext: unknown source");
     }
-    if (n1 == null && n2 == null) {
-      descriptionBitmap = null;
-      geometry = null;
-    }
-    return n;
-  }
 
-  public final void setFirstLinkHolder(OsmLinkHolder holder, OsmNode source) {
-    if (n2 != null && n2 != source) {
-      firstlinkholder = holder;
-    } else if (n1 != null && n1 != source) {
-      reverselinkholder = holder;
-    } else {
-      throw new IllegalArgumentException("internal error: setFirstLinkHolder: unknown source");
+    /**
+     * Reset this link for the given direction
+     */
+    fun clear(source: OsmNode?): OsmLink? {
+        val n: OsmLink?
+        if (n2 != null && n2 !== source) {
+            n = next
+            next = null
+            n2 = null
+            firstlinkholder = null
+        } else if (n1 != null && n1 !== source) {
+            n = previous
+            previous = null
+            n1 = null
+            reverselinkholder = null
+        } else {
+            throw IllegalArgumentException("internal error: setNext: unknown source")
+        }
+        if (n1 == null && n2 == null) {
+            descriptionBitmap = null
+            geometry = null
+        }
+        return n
     }
-  }
 
-  public final OsmLinkHolder getFirstLinkHolder(OsmNode source) {
-    if (n2 != null && n2 != source) {
-      return firstlinkholder;
-    } else if (n1 != null && n1 != source) {
-      return reverselinkholder;
-    } else {
-      throw new IllegalArgumentException("internal error: getFirstLinkHolder: unknown source");
+    fun setFirstLinkHolder(holder: OsmLinkHolder?, source: OsmNode?) {
+        if (n2 != null && n2 !== source) {
+            firstlinkholder = holder
+        } else if (n1 != null && n1 !== source) {
+            reverselinkholder = holder
+        } else {
+            throw IllegalArgumentException("internal error: setFirstLinkHolder: unknown source")
+        }
     }
-  }
 
-  public final boolean isReverse(OsmNode source) {
-    return n1 != source && n1 != null;
-    /* if ( n2 != null && n2 != source )
+    fun getFirstLinkHolder(source: OsmNode?): OsmLinkHolder? {
+        if (n2 != null && n2 !== source) {
+            return firstlinkholder
+        } else if (n1 != null && n1 !== source) {
+            return reverselinkholder
+        } else {
+            throw IllegalArgumentException("internal error: getFirstLinkHolder: unknown source")
+        }
+    }
+
+    fun isReverse(source: OsmNode?): Boolean {
+        return n1 !== source && n1 != null
+        /* if ( n2 != null && n2 != source )
     {
       return false;
     }
@@ -134,22 +135,19 @@ public class OsmLink {
     {
       throw new IllegalArgumentException( "internal error: isReverse: unknown source" );
     } */
-  }
-
-  public final boolean isBidirectional() {
-    return n1 != null && n2 != null;
-  }
-
-  public final boolean isLinkUnused() {
-    return n1 == null && n2 == null;
-  }
-
-  public final void addLinkHolder(OsmLinkHolder holder, OsmNode source) {
-    OsmLinkHolder firstHolder = getFirstLinkHolder(source);
-    if (firstHolder != null) {
-      holder.setNextForLink(firstHolder);
     }
-    setFirstLinkHolder(holder, source);
-  }
 
+    val isBidirectional: Boolean
+        get() = n1 != null && n2 != null
+
+    val isLinkUnused: Boolean
+        get() = n1 == null && n2 == null
+
+    fun addLinkHolder(holder: OsmLinkHolder, source: OsmNode?) {
+        val firstHolder = getFirstLinkHolder(source)
+        if (firstHolder != null) {
+            holder.nextForLink = firstHolder
+        }
+        setFirstLinkHolder(holder, source)
+    }
 }

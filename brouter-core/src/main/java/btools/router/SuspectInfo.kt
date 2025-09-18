@@ -1,59 +1,61 @@
-package btools.router;
+package btools.router
 
-import java.util.Map;
+import kotlin.math.max
 
-public class SuspectInfo {
-  public static final int TRIGGER_DEAD_END = 1;
-  public static final int TRIGGER_DEAD_START = 2;
-  public static final int TRIGGER_NODE_BLOCK = 4;
-  public static final int TRIGGER_BAD_ACCESS = 8;
-  public static final int TRIGGER_UNK_ACCESS = 16;
-  public static final int TRIGGER_SHARP_EXIT = 32;
-  public static final int TRIGGER_SHARP_ENTRY = 64;
-  public static final int TRIGGER_SHARP_LINK = 128;
-  public static final int TRIGGER_BAD_TR = 256;
+class SuspectInfo {
+    var prio: Int = 0
+    var triggers: Int = 0
 
-  public int prio;
-  public int triggers;
+    companion object {
+        const val TRIGGER_DEAD_END: Int = 1
+        const val TRIGGER_DEAD_START: Int = 2
+        const val TRIGGER_NODE_BLOCK: Int = 4
+        const val TRIGGER_BAD_ACCESS: Int = 8
+        const val TRIGGER_UNK_ACCESS: Int = 16
+        const val TRIGGER_SHARP_EXIT: Int = 32
+        const val TRIGGER_SHARP_ENTRY: Int = 64
+        const val TRIGGER_SHARP_LINK: Int = 128
+        const val TRIGGER_BAD_TR: Int = 256
 
-  public static void addSuspect(Map<Long, SuspectInfo> map, long id, int prio, int trigger) {
-    Long iD = id;
-    SuspectInfo info = map.get(iD);
-    if (info == null) {
-      info = new SuspectInfo();
-      map.put(iD, info);
+        fun addSuspect(map: MutableMap<Long?, SuspectInfo?>, id: Long, prio: Int, trigger: Int) {
+            val iD = id
+            var info = map.get(iD)
+            if (info == null) {
+                info = SuspectInfo()
+                map.put(iD, info)
+            }
+            info.prio = max(info.prio, prio)
+            info.triggers = info.triggers or trigger
+        }
+
+        fun addTrigger(old: SuspectInfo?, prio: Int, trigger: Int): SuspectInfo {
+            var old = old
+            if (old == null) {
+                old = SuspectInfo()
+            }
+            old.prio = max(old.prio, prio)
+            old.triggers = old.triggers or trigger
+            return old
+        }
+
+        fun getTriggerText(triggers: Int): String {
+            val sb = StringBuilder()
+            addText(sb, "dead-end", triggers, TRIGGER_DEAD_END)
+            addText(sb, "dead-start", triggers, TRIGGER_DEAD_START)
+            addText(sb, "node-block", triggers, TRIGGER_NODE_BLOCK)
+            addText(sb, "bad-access", triggers, TRIGGER_BAD_ACCESS)
+            addText(sb, "unkown-access", triggers, TRIGGER_UNK_ACCESS)
+            addText(sb, "sharp-exit", triggers, TRIGGER_SHARP_EXIT)
+            addText(sb, "sharp-entry", triggers, TRIGGER_SHARP_ENTRY)
+            addText(sb, "sharp-link", triggers, TRIGGER_SHARP_LINK)
+            addText(sb, "bad-tr", triggers, TRIGGER_BAD_TR)
+            return sb.toString()
+        }
+
+        private fun addText(sb: StringBuilder, text: String?, mask: Int, bit: Int) {
+            if ((bit and mask) == 0) return
+            if (sb.length > 0) sb.append(",")
+            sb.append(text)
+        }
     }
-    info.prio = Math.max(info.prio, prio);
-    info.triggers |= trigger;
-  }
-
-  public static SuspectInfo addTrigger(SuspectInfo old, int prio, int trigger) {
-    if (old == null) {
-      old = new SuspectInfo();
-    }
-    old.prio = Math.max(old.prio, prio);
-    old.triggers |= trigger;
-    return old;
-  }
-
-  public static String getTriggerText(int triggers) {
-    StringBuilder sb = new StringBuilder();
-    addText(sb, "dead-end", triggers, TRIGGER_DEAD_END);
-    addText(sb, "dead-start", triggers, TRIGGER_DEAD_START);
-    addText(sb, "node-block", triggers, TRIGGER_NODE_BLOCK);
-    addText(sb, "bad-access", triggers, TRIGGER_BAD_ACCESS);
-    addText(sb, "unkown-access", triggers, TRIGGER_UNK_ACCESS);
-    addText(sb, "sharp-exit", triggers, TRIGGER_SHARP_EXIT);
-    addText(sb, "sharp-entry", triggers, TRIGGER_SHARP_ENTRY);
-    addText(sb, "sharp-link", triggers, TRIGGER_SHARP_LINK);
-    addText(sb, "bad-tr", triggers, TRIGGER_BAD_TR);
-    return sb.toString();
-  }
-
-  private static void addText(StringBuilder sb, String text, int mask, int bit) {
-    if ((bit & mask) == 0) return;
-    if (sb.length() > 0) sb.append(",");
-    sb.append(text);
-  }
-
 }

@@ -1,27 +1,23 @@
-package btools.expressions;
+package btools.expressions
 
-import java.util.Arrays;
+import btools.util.LruMapNode
 
-import btools.util.LruMapNode;
+class CacheNode : LruMapNode() {
+    var ab: ByteArray? = null
+    var vars: FloatArray? = null
 
-public final class CacheNode extends LruMapNode {
-  byte[] ab;
-  float[] vars;
-
-  @Override
-  public int hashCode() {
-    return hash;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    CacheNode n = (CacheNode) o;
-    if (hash != n.hash) {
-      return false;
+    override fun hashCode(): Int {
+        return hash
     }
-    if (ab == null) {
-      return true; // hack: null = crc match only
+
+    override fun equals(o: Any?): Boolean {
+        val n = o as CacheNode
+        if (hash != n.hash) {
+            return false
+        }
+        if (ab == null) {
+            return true // hack: null = crc match only
+        }
+        return ab.contentEquals(n.ab)
     }
-    return Arrays.equals(ab, n.ab);
-  }
 }

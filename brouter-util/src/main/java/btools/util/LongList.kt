@@ -1,36 +1,35 @@
-package btools.util;
+package btools.util
 
 /**
  * dynamic list of primitive longs
  *
  * @author ab
  */
-public class LongList {
-  private long[] a;
-  private int size;
+class LongList(capacity: Int) {
+    private var a: LongArray
+    private var size = 0
 
-  public LongList(int capacity) {
-    a = capacity < 4 ? new long[4] : new long[capacity];
-  }
-
-  public void add(long value) {
-    if (size == a.length) {
-      long[] aa = new long[2 * size];
-      System.arraycopy(a, 0, aa, 0, size);
-      a = aa;
+    init {
+        a = if (capacity < 4) LongArray(4) else LongArray(capacity)
     }
-    a[size++] = value;
-  }
 
-  public long get(int idx) {
-    if (idx >= size) {
-      throw new IndexOutOfBoundsException("list size=" + size + " idx=" + idx);
+    fun add(value: Long) {
+        if (size == a.size) {
+            val aa = LongArray(2 * size)
+            System.arraycopy(a, 0, aa, 0, size)
+            a = aa
+        }
+        a[size++] = value
     }
-    return a[idx];
-  }
 
-  public int size() {
-    return size;
-  }
+    fun get(idx: Int): Long {
+        if (idx >= size) {
+            throw IndexOutOfBoundsException("list size=" + size + " idx=" + idx)
+        }
+        return a[idx]
+    }
 
+    fun size(): Int {
+        return size
+    }
 }

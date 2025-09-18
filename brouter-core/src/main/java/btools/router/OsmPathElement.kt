@@ -1,127 +1,113 @@
-package btools.router;
+package btools.router
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
-import btools.mapaccess.OsmNode;
-import btools.mapaccess.OsmPos;
-import btools.util.CheapRuler;
+import btools.mapaccess.OsmPos
+import btools.util.CheapRuler.distance
+import java.io.DataInput
+import java.io.DataOutput
+import java.io.IOException
+import kotlin.math.max
 
 /**
  * Container for link between two Osm nodes
  *
  * @author ab
  */
+class OsmPathElement protected constructor() : OsmPos {
+    // interface OsmPos
+    override var iLat: Int = 0 // latitude
+        private set
+    override var iLon: Int = 0 // longitude
+        private set
+    override var sElev: Short = 0 // longitude
 
-public class OsmPathElement implements OsmPos {
-  private int ilat; // latitude
-  private int ilon; // longitude
-  private short selev; // longitude
+    internal var message: MessageData? = null // description
 
-  public MessageData message = null; // description
+    var cost: Int = 0
 
-  public int cost;
+    override val elev: Double
+        get() = this.sElev / 4.0
 
-  // interface OsmPos
-  public final int getILat() {
-    return ilat;
-  }
+    var time: Float
+        get() = if (message == null) 0f else message!!.time
+        set(t) {
+            if (message != null) {
+                message!!.time = t
+            }
+        }
 
-  public final int getILon() {
-    return ilon;
-  }
+    var energy: Float
+        get() = if (message == null) 0f else message!!.energy
+        set(e) {
+            if (message != null) {
+                message!!.energy = e
+            }
+        }
 
-  public final short getSElev() {
-    return selev;
-  }
-
-  public final void setSElev(short s) {
-    selev = s;
-  }
-
-  public final double getElev() {
-    return selev / 4.;
-  }
-
-  public final float getTime() {
-    return message == null ? 0.f : message.time;
-  }
-
-  public final void setTime(float t) {
-    if (message != null) {
-      message.time = t;
+    fun setAngle(e: Float) {
+        if (message != null) {
+            message!!.turnangle = e
+        }
     }
-  }
 
-  public final float getEnergy() {
-    return message == null ? 0.f : message.energy;
-  }
+    override val idFromPos: Long
+        get() = (iLon.toLong()) shl 32 or iLat.toLong()
 
-  public final void setEnergy(float e) {
-    if (message != null) {
-      message.energy = e;
+    override fun calcDistance(p: OsmPos): Int {
+        return max(
+            1.0, Math.round(
+                distance(
+                    this.iLon,
+                    this.iLat, p.iLon, p.iLat
+                )
+            ).toDouble()
+        ).toInt()
     }
-  }
 
-  public final void setAngle(float e) {
-    if (message != null) {
-      message.turnangle = e;
+    var origin: OsmPathElement? = null
+
+    override fun toString(): String {
+        return iLon.toString() + "_" + this.iLat
     }
-  }
 
-  public final long getIdFromPos() {
-    return ((long) ilon) << 32 | ilat;
-  }
+    fun positionEquals(e: OsmPathElement): Boolean {
+        return this.iLat == e.iLat && this.iLon == e.iLon
+    }
 
-  public final int calcDistance(OsmPos p) {
-    return (int) Math.max(1.0, Math.round(CheapRuler.distance(ilon, ilat, p.getILon(), p.getILat())));
-  }
+    @Throws(IOException::class)
+    fun writeToStream(dos: DataOutput) {
+        dos.writeInt(this.iLat)
+        dos.writeInt(this.iLon)
+        dos.writeShort(sElev.toInt())
+        dos.writeInt(cost)
+    }
 
-  public OsmPathElement origin;
+    companion object {
+        // construct a path element from a path
+        internal fun create(path: OsmPath): OsmPathElement {
+            val n = path.targetNode!!
+            val pe: OsmPathElement = create(n.iLon, n.iLat, n.sElev, path.originElement)
+            pe.cost = path.cost
+            pe.message = path.message
+            return pe
+        }
 
-  // construct a path element from a path
-  public static final OsmPathElement create(OsmPath path) {
-    OsmNode n = path.getTargetNode();
-    OsmPathElement pe = create(n.getILon(), n.getILat(), n.getSElev(), path.originElement);
-    pe.cost = path.cost;
-    pe.message = path.message;
-    return pe;
-  }
+        fun create(ilon: Int, ilat: Int, selev: Short, origin: OsmPathElement?): OsmPathElement {
+            val pe = OsmPathElement()
+            pe.iLon = ilon
+            pe.iLat = ilat
+            pe.sElev = selev
+            pe.origin = origin
+            return pe
+        }
 
-  public static final OsmPathElement create(int ilon, int ilat, short selev, OsmPathElement origin) {
-    OsmPathElement pe = new OsmPathElement();
-    pe.ilon = ilon;
-    pe.ilat = ilat;
-    pe.selev = selev;
-    pe.origin = origin;
-    return pe;
-  }
-
-  protected OsmPathElement() {
-  }
-
-  public String toString() {
-    return ilon + "_" + ilat;
-  }
-
-  public boolean positionEquals(OsmPathElement e) {
-    return this.ilat == e.ilat && this.ilon == e.ilon;
-  }
-
-  public void writeToStream(DataOutput dos) throws IOException {
-    dos.writeInt(ilat);
-    dos.writeInt(ilon);
-    dos.writeShort(selev);
-    dos.writeInt(cost);
-  }
-
-  public static OsmPathElement readFromStream(DataInput dis) throws IOException {
-    OsmPathElement pe = new OsmPathElement();
-    pe.ilat = dis.readInt();
-    pe.ilon = dis.readInt();
-    pe.selev = dis.readShort();
-    pe.cost = dis.readInt();
-    return pe;
-  }
+        @Throws(IOException::class)
+        fun readFromStream(dis: DataInput): OsmPathElement {
+            val pe = OsmPathElement()
+            pe.iLat = dis.readInt()
+            pe.iLon = dis.readInt()
+            pe.sElev = dis.readShort()
+            pe.cost = dis.readInt()
+            return pe
+        }
+    }
 }

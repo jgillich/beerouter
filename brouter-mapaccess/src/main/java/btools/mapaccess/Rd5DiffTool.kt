@@ -3,175 +3,248 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
+import btools.codec.DataBuffers
+import btools.codec.MicroCache
+import btools.codec.MicroCache2
+import btools.codec.StatCoderContext
+import btools.util.Crc32.crc
+import btools.util.ProgressListener
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
 
-import btools.codec.DataBuffers;
-import btools.codec.MicroCache;
-import btools.codec.MicroCache2;
-import btools.codec.StatCoderContext;
-import btools.util.Crc32;
-import btools.util.ProgressListener;
-
-final public class Rd5DiffTool implements ProgressListener {
-  public static void main(String[] args) throws Exception {
-    if (args.length == 2) {
-      reEncode(new File(args[0]), new File(args[1]));
-      return;
+class Rd5DiffTool : ProgressListener {
+    override fun updateProgress(task: String?, progress: Int) {
+        println(task + ": " + progress + "%")
     }
 
-    if (args[1].endsWith(".df5")) {
-      if (args[0].endsWith(".df5")) {
-        addDeltas(new File(args[0]), new File(args[1]), new File(args[2]));
-      } else {
-        recoverFromDelta(new File(args[0]), new File(args[1]), new File(args[2]), new Rd5DiffTool() /*, new File( args[3] ) */);
-      }
-    } else {
-      diff2files(new File(args[0]), new File(args[1]), new File(args[2]));
+    override val isCanceled: Boolean
+        get() = false
+
+    private class MCOutputStream(
+        private val dos: DataOutputStream,
+        private val buffer: ByteArray?
+    ) {
+        private var skips: Short = 0
+
+        @Throws(Exception::class)
+        fun writeMC(mc: MicroCache): Int {
+            if (mc.size == 0) {
+                skips++
+                return 0
+            }
+            dos.writeShort(skips.toInt())
+            skips = 0
+            val len = mc.encodeMicroCache(buffer!!)
+            require(len != 0) { "encoded buffer of non-empty micro-cache cannot be empty" }
+            dos.writeInt(len)
+            dos.write(buffer, 0, len)
+            return len
+        }
+
+        @Throws(Exception::class)
+        fun finish() {
+            if (skips > 0) {
+                dos.writeShort(skips.toInt())
+                skips = 0
+            }
+        }
     }
-  }
 
-  @Override
-  public void updateProgress(String task, int progress) {
-    System.out.println(task + ": " + progress + "%");
-  }
+    private class MCInputStream(
+        private val dis: DataInputStream,
+        private val dataBuffers: DataBuffers?
+    ) {
+        private var skips: Short = -1
+        private val empty: MicroCache = MicroCache.emptyCache()
 
-  @Override
-  public boolean isCanceled() {
-    return false;
-  }
+        @Throws(IOException::class)
+        fun readMC(): MicroCache {
+            if (skips < 0) {
+                skips = dis.readShort()
+            }
+            var mc = empty
+            if (skips.toInt() == 0) {
+                val size = dis.readInt()
+                val ab = ByteArray(size)
+                dis.readFully(ab)
+                val bc = StatCoderContext(ab)
+                mc = MicroCache2(bc, dataBuffers!!, 0, 0, 32, null, null)
+            }
+            skips--
+            return mc
+        }
 
-  private static long[] readFileIndex(DataInputStream dis, DataOutputStream dos) throws IOException {
-    long[] fileIndex = new long[25];
-    for (int i = 0; i < 25; i++) {
-      long lv = dis.readLong();
-      fileIndex[i] = lv & 0xffffffffffffL;
-      if (dos != null) {
-        dos.writeLong(lv);
-      }
+        fun finish() {
+            skips = -1
+        }
     }
-    return fileIndex;
-  }
 
-  private static long getTileStart(long[] index, int tileIndex) {
-    return tileIndex > 0 ? index[tileIndex - 1] : 200L;
-  }
+    companion object {
+        @Throws(Exception::class)
+        @JvmStatic
+        fun main(args: Array<String>) {
+            if (args.size == 2) {
+                reEncode(File(args[0]), File(args[1]))
+                return
+            }
 
-  private static long getTileEnd(long[] index, int tileIndex) {
-    return index[tileIndex];
-  }
+            if (args[1].endsWith(".df5")) {
+                if (args[0].endsWith(".df5")) {
+                    addDeltas(File(args[0]), File(args[1]), File(args[2]))
+                } else {
+                    recoverFromDelta(
+                        File(args[0]),
+                        File(args[1]),
+                        File(args[2]),
+                        Rd5DiffTool() /*, new File( args[3] ) */
+                    )
+                }
+            } else {
+                diff2files(File(args[0]), File(args[1]), File(args[2]))
+            }
+        }
 
-  private static int[] readPosIndex(DataInputStream dis, DataOutputStream dos) throws IOException {
-    int[] posIndex = new int[1024];
-    for (int i = 0; i < 1024; i++) {
-      int iv = dis.readInt();
-      posIndex[i] = iv;
-      if (dos != null) {
-        dos.writeInt(iv);
-      }
-    }
-    return posIndex;
-  }
+        @Throws(IOException::class)
+        private fun readFileIndex(dis: DataInputStream, dos: DataOutputStream?): LongArray {
+            val fileIndex = LongArray(25)
+            for (i in 0..24) {
+                val lv = dis.readLong()
+                fileIndex[i] = lv and 0xffffffffffffL
+                if (dos != null) {
+                    dos.writeLong(lv)
+                }
+            }
+            return fileIndex
+        }
 
-  private static int getPosIdx(int[] posIdx, int idx) {
-    return idx == -1 ? 4096 : posIdx[idx];
-  }
+        private fun getTileStart(index: LongArray, tileIndex: Int): Long {
+            return if (tileIndex > 0) index[tileIndex - 1] else 200L
+        }
 
-  private static byte[] createMicroCache(int[] posIdx, int tileIdx, DataInputStream dis, boolean deltaMode) throws IOException {
-    if (posIdx == null) {
-      return null;
-    }
-    int size = getPosIdx(posIdx, tileIdx) - getPosIdx(posIdx, tileIdx - 1);
-    if (size == 0) {
-      return null;
-    }
-    if (deltaMode) {
-      size = dis.readInt();
-    }
-    byte[] ab = new byte[size];
-    dis.readFully(ab);
-    return ab;
-  }
+        private fun getTileEnd(index: LongArray, tileIndex: Int): Long {
+            return index[tileIndex]
+        }
 
-  private static MicroCache createMicroCache(byte[] ab, DataBuffers dataBuffers) {
-    if (ab == null || ab.length == 0) {
-      return MicroCache.emptyCache();
-    }
-    StatCoderContext bc = new StatCoderContext(ab);
-    return new MicroCache2(bc, dataBuffers, 0, 0, 32, null, null);
-  }
+        @Throws(IOException::class)
+        private fun readPosIndex(dis: DataInputStream, dos: DataOutputStream?): IntArray {
+            val posIndex = IntArray(1024)
+            for (i in 0..1023) {
+                val iv = dis.readInt()
+                posIndex[i] = iv
+                if (dos != null) {
+                    dos.writeInt(iv)
+                }
+            }
+            return posIndex
+        }
 
-  /**
-   * Compute the delta between 2 RD5 files and
-   * show statistics on the expected size of the delta file
-   */
-  public static void diff2files(File f1, File f2, File outFile) throws Exception {
-    byte[] abBuf1 = new byte[10 * 1024 * 1024];
-    byte[] abBuf2 = new byte[10 * 1024 * 1024];
+        private fun getPosIdx(posIdx: IntArray, idx: Int): Int {
+            return if (idx == -1) 4096 else posIdx[idx]
+        }
 
-    int nodesDiff = 0;
-    int diffedTiles = 0;
+        @Throws(IOException::class)
+        private fun createMicroCache(
+            posIdx: IntArray?,
+            tileIdx: Int,
+            dis: DataInputStream,
+            deltaMode: Boolean
+        ): ByteArray? {
+            if (posIdx == null) {
+                return null
+            }
+            var size: Int = getPosIdx(posIdx, tileIdx) - getPosIdx(posIdx, tileIdx - 1)
+            if (size == 0) {
+                return null
+            }
+            if (deltaMode) {
+                size = dis.readInt()
+            }
+            val ab = ByteArray(size)
+            dis.readFully(ab)
+            return ab
+        }
 
-    long bytesDiff = 0L;
+        private fun createMicroCache(ab: ByteArray?, dataBuffers: DataBuffers?): MicroCache {
+            if (ab == null || ab.size == 0) {
+                return MicroCache.emptyCache()
+            }
+            val bc = StatCoderContext(ab)
+            return MicroCache2(bc, dataBuffers!!, 0, 0, 32, null, null)
+        }
 
-    DataInputStream dis1 = new DataInputStream(new BufferedInputStream(new FileInputStream(f1)));
-    DataInputStream dis2 = new DataInputStream(new BufferedInputStream(new FileInputStream(f2)));
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
-    MCOutputStream mcOut = new MCOutputStream(dos, abBuf1);
+        /**
+         * Compute the delta between 2 RD5 files and
+         * show statistics on the expected size of the delta file
+         */
+        @Throws(Exception::class)
+        fun diff2files(f1: File, f2: File, outFile: File) {
+            val abBuf1 = ByteArray(10 * 1024 * 1024)
+            val abBuf2 = ByteArray(10 * 1024 * 1024)
 
-    // copy header to outfile
-    long[] fileIndex1 = readFileIndex(dis1, null);
-    long[] fileIndex2 = readFileIndex(dis2, dos);
+            var nodesDiff = 0
+            var diffedTiles = 0
 
-    long t0 = System.currentTimeMillis();
+            var bytesDiff = 0L
 
-    try {
-      DataBuffers dataBuffers = new DataBuffers();
-      for (int subFileIdx = 0; subFileIdx < 25; subFileIdx++) {
-        boolean hasData1 = getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx);
-        boolean hasData2 = getTileStart(fileIndex2, subFileIdx) < getTileEnd(fileIndex2, subFileIdx);
+            val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
+            val dis2 = DataInputStream(BufferedInputStream(FileInputStream(f2)))
+            val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
+            val mcOut = MCOutputStream(dos, abBuf1)
 
-        int[] posIdx1 = hasData1 ? readPosIndex(dis1, null) : null;
-        int[] posIdx2 = hasData2 ? readPosIndex(dis2, dos) : null;
+            // copy header to outfile
+            val fileIndex1: LongArray = readFileIndex(dis1, null)
+            val fileIndex2: LongArray = readFileIndex(dis2, dos)
 
-        for (int tileIdx = 0; tileIdx < 1024; tileIdx++) {
-          byte[] ab1 = createMicroCache(posIdx1, tileIdx, dis1, false);
-          byte[] ab2 = createMicroCache(posIdx2, tileIdx, dis2, false);
+            val t0 = System.currentTimeMillis()
 
-          MicroCache mc;
-          if (Arrays.equals(ab1, ab2)) {
-            mc = MicroCache.emptyCache(); // empty diff
-          } else // calc diff of the 2 tiles
-          {
-            MicroCache mc1 = createMicroCache(ab1, dataBuffers);
-            MicroCache mc2 = createMicroCache(ab2, dataBuffers);
-            mc = new MicroCache2(mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32);
-            mc.calcDelta(mc1, mc2);
-          }
+            try {
+                val dataBuffers = DataBuffers()
+                for (subFileIdx in 0..24) {
+                    val hasData1 =
+                        getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx)
+                    val hasData2 =
+                        getTileStart(fileIndex2, subFileIdx) < getTileEnd(fileIndex2, subFileIdx)
 
-          int len = mcOut.writeMC(mc);
-          if (len > 0) {
-            bytesDiff += len;
-            nodesDiff += mc.getSize();
-            diffedTiles++;
+                    val posIdx1: IntArray? = if (hasData1) readPosIndex(dis1, null) else null
+                    val posIdx2: IntArray? = if (hasData2) readPosIndex(dis2, dos) else null
 
-/*                 // do some consistemcy checks on the encoding
+                    for (tileIdx in 0..1023) {
+                        val ab1: ByteArray? = createMicroCache(posIdx1, tileIdx, dis1, false)
+                        val ab2: ByteArray? = createMicroCache(posIdx2, tileIdx, dis2, false)
+
+                        val mc: MicroCache?
+                        if (ab1.contentEquals(ab2)) {
+                            mc = MicroCache.emptyCache() // empty diff
+                        } else  // calc diff of the 2 tiles
+                        {
+                            val mc1: MicroCache = createMicroCache(ab1, dataBuffers)
+                            val mc2: MicroCache = createMicroCache(ab2, dataBuffers)
+                            mc = MicroCache2(mc1.size + mc2.size, abBuf2, 0, 0, 32)
+                            mc.calcDelta(mc1, mc2)
+                        }
+
+                        val len = mcOut.writeMC(mc)
+                        if (len > 0) {
+                            bytesDiff += len.toLong()
+                            nodesDiff += mc.size
+                            diffedTiles++
+
+                            /*                 // do some consistemcy checks on the encoding
 
                  byte[] bytes = new byte[len];
                  System.arraycopy( abBuf1, 0, bytes, 0, len );
-                 
+
                  // cross-check the encoding: decode again
                  MicroCache mcCheck = new MicroCache2( new StatCoderContext( bytes ), new DataBuffers( null ), 0, 0, 32, null, null );
-                 
+
                  // due to link-order ambiguity, for decoded we can only compare node-count and datasize
                  if ( mc.size() != mcCheck.size() )
                  {
@@ -181,12 +254,12 @@ final public class Rd5DiffTool implements ProgressListener {
                  {
                    throw new IllegalArgumentException( "re-decoded node-count mismatch!" );
                  }
-                 
+
                  // .... so re-encode again
                  int len2 = mcCheck.encodeMicroCache( abBuf1 );
                  byte[] bytes2 = new byte[len2];
                  System.arraycopy( abBuf1, 0, bytes2, 0, len2 );
-                 
+
                  // and here we can compare byte-by-byte
                  if ( len != len2 )
                  {
@@ -200,135 +273,156 @@ final public class Rd5DiffTool implements ProgressListener {
                    }
                  }
              */
-          }
+                        }
+                    }
+                    mcOut.finish()
+                }
+
+                // write any remaining data to the output file
+                while (true) {
+                    val len = dis2.read(abBuf1)
+                    if (len < 0) {
+                        break
+                    }
+                    dos.write(abBuf1, 0, len)
+                }
+                val t1 = System.currentTimeMillis()
+                println("nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff + " diffedTiles=" + diffedTiles + " took " + (t1 - t0) + "ms")
+            } finally {
+                if (dis1 != null) {
+                    try {
+                        dis1.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dis2 != null) {
+                    try {
+                        dis2.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dos != null) {
+                    try {
+                        dos.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+            }
         }
-        mcOut.finish();
-      }
-
-      // write any remaining data to the output file
-      for (; ; ) {
-        int len = dis2.read(abBuf1);
-        if (len < 0) {
-          break;
-        }
-        dos.write(abBuf1, 0, len);
-      }
-      long t1 = System.currentTimeMillis();
-      System.out.println("nodesDiff=" + nodesDiff + " bytesDiff=" + bytesDiff + " diffedTiles=" + diffedTiles + " took " + (t1 - t0) + "ms");
-    } finally {
-      if (dis1 != null) {
-        try {
-          dis1.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dis2 != null) {
-        try {
-          dis2.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dos != null) {
-        try {
-          dos.close();
-        } catch (Exception ee) {
-        }
-      }
-    }
-  }
 
 
-  public static void recoverFromDelta(File f1, File f2, File outFile, ProgressListener progress /* , File cmpFile */) throws IOException {
-    if (f2.length() == 0L) {
-      copyFile(f1, outFile, progress);
-      return;
-    }
+        @Throws(IOException::class)
+        fun recoverFromDelta(
+            f1: File,
+            f2: File,
+            outFile: File,
+            progress: ProgressListener /* , File cmpFile */
+        ) {
+            if (f2.length() == 0L) {
+                copyFile(f1, outFile, progress)
+                return
+            }
 
-    byte[] abBuf1 = new byte[10 * 1024 * 1024];
-    byte[] abBuf2 = new byte[10 * 1024 * 1024];
+            val abBuf1 = ByteArray(10 * 1024 * 1024)
+            val abBuf2 = ByteArray(10 * 1024 * 1024)
 
-    boolean canceled = false;
+            var canceled = false
 
-    long t0 = System.currentTimeMillis();
+            val t0 = System.currentTimeMillis()
 
-    DataInputStream dis1 = new DataInputStream(new BufferedInputStream(new FileInputStream(f1)));
-    DataInputStream dis2 = new DataInputStream(new BufferedInputStream(new FileInputStream(f2)));
-//    DataInputStream disCmp = new DataInputStream( new BufferedInputStream( new FileInputStream( cmpFile ) ) );
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
+            val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
+            val dis2 = DataInputStream(BufferedInputStream(FileInputStream(f2)))
+            //    DataInputStream disCmp = new DataInputStream( new BufferedInputStream( new FileInputStream( cmpFile ) ) );
+            val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
 
-    // copy header to outfile
-    long[] fileIndex1 = readFileIndex(dis1, null);
-    long[] fileIndex2 = readFileIndex(dis2, dos);
-//    long[] fileIndexCmp = readFileIndex( disCmp, null );
+            // copy header to outfile
+            val fileIndex1: LongArray = readFileIndex(dis1, null)
+            val fileIndex2: LongArray = readFileIndex(dis2, dos)
 
-    int lastPct = -1;
+            //    long[] fileIndexCmp = readFileIndex( disCmp, null );
+            var lastPct = -1
 
-    try {
-      DataBuffers dataBuffers = new DataBuffers();
-      MCInputStream mcIn = new MCInputStream(dis2, dataBuffers);
+            try {
+                val dataBuffers = DataBuffers()
+                val mcIn = MCInputStream(dis2, dataBuffers)
 
-      for (int subFileIdx = 0; subFileIdx < 25; subFileIdx++) {
-        boolean hasData1 = getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx); // has the basefile data
-        boolean hasData2 = getTileStart(fileIndex2, subFileIdx) < getTileEnd(fileIndex2, subFileIdx); // has the *result* data
+                for (subFileIdx in 0..24) {
+                    val hasData1 = getTileStart(fileIndex1, subFileIdx) < getTileEnd(
+                        fileIndex1,
+                        subFileIdx
+                    ) // has the basefile data
+                    val hasData2 = getTileStart(fileIndex2, subFileIdx) < getTileEnd(
+                        fileIndex2,
+                        subFileIdx
+                    ) // has the *result* data
 
-//         boolean hasDataCmp = getTileStart( fileIndexCmp, subFileIdx ) < getTileEnd( fileIndexCmp, subFileIdx );
+                    //         boolean hasDataCmp = getTileStart( fileIndexCmp, subFileIdx ) < getTileEnd( fileIndexCmp, subFileIdx );
+                    val posIdx1: IntArray? = if (hasData1) readPosIndex(dis1, null) else null
+                    val posIdx2: IntArray? = if (hasData2) readPosIndex(dis2, dos) else null
 
-        int[] posIdx1 = hasData1 ? readPosIndex(dis1, null) : null;
-        int[] posIdx2 = hasData2 ? readPosIndex(dis2, dos) : null;
+                    //        int[] posIdxCmp = hasDataCmp ? readPosIndex( disCmp, null ) : null;
+                    for (tileIdx in 0..1023) {
+                        if (progress.isCanceled) {
+                            canceled = true
+                            return
+                        }
+                        val bytesProcessed = (getTileStart(
+                            fileIndex1,
+                            subFileIdx
+                        ) + (if (posIdx1 == null) 0 else getPosIdx(
+                            posIdx1,
+                            tileIdx - 1
+                        ))).toDouble()
+                        val pct =
+                            (100.0 * bytesProcessed / getTileEnd(fileIndex1, 24) + 0.5).toInt()
+                        if (pct != lastPct) {
+                            progress.updateProgress("Applying delta", pct)
+                            lastPct = pct
+                        }
 
-        //        int[] posIdxCmp = hasDataCmp ? readPosIndex( disCmp, null ) : null;
+                        val ab1: ByteArray? = createMicroCache(posIdx1, tileIdx, dis1, false)
+                        val mc2 = mcIn.readMC()
+                        val targetSize =
+                            if (posIdx2 == null) 0 else getPosIdx(posIdx2, tileIdx) - getPosIdx(
+                                posIdx2,
+                                tileIdx - 1
+                            )
 
-        for (int tileIdx = 0; tileIdx < 1024; tileIdx++) {
-          if (progress.isCanceled()) {
-            canceled = true;
-            return;
-          }
-          double bytesProcessed = getTileStart(fileIndex1, subFileIdx) + (posIdx1 == null ? 0 : getPosIdx(posIdx1, tileIdx - 1));
-          int pct = (int) (100. * bytesProcessed / getTileEnd(fileIndex1, 24) + 0.5);
-          if (pct != lastPct) {
-            progress.updateProgress("Applying delta", pct);
-            lastPct = pct;
-          }
-
-          byte[] ab1 = createMicroCache(posIdx1, tileIdx, dis1, false);
-          MicroCache mc2 = mcIn.readMC();
-          int targetSize = posIdx2 == null ? 0 : getPosIdx(posIdx2, tileIdx) - getPosIdx(posIdx2, tileIdx - 1);
-
-/*         int targetSizeCmp = getPosIdx( posIdxCmp, tileIdx ) - getPosIdx( posIdxCmp, tileIdx-1 );
+                        /*         int targetSizeCmp = getPosIdx( posIdxCmp, tileIdx ) - getPosIdx( posIdxCmp, tileIdx-1 );
            if ( targetSizeCmp != targetSize ) throw new IllegalArgumentException( "target size mismatch: "+ targetSize + "," + targetSizeCmp );
            byte[] abCmp = new byte[targetSizeCmp];
            disCmp.readFully( abCmp );
 */
 
-          // no-delta shortcut: just copy base data
-          if (mc2.getSize() == 0) {
-            if (ab1 != null) {
-              dos.write(ab1);
-            }
-            int newTargetSize = ab1 == null ? 0 : ab1.length;
-            if (targetSize != newTargetSize) {
-              throw new RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + "!=" + newTargetSize);
-            }
-            continue;
-          }
+                        // no-delta shortcut: just copy base data
+                        if (mc2.size == 0) {
+                            if (ab1 != null) {
+                                dos.write(ab1)
+                            }
+                            val newTargetSize = if (ab1 == null) 0 else ab1.size
+                            if (targetSize != newTargetSize) {
+                                throw RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + "!=" + newTargetSize)
+                            }
+                            continue
+                        }
 
-          // this is the real delta case (using decode->delta->encode )
+                        // this is the real delta case (using decode->delta->encode )
+                        val mc1: MicroCache = createMicroCache(ab1, dataBuffers)
 
-          MicroCache mc1 = createMicroCache(ab1, dataBuffers);
+                        val mc: MicroCache =
+                            MicroCache2(mc1.size + mc2.size, abBuf2, 0, 0, 32)
+                        mc.addDelta(mc1, mc2, false)
 
-          MicroCache mc = new MicroCache2(mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32);
-          mc.addDelta(mc1, mc2, false);
+                        if (mc.size() == 0) {
+                            if (targetSize != 0) {
+                                throw RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + ">0")
+                            }
+                            continue
+                        }
 
-          if (mc.size() == 0) {
-            if (targetSize != 0) {
-              throw new RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + ">0");
-            }
-            continue;
-          }
+                        val len = mc.encodeMicroCache(abBuf1)
 
-          int len = mc.encodeMicroCache(abBuf1);
-
-/*           System.out.println( "comparing for subFileIdx=" + subFileIdx + " tileIdx=" + tileIdx );
+                        /*           System.out.println( "comparing for subFileIdx=" + subFileIdx + " tileIdx=" + tileIdx );
            boolean isequal = true;
            for( int i=0; i<len;i++ )
            {
@@ -346,292 +440,231 @@ final public class Rd5DiffTool implements ProgressListener {
              }
            }
 */
-          dos.write(abBuf1, 0, len);
-          dos.writeInt(Crc32.crc(abBuf1, 0, len) ^ 2);
-          if (targetSize != len + 4) {
-            throw new RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + "<>" + (len + 4));
-          }
+                        dos.write(abBuf1, 0, len)
+                        dos.writeInt(crc(abBuf1, 0, len) xor 2)
+                        if (targetSize != len + 4) {
+                            throw RuntimeException("size mismatch at " + subFileIdx + "/" + tileIdx + " " + targetSize + "<>" + (len + 4))
+                        }
+                    }
+                    mcIn.finish()
+                }
+                // write any remaining data to the output file
+                while (true) {
+                    val len = dis2.read(abBuf1)
+                    if (len < 0) {
+                        break
+                    }
+                    dos.write(abBuf1, 0, len)
+                }
+                val t1 = System.currentTimeMillis()
+                println("recovering from diffs took " + (t1 - t0) + "ms")
+            } finally {
+                if (dis1 != null) {
+                    try {
+                        dis1.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dis2 != null) {
+                    try {
+                        dis2.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dos != null) {
+                    try {
+                        dos.close()
+                    } catch (ee: Exception) {
+                    }
+                    if (canceled) {
+                        outFile.delete()
+                    }
+                }
+            }
+        }
 
+        @Throws(IOException::class)
+        fun copyFile(f1: File, outFile: File, progress: ProgressListener) {
+            var canceled = false
+            val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
+            val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
+            var lastPct = -1
+            val sizeTotal = f1.length()
+            var sizeRead = 0L
+            try {
+                val buf: ByteArray? = ByteArray(65536)
+                while (true) {
+                    if (progress.isCanceled) {
+                        canceled = true
+                        return
+                    }
+                    val pct = ((100.0 * sizeRead) / (sizeTotal + 1) + 0.5).toInt()
+                    if (pct != lastPct) {
+                        progress.updateProgress("Copying", pct)
+                        lastPct = pct
+                    }
+                    val len = dis1.read(buf)
+                    if (len <= 0) {
+                        break
+                    }
+                    sizeRead += len.toLong()
+                    dos.write(buf, 0, len)
+                }
+            } finally {
+                if (dis1 != null) {
+                    try {
+                        dis1.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dos != null) {
+                    try {
+                        dos.close()
+                    } catch (ee: Exception) {
+                    }
+                    if (canceled) {
+                        outFile.delete()
+                    }
+                }
+            }
         }
-        mcIn.finish();
-      }
-      // write any remaining data to the output file
-      for (; ; ) {
-        int len = dis2.read(abBuf1);
-        if (len < 0) {
-          break;
+
+        @Throws(Exception::class)
+        fun addDeltas(f1: File, f2: File, outFile: File) {
+            val abBuf1 = ByteArray(10 * 1024 * 1024)
+            val abBuf2 = ByteArray(10 * 1024 * 1024)
+
+            val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
+            val dis2 = DataInputStream(BufferedInputStream(FileInputStream(f2)))
+            val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
+
+            // copy subfile-header to outfile
+            val fileIndex1: LongArray = readFileIndex(dis1, null)
+            val fileIndex2: LongArray = readFileIndex(dis2, dos)
+
+            val t0 = System.currentTimeMillis()
+
+            try {
+                val dataBuffers = DataBuffers()
+                val mcIn1 = MCInputStream(dis1, dataBuffers)
+                val mcIn2 = MCInputStream(dis2, dataBuffers)
+                val mcOut = MCOutputStream(dos, abBuf1)
+
+                for (subFileIdx in 0..24) {
+                    // copy tile-header to outfile
+                    val hasData1 =
+                        getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx)
+                    val hasData2 =
+                        getTileStart(fileIndex2, subFileIdx) < getTileEnd(fileIndex2, subFileIdx)
+                    val posIdx1: IntArray? = if (hasData1) readPosIndex(dis1, null) else null
+                    val posIdx2: IntArray? = if (hasData2) readPosIndex(dis2, dos) else null
+
+                    for (tileIdx in 0..1023) {
+                        val mc1 = mcIn1.readMC()
+                        val mc2 = mcIn2.readMC()
+                        val mc: MicroCache?
+                        if (mc1.size == 0 && mc2.size == 0) {
+                            mc = mc1
+                        } else {
+                            mc = MicroCache2(mc1.size + mc2.size, abBuf2, 0, 0, 32)
+                            mc.addDelta(mc1, mc2, true)
+                        }
+                        mcOut.writeMC(mc)
+                    }
+                    mcIn1.finish()
+                    mcIn2.finish()
+                    mcOut.finish()
+                }
+                // write any remaining data to the output file
+                while (true) {
+                    val len = dis2.read(abBuf1)
+                    if (len < 0) {
+                        break
+                    }
+                    dos.write(abBuf1, 0, len)
+                }
+                val t1 = System.currentTimeMillis()
+                println("adding diffs took " + (t1 - t0) + "ms")
+            } finally {
+                if (dis1 != null) {
+                    try {
+                        dis1.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dis2 != null) {
+                    try {
+                        dis2.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dos != null) {
+                    try {
+                        dos.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+            }
         }
-        dos.write(abBuf1, 0, len);
-      }
-      long t1 = System.currentTimeMillis();
-      System.out.println("recovering from diffs took " + (t1 - t0) + "ms");
-    } finally {
-      if (dis1 != null) {
-        try {
-          dis1.close();
-        } catch (Exception ee) {
+
+
+        @Throws(Exception::class)
+        fun reEncode(f1: File, outFile: File) {
+            val abBuf1 = ByteArray(10 * 1024 * 1024)
+
+            val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
+            val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
+
+            // copy header to outfile
+            val fileIndex1: LongArray = readFileIndex(dis1, dos)
+
+            val t0 = System.currentTimeMillis()
+
+            try {
+                val dataBuffers = DataBuffers()
+                for (subFileIdx in 0..24) {
+                    val hasData1 =
+                        getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx)
+
+                    val posIdx1: IntArray? = if (hasData1) readPosIndex(dis1, dos) else null
+
+                    for (tileIdx in 0..1023) {
+                        val ab1: ByteArray? = createMicroCache(posIdx1, tileIdx, dis1, false)
+
+                        if (ab1 == null) continue
+
+                        val mc1: MicroCache = createMicroCache(ab1, dataBuffers)
+
+                        val len = mc1.encodeMicroCache(abBuf1)
+
+                        dos.write(abBuf1, 0, len)
+                        dos.writeInt(crc(abBuf1, 0, len) xor 2)
+                    }
+                }
+                // write any remaining data to the output file
+                while (true) {
+                    val len = dis1.read(abBuf1)
+                    if (len < 0) {
+                        break
+                    }
+                    dos.write(abBuf1, 0, len)
+                }
+                val t1 = System.currentTimeMillis()
+                println("re-encoding took " + (t1 - t0) + "ms")
+            } finally {
+                if (dis1 != null) {
+                    try {
+                        dis1.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+                if (dos != null) {
+                    try {
+                        dos.close()
+                    } catch (ee: Exception) {
+                    }
+                }
+            }
         }
-      }
-      if (dis2 != null) {
-        try {
-          dis2.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dos != null) {
-        try {
-          dos.close();
-        } catch (Exception ee) {
-        }
-        if (canceled) {
-          outFile.delete();
-        }
-      }
     }
-  }
-
-  public static void copyFile(File f1, File outFile, ProgressListener progress) throws IOException {
-    boolean canceled = false;
-    DataInputStream dis1 = new DataInputStream(new BufferedInputStream(new FileInputStream(f1)));
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
-    int lastPct = -1;
-    long sizeTotal = f1.length();
-    long sizeRead = 0L;
-    try {
-      byte buf[] = new byte[65536];
-      for (; ; ) {
-        if (progress.isCanceled()) {
-          canceled = true;
-          return;
-        }
-        int pct = (int) ((100. * sizeRead) / (sizeTotal + 1) + 0.5);
-        if (pct != lastPct) {
-          progress.updateProgress("Copying", pct);
-          lastPct = pct;
-        }
-        int len = dis1.read(buf);
-        if (len <= 0) {
-          break;
-        }
-        sizeRead += len;
-        dos.write(buf, 0, len);
-      }
-    } finally {
-      if (dis1 != null) {
-        try {
-          dis1.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dos != null) {
-        try {
-          dos.close();
-        } catch (Exception ee) {
-        }
-        if (canceled) {
-          outFile.delete();
-        }
-      }
-    }
-  }
-
-  public static void addDeltas(File f1, File f2, File outFile) throws Exception {
-    byte[] abBuf1 = new byte[10 * 1024 * 1024];
-    byte[] abBuf2 = new byte[10 * 1024 * 1024];
-
-    DataInputStream dis1 = new DataInputStream(new BufferedInputStream(new FileInputStream(f1)));
-    DataInputStream dis2 = new DataInputStream(new BufferedInputStream(new FileInputStream(f2)));
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
-
-    // copy subfile-header to outfile
-    long[] fileIndex1 = readFileIndex(dis1, null);
-    long[] fileIndex2 = readFileIndex(dis2, dos);
-
-    long t0 = System.currentTimeMillis();
-
-    try {
-      DataBuffers dataBuffers = new DataBuffers();
-      MCInputStream mcIn1 = new MCInputStream(dis1, dataBuffers);
-      MCInputStream mcIn2 = new MCInputStream(dis2, dataBuffers);
-      MCOutputStream mcOut = new MCOutputStream(dos, abBuf1);
-
-      for (int subFileIdx = 0; subFileIdx < 25; subFileIdx++) {
-        // copy tile-header to outfile
-        boolean hasData1 = getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx);
-        boolean hasData2 = getTileStart(fileIndex2, subFileIdx) < getTileEnd(fileIndex2, subFileIdx);
-        int[] posIdx1 = hasData1 ? readPosIndex(dis1, null) : null;
-        int[] posIdx2 = hasData2 ? readPosIndex(dis2, dos) : null;
-
-        for (int tileIdx = 0; tileIdx < 1024; tileIdx++) {
-          MicroCache mc1 = mcIn1.readMC();
-          MicroCache mc2 = mcIn2.readMC();
-          MicroCache mc;
-          if (mc1.getSize() == 0 && mc2.getSize() == 0) {
-            mc = mc1;
-          } else {
-            mc = new MicroCache2(mc1.getSize() + mc2.getSize(), abBuf2, 0, 0, 32);
-            mc.addDelta(mc1, mc2, true);
-          }
-          mcOut.writeMC(mc);
-        }
-        mcIn1.finish();
-        mcIn2.finish();
-        mcOut.finish();
-      }
-      // write any remaining data to the output file
-      for (; ; ) {
-        int len = dis2.read(abBuf1);
-        if (len < 0) {
-          break;
-        }
-        dos.write(abBuf1, 0, len);
-      }
-      long t1 = System.currentTimeMillis();
-      System.out.println("adding diffs took " + (t1 - t0) + "ms");
-    } finally {
-      if (dis1 != null) {
-        try {
-          dis1.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dis2 != null) {
-        try {
-          dis2.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dos != null) {
-        try {
-          dos.close();
-        } catch (Exception ee) {
-        }
-      }
-    }
-  }
-
-
-  public static void reEncode(File f1, File outFile) throws Exception {
-    byte[] abBuf1 = new byte[10 * 1024 * 1024];
-
-    DataInputStream dis1 = new DataInputStream(new BufferedInputStream(new FileInputStream(f1)));
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outFile)));
-
-    // copy header to outfile
-    long[] fileIndex1 = readFileIndex(dis1, dos);
-
-    long t0 = System.currentTimeMillis();
-
-    try {
-      DataBuffers dataBuffers = new DataBuffers();
-      for (int subFileIdx = 0; subFileIdx < 25; subFileIdx++) {
-        boolean hasData1 = getTileStart(fileIndex1, subFileIdx) < getTileEnd(fileIndex1, subFileIdx);
-
-        int[] posIdx1 = hasData1 ? readPosIndex(dis1, dos) : null;
-
-        for (int tileIdx = 0; tileIdx < 1024; tileIdx++) {
-          byte[] ab1 = createMicroCache(posIdx1, tileIdx, dis1, false);
-
-          if (ab1 == null) continue;
-
-          MicroCache mc1 = createMicroCache(ab1, dataBuffers);
-
-          int len = mc1.encodeMicroCache(abBuf1);
-
-          dos.write(abBuf1, 0, len);
-          dos.writeInt(Crc32.crc(abBuf1, 0, len) ^ 2);
-        }
-      }
-      // write any remaining data to the output file
-      for (; ; ) {
-        int len = dis1.read(abBuf1);
-        if (len < 0) {
-          break;
-        }
-        dos.write(abBuf1, 0, len);
-      }
-      long t1 = System.currentTimeMillis();
-      System.out.println("re-encoding took " + (t1 - t0) + "ms");
-    } finally {
-      if (dis1 != null) {
-        try {
-          dis1.close();
-        } catch (Exception ee) {
-        }
-      }
-      if (dos != null) {
-        try {
-          dos.close();
-        } catch (Exception ee) {
-        }
-      }
-    }
-  }
-
-  private static class MCOutputStream {
-    private DataOutputStream dos;
-    private byte[] buffer;
-    private short skips = 0;
-
-    public MCOutputStream(DataOutputStream dos, byte[] buffer) {
-      this.dos = dos;
-      this.buffer = buffer;
-    }
-
-    public int writeMC(MicroCache mc) throws Exception {
-      if (mc.getSize() == 0) {
-        skips++;
-        return 0;
-      }
-      dos.writeShort(skips);
-      skips = 0;
-      int len = mc.encodeMicroCache(buffer);
-      if (len == 0) {
-        throw new IllegalArgumentException("encoded buffer of non-empty micro-cache cannot be empty");
-      }
-      dos.writeInt(len);
-      dos.write(buffer, 0, len);
-      return len;
-    }
-
-    public void finish() throws Exception {
-      if (skips > 0) {
-        dos.writeShort(skips);
-        skips = 0;
-      }
-    }
-  }
-
-  private static class MCInputStream {
-    private short skips = -1;
-    private DataInputStream dis;
-    private DataBuffers dataBuffers;
-    private MicroCache empty = MicroCache.emptyCache();
-
-    public MCInputStream(DataInputStream dis, DataBuffers dataBuffers) {
-      this.dis = dis;
-      this.dataBuffers = dataBuffers;
-    }
-
-    public MicroCache readMC() throws IOException {
-      if (skips < 0) {
-        skips = dis.readShort();
-      }
-      MicroCache mc = empty;
-      if (skips == 0) {
-        int size = dis.readInt();
-        byte[] ab = new byte[size];
-        dis.readFully(ab);
-        StatCoderContext bc = new StatCoderContext(ab);
-        mc = new MicroCache2(bc, dataBuffers, 0, 0, 32, null, null);
-      }
-      skips--;
-      return mc;
-    }
-
-    public void finish() {
-      skips = -1;
-    }
-  }
-
 }

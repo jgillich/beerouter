@@ -3,73 +3,73 @@
 // - the local variables
 // - the local variable names
 // - the lookup-input variables
+package btools.expressions
 
-package btools.expressions;
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.util.HashMap;
-import java.util.Map;
+class BExpressionMetaData {
+    var lookupVersion: Short = -1
+    var lookupMinorVersion: Short = -1
+    var minAppVersion: Short = -1
 
+    private val listeners: MutableMap<String?, BExpressionContext> =
+        HashMap<String?, BExpressionContext>()
 
-public final class BExpressionMetaData {
-  private static final String CONTEXT_TAG = "---context:";
-  private static final String VERSION_TAG = "---lookupversion:";
-  private static final String MINOR_VERSION_TAG = "---minorversion:";
-  private static final String VARLENGTH_TAG = "---readvarlength";
-  private static final String MIN_APP_VERSION_TAG = "---minappversion:";
-
-  public short lookupVersion = -1;
-  public short lookupMinorVersion = -1;
-  public short minAppVersion = -1;
-
-  private Map<String, BExpressionContext> listeners = new HashMap<>();
-
-  public void registerListener(String context, BExpressionContext ctx) {
-    listeners.put(context, ctx);
-  }
-
-  public void readMetaData(File lookupsFile) {
-    try {
-      BufferedReader br = new BufferedReader(new FileReader(lookupsFile));
-
-      BExpressionContext ctx = null;
-
-      for (; ; ) {
-        String line = br.readLine();
-        if (line == null) break;
-        line = line.trim();
-        if (line.length() == 0 || line.startsWith("#")) continue;
-        if (line.startsWith(CONTEXT_TAG)) {
-          ctx = listeners.get(line.substring(CONTEXT_TAG.length()));
-          continue;
-        }
-        if (line.startsWith(VERSION_TAG)) {
-          lookupVersion = Short.parseShort(line.substring(VERSION_TAG.length()));
-          continue;
-        }
-        if (line.startsWith(MINOR_VERSION_TAG)) {
-          lookupMinorVersion = Short.parseShort(line.substring(MINOR_VERSION_TAG.length()));
-          continue;
-        }
-        if (line.startsWith(MIN_APP_VERSION_TAG)) {
-          minAppVersion = Short.parseShort(line.substring(MIN_APP_VERSION_TAG.length()));
-          continue;
-        }
-        if (line.startsWith(VARLENGTH_TAG)) { // tag removed...
-          continue;
-        }
-        if (ctx != null) ctx.parseMetaLine(line);
-      }
-      br.close();
-
-      for (BExpressionContext c : listeners.values()) {
-        c.finishMetaParsing();
-      }
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    fun registerListener(context: String?, ctx: BExpressionContext?) {
+        listeners.put(context, ctx!!)
     }
-  }
+
+    fun readMetaData(lookupsFile: File) {
+        try {
+            val br = BufferedReader(FileReader(lookupsFile))
+
+            var ctx: BExpressionContext? = null
+
+            while (true) {
+                var line = br.readLine()
+                if (line == null) break
+                line = line.trim { it <= ' ' }
+                if (line.length == 0 || line.startsWith("#")) {
+                    continue
+                }
+                if (line.startsWith(CONTEXT_TAG)) {
+                    ctx = listeners.get(line.substring(CONTEXT_TAG.length))
+                    continue
+                }
+                if (line.startsWith(VERSION_TAG)) {
+                    lookupVersion = line.substring(VERSION_TAG.length).toShort()
+                    continue
+                }
+                if (line.startsWith(MINOR_VERSION_TAG)) {
+                    lookupMinorVersion = line.substring(MINOR_VERSION_TAG.length).toShort()
+                    continue
+                }
+                if (line.startsWith(MIN_APP_VERSION_TAG)) {
+                    minAppVersion = line.substring(MIN_APP_VERSION_TAG.length).toShort()
+                    continue
+                }
+                if (line.startsWith(VARLENGTH_TAG)) { // tag removed...
+                    continue
+                }
+                if (ctx != null) ctx.parseMetaLine(line)
+            }
+            br.close()
+
+            for (c in listeners.values) {
+                c.finishMetaParsing()
+            }
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+    }
+
+    companion object {
+        private const val CONTEXT_TAG = "---context:"
+        private const val VERSION_TAG = "---lookupversion:"
+        private const val MINOR_VERSION_TAG = "---minorversion:"
+        private const val VARLENGTH_TAG = "---readvarlength"
+        private const val MIN_APP_VERSION_TAG = "---minappversion:"
+    }
 }

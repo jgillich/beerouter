@@ -3,37 +3,35 @@
  *
  * @author ab
  */
-package btools.util;
+package btools.util
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.DataOutputStream
+import java.io.IOException
+import java.io.OutputStream
 
+class DiffCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
+    private val lastValues = LongArray(10)
 
-public final class DiffCoderDataOutputStream extends DataOutputStream {
-  private long[] lastValues = new long[10];
-
-  public DiffCoderDataOutputStream(OutputStream os) {
-    super(os);
-  }
-
-  public void writeDiffed(long v, int idx) throws IOException {
-    long d = v - lastValues[idx];
-    lastValues[idx] = v;
-    writeSigned(d);
-  }
-
-  public void writeSigned(long v) throws IOException {
-    writeUnsigned(v < 0 ? ((-v) << 1) | 1 : v << 1);
-  }
-
-  public void writeUnsigned(long v) throws IOException {
-    do {
-      long i7 = v & 0x7f;
-      v >>= 7;
-      if (v != 0) i7 |= 0x80;
-      writeByte((byte) (i7 & 0xff));
+    @Throws(IOException::class)
+    fun writeDiffed(v: Long, idx: Int) {
+        val d = v - lastValues[idx]
+        lastValues[idx] = v
+        writeSigned(d)
     }
-    while (v != 0);
-  }
+
+    @Throws(IOException::class)
+    fun writeSigned(v: Long) {
+        writeUnsigned(if (v < 0) ((-v) shl 1) or 1L else v shl 1)
+    }
+
+    @Throws(IOException::class)
+    fun writeUnsigned(v: Long) {
+        var v = v
+        do {
+            var i7 = v and 0x7fL
+            v = v shr 7
+            if (v != 0L) i7 = i7 or 0x80L
+            writeByte((i7 and 0xffL).toByte().toInt())
+        } while (v != 0L)
+    }
 }

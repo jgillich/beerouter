@@ -1,5 +1,6 @@
 plugins {
     id 'brouter.application-conventions'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 dependencies {
@@ -8,4 +9,11 @@ dependencies {
     implementation project(':brouter-expressions')
 
     implementation group: 'org.openstreetmap.osmosis', name: 'osmosis-osm-binary', version: '0.48.3'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+kotlin {
+    jvmToolchain(11)
 }

@@ -65,7 +65,7 @@ public class BRouterService extends Service {
       String errMsg = null;
 
       if (engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUTING ||
-          engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
+        engineMode == RoutingEngine.BROUTER_ENGINEMODE_ROUNDTRIP) {
         String remoteProfile = params.getString("remoteProfile", null);
 
         if (remoteProfile == null) {

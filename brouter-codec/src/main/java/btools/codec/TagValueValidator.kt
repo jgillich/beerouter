@@ -1,18 +1,18 @@
-package btools.codec;
+package btools.codec
 
 
-public interface TagValueValidator {
-  /**
-   * @param tagValueSet the way description to check
-   * @return 0 = nothing, 1=no matching, 2=normal
-   */
-  int accessType(byte[] tagValueSet);
+interface TagValueValidator {
+    /**
+     * @param tagValueSet the way description to check
+     * @return 0 = nothing, 1=no matching, 2=normal
+     */
+    fun accessType(tagValueSet: ByteArray?): Int
 
-  byte[] unify(byte[] tagValueSet, int offset, int len);
+    fun unify(tagValueSet: ByteArray, offset: Int, len: Int): ByteArray?
 
-  boolean isLookupIdxUsed(int idx);
+    fun isLookupIdxUsed(idx: Int): Boolean
 
-  void setDecodeForbidden(boolean decodeForbidden);
+    fun setDecodeForbidden(decodeForbidden: Boolean)
 
-  boolean checkStartWay(byte[] ab);
+    fun checkStartWay(ab: ByteArray?): Boolean
 }

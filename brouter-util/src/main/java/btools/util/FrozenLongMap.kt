@@ -1,120 +1,105 @@
-package btools.util;
-
-import java.util.ArrayList;
-import java.util.List;
+package btools.util
 
 /**
  * Frozen instance of Memory efficient Map
- * <p>
+ *
+ *
  * This one is readily sorted into a singe array for faster access
  *
  * @author ab
  */
-public class FrozenLongMap<V> extends CompactLongMap<V> {
-  private long[] faid;
-  private List<V> flv;
-  private int size = 0;
-  private int p2size; // next power of 2 of size
+class FrozenLongMap<V>(map: CompactLongMap<V?>) : CompactLongMap<V?>() {
+    val keyArray: LongArray
+    val valueList: MutableList<V?>
+    private var size = 0
+    private var p2size: Int // next power of 2 of size
 
-  public FrozenLongMap(CompactLongMap<V> map) {
-    size = map.size();
+    init {
+        size = map.size()
 
-    faid = new long[size];
-    flv = new ArrayList<>(size);
+        this.keyArray = LongArray(size)
+        this.valueList = ArrayList<V?>(size)
 
-    map.moveToFrozenArrays(faid, flv);
+        map.moveToFrozenArrays(this.keyArray, this.valueList)
 
-    p2size = 0x40000000;
-    while (p2size > size) p2size >>= 1;
-  }
-
-  @Override
-  public boolean put(long id, V value) {
-    try {
-      value_in = value;
-      if (contains(id, true)) {
-        return true;
-      }
-      throw new RuntimeException("cannot only put on existing key in FrozenLongIntMap");
-    } finally {
-      value_in = null;
-      value_out = null;
+        p2size = 0x40000000
+        while (p2size > size) p2size = p2size shr 1
     }
-  }
 
-  @Override
-  public void fastPut(long id, V value) {
-    throw new RuntimeException("cannot put on FrozenLongIntMap");
-  }
-
-  /**
-   * @return the number of entries in this set
-   */
-  @Override
-  public int size() {
-    return size;
-  }
-
-
-  /**
-   * @return true if "id" is contained in this set.
-   */
-  @Override
-  protected boolean contains(long id, boolean doPut) {
-    if (size == 0) {
-      return false;
+    override fun put(id: Long, value: V?): Boolean {
+        try {
+            value_in = value
+            if (contains(id, true)) {
+                return true
+            }
+            throw RuntimeException("cannot only put on existing key in FrozenLongIntMap")
+        } finally {
+            value_in = null
+            value_out = null
+        }
     }
-    long[] a = faid;
-    int offset = p2size;
-    int n = 0;
 
-    while (offset > 0) {
-      int nn = n + offset;
-      if (nn < size && a[nn] <= id) {
-        n = nn;
-      }
-      offset >>= 1;
+    override fun fastPut(id: Long, value: V?) {
+        throw RuntimeException("cannot put on FrozenLongIntMap")
     }
-    if (a[n] == id) {
-      value_out = flv.get(n);
-      if (doPut) {
-        flv.set(n, value_in);
-      }
-      return true;
-    }
-    return false;
-  }
 
-  /**
-   * @return the value for "id", or null if key unknown
-   */
-  @Override
-  public V get(long id) {
-    if (size == 0) {
-      return null;
+    /**
+     * @return the number of entries in this set
+     */
+    override fun size(): Int {
+        return size
     }
-    long[] a = faid;
-    int offset = p2size;
-    int n = 0;
 
-    while (offset > 0) {
-      int nn = n + offset;
-      if (nn < size && a[nn] <= id) {
-        n = nn;
-      }
-      offset >>= 1;
+
+    /**
+     * @return true if "id" is contained in this set.
+     */
+    override fun contains(id: Long, doPut: Boolean): Boolean {
+        if (size == 0) {
+            return false
+        }
+        val a = this.keyArray
+        var offset = p2size
+        var n = 0
+
+        while (offset > 0) {
+            val nn = n + offset
+            if (nn < size && a[nn] <= id) {
+                n = nn
+            }
+            offset = offset shr 1
+        }
+        if (a[n] == id) {
+            value_out = valueList.get(n)
+            if (doPut) {
+                valueList.set(n, value_in)
+            }
+            return true
+        }
+        return false
     }
-    if (a[n] == id) {
-      return flv.get(n);
+
+    /**
+     * @return the value for "id", or null if key unknown
+     */
+    override fun get(id: Long): V? {
+        if (size == 0) {
+            return null
+        }
+        val a = this.keyArray
+        var offset = p2size
+        var n = 0
+
+        while (offset > 0) {
+            val nn = n + offset
+            if (nn < size && a[nn] <= id) {
+                n = nn
+            }
+            offset = offset shr 1
+        }
+        if (a[n] == id) {
+            return valueList.get(n)
+        }
+        return null
     }
-    return null;
-  }
-
-  public List<V> getValueList() {
-    return flv;
-  }
-
-  public long[] getKeyArray() {
-    return faid;
-  }
 }

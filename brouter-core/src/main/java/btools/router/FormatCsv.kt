@@ -1,43 +1,36 @@
-package btools.router;
+package btools.router
 
-import java.io.BufferedWriter;
-import java.io.StringWriter;
+import java.io.BufferedWriter
+import java.io.StringWriter
 
-public class FormatCsv extends Formatter {
-
-
-  public FormatCsv(RoutingContext rc) {
-    super(rc);
-  }
-
-  @Override
-  public String format(OsmTrack t) {
-    try {
-      StringWriter sw = new StringWriter();
-      BufferedWriter bw = new BufferedWriter(sw);
-      writeMessages(bw, t);
-      return sw.toString();
-    } catch (Exception ex) {
-      return "Error: " + ex.getMessage();
+class FormatCsv(rc: RoutingContext) : Formatter(rc) {
+    override fun format(t: OsmTrack): String? {
+        try {
+            val sw = StringWriter()
+            val bw = BufferedWriter(sw)
+            writeMessages(bw, t)
+            return sw.toString()
+        } catch (ex: Exception) {
+            return "Error: " + ex.message
+        }
     }
-  }
 
-  public void writeMessages(BufferedWriter bw, OsmTrack t) throws Exception {
-    dumpLine(bw, MESSAGES_HEADER);
-    for (String m : t.aggregateMessages()) {
-      dumpLine(bw, m);
+    @Throws(Exception::class)
+    fun writeMessages(bw: BufferedWriter?, t: OsmTrack) {
+        dumpLine(bw, MESSAGES_HEADER)
+        for (m in t.aggregateMessages()) {
+            dumpLine(bw, m!!)
+        }
+        if (bw != null) bw.close()
     }
-    if (bw != null)
-      bw.close();
-  }
 
-  private void dumpLine(BufferedWriter bw, String s) throws Exception {
-    if (bw == null) {
-      System.out.println(s);
-    } else {
-      bw.write(s);
-      bw.write("\n");
+    @Throws(Exception::class)
+    private fun dumpLine(bw: BufferedWriter?, s: String) {
+        if (bw == null) {
+            println(s)
+        } else {
+            bw.write(s)
+            bw.write("\n")
+        }
     }
-  }
-
 }

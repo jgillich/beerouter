@@ -3,589 +3,601 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import btools.mapaccess.MatchedWaypoint
+import btools.mapaccess.MatchedWaypoint.Companion.readFromStream
+import btools.mapaccess.OsmPos
+import btools.util.CompactLongMap
+import btools.util.FrozenLongMap
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.io.EOFException
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import kotlin.math.abs
 
-import btools.mapaccess.MatchedWaypoint;
-import btools.mapaccess.OsmPos;
-import btools.util.CompactLongMap;
-import btools.util.FrozenLongMap;
+class OsmTrack {
+    var endPoint: MatchedWaypoint? = null
+    lateinit var nogoChecksums: LongArray
+    var profileTimestamp: Long = 0
+    var isDirty: Boolean = false
 
-public final class OsmTrack {
-  final public static String version = "1.7.8";
-  final public static String versionDate = "12072025";
+    var showspeed: Boolean = false
+    var showSpeedProfile: Boolean = false
+    var showTime: Boolean = false
 
-  // csv-header-line
-  private static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
+    var params: MutableMap<String?, String?>? = null
 
-  public MatchedWaypoint endPoint;
-  public long[] nogoChecksums;
-  public long profileTimestamp;
-  public boolean isDirty;
+    var pois: MutableList<OsmNodeNamed> = ArrayList()
 
-  public boolean showspeed;
-  public boolean showSpeedProfile;
-  public boolean showTime;
-
-  public Map<String, String> params;
-
-  public List<OsmNodeNamed> pois = new ArrayList<>();
-
-  public static class OsmPathElementHolder {
-    public OsmPathElement node;
-    public OsmPathElementHolder nextHolder;
-  }
-
-  public List<OsmPathElement> nodes = new ArrayList<>();
-
-  private CompactLongMap<OsmPathElementHolder> nodesMap;
-
-  private CompactLongMap<OsmPathElementHolder> detourMap;
-
-  public VoiceHintList voiceHints;
-
-  public String message = null;
-  public List<String> messageList = null;
-
-  public String name = "unset";
-
-  protected List<MatchedWaypoint> matchedWaypoints;
-  public boolean exportWaypoints = false;
-  public boolean exportCorrectedWaypoints = false;
-
-  public void addNode(OsmPathElement node) {
-    nodes.add(0, node);
-  }
-
-  public void registerDetourForId(long id, OsmPathElement detour) {
-    if (detourMap == null) {
-      detourMap = new CompactLongMap<>();
+    class OsmPathElementHolder {
+        var node: OsmPathElement? = null
+        var nextHolder: OsmPathElementHolder? = null
     }
-    OsmPathElementHolder nh = new OsmPathElementHolder();
-    nh.node = detour;
-    OsmPathElementHolder h = detourMap.get(id);
-    if (h != null) {
-      while (h.nextHolder != null) {
-        h = h.nextHolder;
-      }
-      h.nextHolder = nh;
-    } else {
-      detourMap.fastPut(id, nh);
+
+    var nodes: MutableList<OsmPathElement> = ArrayList<OsmPathElement>()
+
+    private var nodesMap: CompactLongMap<OsmPathElementHolder?>? = null
+
+    private var detourMap: CompactLongMap<OsmPathElementHolder?>? = null
+
+    var voiceHints: VoiceHintList = VoiceHintList()
+
+    var message: String? = null
+    var messageList: MutableList<String?>? = null
+
+    var name: String = "unset"
+
+    var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
+    var exportWaypoints: Boolean = false
+    var exportCorrectedWaypoints: Boolean = false
+
+    fun addNode(node: OsmPathElement?) {
+        nodes.add(0, node!!)
     }
-  }
 
-  public void copyDetours(OsmTrack source) {
-    detourMap = source.detourMap == null ? null : new FrozenLongMap<>(source.detourMap);
-  }
-
-  public void addDetours(OsmTrack source) {
-    if (detourMap != null) {
-      CompactLongMap<OsmPathElementHolder> tmpDetourMap = new CompactLongMap<>();
-
-      List oldlist = ((FrozenLongMap) detourMap).getValueList();
-      long[] oldidlist = ((FrozenLongMap) detourMap).getKeyArray();
-      for (int i = 0; i < oldidlist.length; i++) {
-        long id = oldidlist[i];
-        OsmPathElementHolder v = detourMap.get(id);
-
-        tmpDetourMap.put(id, v);
-      }
-
-      if (source.detourMap != null) {
-        long[] idlist = ((FrozenLongMap) source.detourMap).getKeyArray();
-        for (int i = 0; i < idlist.length; i++) {
-          long id = idlist[i];
-          OsmPathElementHolder v = source.detourMap.get(id);
-          if (!tmpDetourMap.contains(id) && source.nodesMap.contains(id)) {
-            tmpDetourMap.put(id, v);
-          }
+    fun registerDetourForId(id: Long, detour: OsmPathElement?) {
+        if (detourMap == null) {
+            detourMap = CompactLongMap<OsmPathElementHolder?>()
         }
-      }
-      detourMap = new FrozenLongMap<>(tmpDetourMap);
-    }
-  }
-
-  OsmPathElement lastorigin = null;
-
-  public void appendDetours(OsmTrack source) {
-    if (detourMap == null) {
-      detourMap = source.detourMap == null ? null : new CompactLongMap<>();
-    }
-    if (source.detourMap != null) {
-      int pos = nodes.size() - source.nodes.size() + 1;
-      OsmPathElement origin = null;
-      if (pos > 0)
-        origin = nodes.get(pos);
-      for (OsmPathElement node : source.nodes) {
-        long id = node.getIdFromPos();
-        OsmPathElementHolder nh = new OsmPathElementHolder();
-        if (node.origin == null && lastorigin != null)
-          node.origin = lastorigin;
-        nh.node = node;
-        lastorigin = node;
-        OsmPathElementHolder h = detourMap.get(id);
+        val nh = OsmPathElementHolder()
+        nh.node = detour
+        var h = detourMap!!.get(id)
         if (h != null) {
-          while (h.nextHolder != null) {
-            h = h.nextHolder;
-          }
-          h.nextHolder = nh;
+            while (h!!.nextHolder != null) {
+                h = h.nextHolder
+            }
+            h.nextHolder = nh
         } else {
-          detourMap.fastPut(id, nh);
+            detourMap!!.fastPut(id, nh)
         }
-      }
-    }
-  }
-
-  public void buildMap() {
-    nodesMap = new CompactLongMap<>();
-    for (OsmPathElement node : nodes) {
-      long id = node.getIdFromPos();
-      OsmPathElementHolder nh = new OsmPathElementHolder();
-      nh.node = node;
-      OsmPathElementHolder h = nodesMap.get(id);
-      if (h != null) {
-        while (h.nextHolder != null) {
-          h = h.nextHolder;
-        }
-        h.nextHolder = nh;
-      } else {
-        nodesMap.fastPut(id, nh);
-      }
-    }
-    nodesMap = new FrozenLongMap<>(nodesMap);
-  }
-
-  public List<String> aggregateMessages() {
-    List<String> res = new ArrayList<>();
-    MessageData current = null;
-    for (OsmPathElement n : nodes) {
-      if (n.message != null && n.message.wayKeyValues != null) {
-        MessageData md = n.message.copy();
-        if (current != null) {
-          if (current.nodeKeyValues != null || !current.wayKeyValues.equals(md.wayKeyValues)) {
-            res.add(current.toMessage());
-          } else {
-            md.add(current);
-          }
-        }
-        current = md;
-      }
-    }
-    if (current != null) {
-      res.add(current.toMessage());
-    }
-    return res;
-  }
-
-  public List<String> aggregateSpeedProfile() {
-    List<String> res = new ArrayList<>();
-    int vmax = -1;
-    int vmaxe = -1;
-    int vmin = -1;
-    int extraTime = 0;
-    for (int i = nodes.size() - 1; i > 0; i--) {
-      OsmPathElement n = nodes.get(i);
-      MessageData m = n.message;
-      int vnode = getVNode(i);
-      if (m != null && (vmax != m.vmax || vmin != m.vmin || vmaxe != m.vmaxExplicit || vnode < m.vmax || extraTime != m.extraTime)) {
-        vmax = m.vmax;
-        vmin = m.vmin;
-        vmaxe = m.vmaxExplicit;
-        extraTime = m.extraTime;
-        res.add(i + "," + vmaxe + "," + vmax + "," + vmin + "," + vnode + "," + extraTime);
-      }
-    }
-    return res;
-  }
-
-
-  /**
-   * writes the track in binary-format to a file
-   *
-   * @param filename the filename to write to
-   */
-  public void writeBinary(String filename) throws Exception {
-    DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(filename)));
-
-    endPoint.writeToStream(dos);
-    dos.writeInt(nodes.size());
-    for (OsmPathElement node : nodes) {
-      node.writeToStream(dos);
-    }
-    dos.writeLong(nogoChecksums[0]);
-    dos.writeLong(nogoChecksums[1]);
-    dos.writeLong(nogoChecksums[2]);
-    dos.writeBoolean(isDirty);
-    dos.writeLong(profileTimestamp);
-    dos.close();
-  }
-
-  public static OsmTrack readBinary(String filename, OsmNodeNamed newEp, long[] nogoChecksums, long profileChecksum, StringBuilder debugInfo) {
-    OsmTrack t = null;
-    if (filename != null) {
-      File f = new File(filename);
-      if (f.exists()) {
-        try {
-          DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
-          MatchedWaypoint ep = MatchedWaypoint.readFromStream(dis);
-          int dlon = ep.waypoint.ilon - newEp.ilon;
-          int dlat = ep.waypoint.ilat - newEp.ilat;
-          boolean targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
-          if (debugInfo != null) {
-            debugInfo.append("target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch);
-          }
-          if (targetMatch) {
-            t = new OsmTrack();
-            t.endPoint = ep;
-            int n = dis.readInt();
-            OsmPathElement last_pe = null;
-            for (int i = 0; i < n; i++) {
-              OsmPathElement pe = OsmPathElement.readFromStream(dis);
-              pe.origin = last_pe;
-              last_pe = pe;
-              t.nodes.add(pe);
-            }
-            t.cost = last_pe.cost;
-            t.buildMap();
-
-            // check cheecksums, too
-            long[] al = new long[3];
-            long pchecksum = 0;
-            try {
-              al[0] = dis.readLong();
-              al[1] = dis.readLong();
-              al[2] = dis.readLong();
-            } catch (EOFException eof) { /* kind of expected */ }
-            try {
-              t.isDirty = dis.readBoolean();
-            } catch (EOFException eof) { /* kind of expected */ }
-            try {
-              pchecksum = dis.readLong();
-            } catch (EOFException eof) { /* kind of expected */ }
-            boolean nogoCheckOk = Math.abs(al[0] - nogoChecksums[0]) <= 20
-              && Math.abs(al[1] - nogoChecksums[1]) <= 20
-              && Math.abs(al[2] - nogoChecksums[2]) <= 20;
-            boolean profileCheckOk = pchecksum == profileChecksum;
-
-            if (debugInfo != null) {
-              debugInfo.append(" nogoCheckOk=" + nogoCheckOk + " profileCheckOk=" + profileCheckOk);
-              debugInfo.append(" al=" + formatLongs(al) + " nogoChecksums=" + formatLongs(nogoChecksums));
-            }
-            if (!(nogoCheckOk && profileCheckOk)) return null;
-          }
-          dis.close();
-        } catch (Exception e) {
-          if (debugInfo != null) {
-            debugInfo.append("Error reading rawTrack: " + e);
-          }
-        }
-      }
-    }
-    return t;
-  }
-
-  private static String formatLongs(long[] al) {
-    StringBuilder sb = new StringBuilder();
-    sb.append('{');
-    for (long l : al) {
-      sb.append(l);
-      sb.append(' ');
-    }
-    sb.append('}');
-    return sb.toString();
-  }
-
-
-  public void addNodes(OsmTrack t) {
-    for (OsmPathElement n : t.nodes)
-      addNode(n);
-    buildMap();
-  }
-
-  public boolean containsNode(OsmPos node) {
-    return nodesMap.contains(node.getIdFromPos());
-  }
-
-  public OsmPathElement getLink(long n1, long n2) {
-    OsmPathElementHolder h = nodesMap.get(n2);
-    while (h != null) {
-      OsmPathElement e1 = h.node.origin;
-      if (e1 != null && e1.getIdFromPos() == n1) {
-        return h.node;
-      }
-      h = h.nextHolder;
-    }
-    return null;
-  }
-
-  public void appendTrack(OsmTrack t) {
-    int i = 0;
-
-    int ourSize = nodes.size();
-    if (ourSize > 0 && t.nodes.size() > 1) {
-      OsmPathElement olde = nodes.get(ourSize - 1);
-      t.nodes.get(1).origin = olde;
-    }
-    float t0 = ourSize > 0 ? nodes.get(ourSize - 1).getTime() : 0;
-    float e0 = ourSize > 0 ? nodes.get(ourSize - 1).getEnergy() : 0;
-    int c0 = ourSize > 0 ? nodes.get(ourSize - 1).cost : 0;
-    for (i = 0; i < t.nodes.size(); i++) {
-      OsmPathElement e = t.nodes.get(i);
-      if (i == 0 && ourSize > 0 && nodes.get(ourSize - 1).getSElev() == Short.MIN_VALUE)
-        nodes.get(ourSize - 1).setSElev(e.getSElev());
-      if (i > 0 || ourSize == 0) {
-        e.setTime(e.getTime() + t0);
-        e.setEnergy(e.getEnergy() + e0);
-        e.cost = e.cost + c0;
-        if (e.message != null){
-          if (!(e.message.lon == e.getILon() && e.message.lat == e.getILat())) {
-            e.message.lon = e.getILon();
-            e.message.lat = e.getILat();
-          }
-        }
-        nodes.add(e);
-      }
     }
 
-    if (t.voiceHints != null) {
-      if (ourSize > 0) {
-        for (VoiceHint hint : t.voiceHints.list) {
-          hint.indexInTrack = hint.indexInTrack + ourSize - 1;
-        }
-      }
-      if (voiceHints == null) {
-        voiceHints = t.voiceHints;
-      } else {
-        voiceHints.list.addAll(t.voiceHints.list);
-      }
-    } else {
-      if (detourMap == null) {
-        //copyDetours( t );
-        detourMap = t.detourMap;
-      } else {
-        addDetours(t);
-      }
+    fun copyDetours(source: OsmTrack) {
+        detourMap =
+            if (source.detourMap == null) null else FrozenLongMap<OsmPathElementHolder?>(source.detourMap!!)
     }
 
-    distance += t.distance;
-    ascend += t.ascend;
-    plainAscend += t.plainAscend;
-    cost += t.cost;
-    energy = (int) nodes.get(nodes.size() - 1).getEnergy();
-
-    showspeed |= t.showspeed;
-    showSpeedProfile |= t.showSpeedProfile;
-  }
-
-  public int distance;
-  public int ascend;
-  public int plainAscend;
-  public int cost;
-  public int energy;
-  public List<String> iternity;
-
-  public VoiceHint getVoiceHint(int i) {
-    if (voiceHints == null) return null;
-    for (VoiceHint hint : voiceHints.list) {
-      if (hint.indexInTrack == i) {
-        return hint;
-      }
-    }
-    return null;
-  }
-
-  public MatchedWaypoint getMatchedWaypoint(int idx) {
-    if (matchedWaypoints == null) return null;
-    for (MatchedWaypoint wp : matchedWaypoints) {
-      if (idx == wp.indexInTrack) {
-        return wp;
-      }
-    }
-    return null;
-  }
-
-  private int getVNode(int i) {
-    MessageData m1 = i + 1 < nodes.size() ? nodes.get(i + 1).message : null;
-    MessageData m0 = i < nodes.size() ? nodes.get(i).message : null;
-    int vnode0 = m1 == null ? 999 : m1.vnode0;
-    int vnode1 = m0 == null ? 999 : m0.vnode1;
-    return vnode0 < vnode1 ? vnode0 : vnode1;
-  }
-
-  public int getTotalSeconds() {
-    float s = nodes.size() < 2 ? 0 : nodes.get(nodes.size() - 1).getTime() - nodes.get(0).getTime();
-    return (int) (s + 0.5);
-  }
-
-  public boolean equalsTrack(OsmTrack t) {
-    if (nodes.size() != t.nodes.size())
-      return false;
-    for (int i = 0; i < nodes.size(); i++) {
-      OsmPathElement e1 = nodes.get(i);
-      OsmPathElement e2 = t.nodes.get(i);
-      if (e1.getILon() != e2.getILon() || e1.getILat() != e2.getILat())
-        return false;
-    }
-    return true;
-  }
-
-  public OsmPathElementHolder getFromDetourMap(long id) {
-    if (detourMap == null)
-      return null;
-    return detourMap.get(id);
-  }
-
-  public void prepareSpeedProfile(RoutingContext rc) {
-    // sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
-  }
-
-  public void processVoiceHints(RoutingContext rc) {
-    voiceHints = new VoiceHintList();
-    voiceHints.setTransportMode(rc.carMode, rc.bikeMode);
-    voiceHints.turnInstructionMode = rc.turnInstructionMode;
-
-    if (detourMap == null && !rc.hasDirectRouting) {
-      // only when no direct way points
-      return;
-    }
-    int nodeNr = nodes.size() - 1;
-    int i = nodeNr;
-    OsmPathElement node = nodes.get(nodeNr);
-    while (node != null) {
-      node = node.origin;
-    }
-
-    i = 0;
-
-    node = nodes.get(nodeNr);
-    List<VoiceHint> inputs = new ArrayList<>();
-    while (node != null) {
-      if (node.origin != null) {
-        if (nodeNr == nodes.size() - 1) {
-          VoiceHint input = new VoiceHint();
-          inputs.add(0, input);
-          input.ilat = node.getILat();
-          input.ilon = node.getILon();
-          input.selev = node.getSElev();
-          input.goodWay = node.message;
-          input.oldWay = node.message;
-          input.indexInTrack = nodes.size() - 1;
-          input.cmd = VoiceHint.END;
-        }
-        VoiceHint input = new VoiceHint();
-        inputs.add(input);
-        input.ilat = node.origin.getILat();
-        input.ilon = node.origin.getILon();
-        input.selev = node.origin.getSElev();
-        input.indexInTrack = --nodeNr;
-        input.goodWay = node.message;
-        input.oldWay = node.origin.message == null ? node.message : node.origin.message;
-        if (rc.turnInstructionMode == 8 ||
-          rc.turnInstructionMode == 4 ||
-          rc.turnInstructionMode == 2 ||
-          rc.turnInstructionMode == 9) {
-          MatchedWaypoint mwpt = getMatchedWaypoint(nodeNr);
-          if (mwpt != null && mwpt.direct) {
-            input.cmd = VoiceHint.BL;
-            input.angle = (float) (nodeNr == 0 ? node.origin.message.turnangle : node.message.turnangle);
-            input.distanceToNext = node.calcDistance(node.origin);
-          }
-        }
+    fun addDetours(source: OsmTrack) {
         if (detourMap != null) {
-          OsmPathElementHolder detours = detourMap.get(node.origin.getIdFromPos());
-          if (nodeNr >= 0 && detours != null) {
-            OsmPathElementHolder h = detours;
-            while (h != null) {
-              OsmPathElement e = h.node;
-              input.addBadWay(startSection(e, node.origin));
-              h = h.nextHolder;
+            val tmpDetourMap = CompactLongMap<OsmPathElementHolder?>()
+
+            val oldlist: MutableList<*> = (detourMap as FrozenLongMap<*>).valueList
+            val oldidlist = (detourMap as FrozenLongMap<*>).keyArray
+            for (i in oldidlist.indices) {
+                val id = oldidlist[i]
+                val v = detourMap!!.get(id)
+
+                tmpDetourMap.put(id, v)
             }
-          }
+
+            if (source.detourMap != null) {
+                val idlist = (source.detourMap as FrozenLongMap<*>).keyArray
+                for (i in idlist.indices) {
+                    val id = idlist[i]
+                    val v = source.detourMap!!.get(id)
+                    if (!tmpDetourMap.contains(id) && source.nodesMap!!.contains(id)) {
+                        tmpDetourMap.put(id, v)
+                    }
+                }
+            }
+            detourMap = FrozenLongMap<OsmPathElementHolder?>(tmpDetourMap)
         }
-        /* else if (nodeNr == 0 && detours != null) {
+    }
+
+    var lastorigin: OsmPathElement? = null
+
+    fun appendDetours(source: OsmTrack) {
+        if (detourMap == null) {
+            detourMap =
+                if (source.detourMap == null) null else CompactLongMap<OsmPathElementHolder?>()
+        }
+        if (source.detourMap != null) {
+            val pos = nodes.size - source.nodes.size + 1
+            var origin: OsmPathElement? = null
+            if (pos > 0) origin = nodes.get(pos)
+            for (node in source.nodes) {
+                val id = node.idFromPos
+                val nh = OsmPathElementHolder()
+                if (node.origin == null && lastorigin != null) node.origin = lastorigin
+                nh.node = node
+                lastorigin = node
+                var h = detourMap!!.get(id)
+                if (h != null) {
+                    while (h!!.nextHolder != null) {
+                        h = h.nextHolder
+                    }
+                    h.nextHolder = nh
+                } else {
+                    detourMap!!.fastPut(id, nh)
+                }
+            }
+        }
+    }
+
+    fun buildMap() {
+        nodesMap = CompactLongMap<OsmPathElementHolder?>()
+        for (node in nodes) {
+            val id = node.idFromPos
+            val nh = OsmPathElementHolder()
+            nh.node = node
+            var h = nodesMap!!.get(id)
+            if (h != null) {
+                while (h!!.nextHolder != null) {
+                    h = h.nextHolder
+                }
+                h.nextHolder = nh
+            } else {
+                nodesMap!!.fastPut(id, nh)
+            }
+        }
+        nodesMap = FrozenLongMap<OsmPathElementHolder?>(nodesMap!!)
+    }
+
+    fun aggregateMessages(): MutableList<String?> {
+        val res: MutableList<String?> = ArrayList<String?>()
+        var current: MessageData? = null
+        for (n in nodes) {
+            if (n.message != null && n.message!!.wayKeyValues != null) {
+                val md = n.message!!.copy()
+                if (current != null) {
+                    if (current.nodeKeyValues != null || current.wayKeyValues != md!!.wayKeyValues) {
+                        res.add(current.toMessage())
+                    } else {
+                        md!!.add(current)
+                    }
+                }
+                current = md
+            }
+        }
+        if (current != null) {
+            res.add(current.toMessage())
+        }
+        return res
+    }
+
+    fun aggregateSpeedProfile(): MutableList<String?> {
+        val res: MutableList<String?> = ArrayList<String?>()
+        var vmax = -1
+        var vmaxe = -1
+        var vmin = -1
+        var extraTime = 0
+        for (i in nodes.size - 1 downTo 1) {
+            val n = nodes.get(i)
+            val m = n.message
+            val vnode = getVNode(i)
+            if (m != null && (vmax != m.vmax || vmin != m.vmin || vmaxe != m.vmaxExplicit || vnode < m.vmax || extraTime != m.extraTime)) {
+                vmax = m.vmax
+                vmin = m.vmin
+                vmaxe = m.vmaxExplicit
+                extraTime = m.extraTime
+                res.add(i.toString() + "," + vmaxe + "," + vmax + "," + vmin + "," + vnode + "," + extraTime)
+            }
+        }
+        return res
+    }
+
+
+    /**
+     * writes the track in binary-format to a file
+     *
+     * @param filename the filename to write to
+     */
+    @Throws(Exception::class)
+    fun writeBinary(filename: String) {
+        val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(filename)))
+
+        endPoint!!.writeToStream(dos)
+        dos.writeInt(nodes.size)
+        for (node in nodes) {
+            node.writeToStream(dos)
+        }
+        dos.writeLong(nogoChecksums[0])
+        dos.writeLong(nogoChecksums[1])
+        dos.writeLong(nogoChecksums[2])
+        dos.writeBoolean(isDirty)
+        dos.writeLong(profileTimestamp)
+        dos.close()
+    }
+
+    fun addNodes(t: OsmTrack) {
+        for (n in t.nodes) addNode(n)
+        buildMap()
+    }
+
+    fun containsNode(node: OsmPos): Boolean {
+        return nodesMap!!.contains(node.idFromPos)
+    }
+
+    fun getLink(n1: Long, n2: Long): OsmPathElement? {
+        var h = nodesMap!!.get(n2)
+        while (h != null) {
+            val e1 = h.node!!.origin
+            if (e1 != null && e1.idFromPos == n1) {
+                return h.node
+            }
+            h = h.nextHolder
+        }
+        return null
+    }
+
+    fun appendTrack(t: OsmTrack) {
+        var i = 0
+
+        val ourSize = nodes.size
+        if (ourSize > 0 && t.nodes.size > 1) {
+            val olde = nodes.get(ourSize - 1)
+            t.nodes.get(1).origin = olde
+        }
+        val t0 = if (ourSize > 0) nodes.get(ourSize - 1).time else 0f
+        val e0 = if (ourSize > 0) nodes.get(ourSize - 1).energy else 0f
+        val c0 = if (ourSize > 0) nodes.get(ourSize - 1).cost else 0
+        i = 0
+        while (i < t.nodes.size) {
+            val e = t.nodes[i]
+            if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.Companion.MIN_VALUE) nodes[ourSize - 1].sElev =
+                e.sElev
+            if (i > 0 || ourSize == 0) {
+                e.time = e.time + t0
+                e.energy = e.energy + e0
+                e.cost = e.cost + c0
+                if (e.message != null) {
+                    if (!(e.message!!.lon == e.iLon && e.message!!.lat == e.iLat)) {
+                        e.message!!.lon = e.iLon
+                        e.message!!.lat = e.iLat
+                    }
+                }
+                nodes.add(e)
+            }
+            i++
+        }
+
+        if (t.voiceHints != null) {
+            if (ourSize > 0) {
+                for (hint in t.voiceHints!!.list) {
+                    hint.indexInTrack = hint.indexInTrack + ourSize - 1
+                }
+            }
+            if (voiceHints == null) {
+                voiceHints = t.voiceHints
+            } else {
+                voiceHints!!.list.addAll(t.voiceHints!!.list)
+            }
+        } else {
+            if (detourMap == null) {
+                //copyDetours( t );
+                detourMap = t.detourMap
+            } else {
+                addDetours(t)
+            }
+        }
+
+        distance += t.distance
+        ascend += t.ascend
+        plainAscend += t.plainAscend
+        cost += t.cost
+        energy = nodes[nodes.size - 1].energy.toInt()
+
+        showspeed = showspeed or t.showspeed
+        showSpeedProfile = showSpeedProfile or t.showSpeedProfile
+    }
+
+    var distance: Int = 0
+    var ascend: Int = 0
+    var plainAscend: Int = 0
+    var cost: Int = 0
+    var energy: Int = 0
+    var iternity: MutableList<String?>? = null
+
+    fun getVoiceHint(i: Int): VoiceHint? {
+        if (voiceHints == null) return null
+        for (hint in voiceHints!!.list) {
+            if (hint.indexInTrack == i) {
+                return hint
+            }
+        }
+        return null
+    }
+
+    fun getMatchedWaypoint(idx: Int): MatchedWaypoint? {
+        if (matchedWaypoints == null) return null
+        for (wp in matchedWaypoints) {
+            if (idx == wp.indexInTrack) {
+                return wp
+            }
+        }
+        return null
+    }
+
+    private fun getVNode(i: Int): Int {
+        val m1 = if (i + 1 < nodes.size) nodes.get(i + 1).message else null
+        val m0 = if (i < nodes.size) nodes.get(i).message else null
+        val vnode0 = if (m1 == null) 999 else m1.vnode0
+        val vnode1 = if (m0 == null) 999 else m0.vnode1
+        return if (vnode0 < vnode1) vnode0 else vnode1
+    }
+
+    val totalSeconds: Int
+        get() {
+            val s =
+                if (nodes.size < 2) 0f else nodes.get(nodes.size - 1).time - nodes.get(0).time
+            return (s + 0.5).toInt()
+        }
+
+    fun equalsTrack(t: OsmTrack): Boolean {
+        if (nodes.size != t.nodes.size) return false
+        for (i in nodes.indices) {
+            val e1 = nodes.get(i)
+            val e2 = t.nodes.get(i)
+            if (e1.iLon != e2.iLon || e1.iLat != e2.iLat) return false
+        }
+        return true
+    }
+
+    fun getFromDetourMap(id: Long): OsmPathElementHolder? {
+        if (detourMap == null) return null
+        return detourMap!!.get(id)
+    }
+
+    fun prepareSpeedProfile(rc: RoutingContext?) {
+        // sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
+    }
+
+    fun processVoiceHints(rc: RoutingContext) {
+        voiceHints = VoiceHintList()
+        voiceHints!!.setTransportMode(rc.carMode, rc.bikeMode)
+        voiceHints!!.turnInstructionMode = rc.turnInstructionMode
+
+        if (detourMap == null && !rc.hasDirectRouting) {
+            // only when no direct way points
+            return
+        }
+        var nodeNr = nodes.size - 1
+        var i = nodeNr
+        var node = nodes.get(nodeNr)
+        while (node != null) {
+            node = node.origin!!
+        }
+
+        i = 0
+
+        node = nodes.get(nodeNr)
+        val inputs: MutableList<VoiceHint> = ArrayList()
+        while (node != null) {
+            if (node.origin != null) {
+                if (nodeNr == nodes.size - 1) {
+                    val input = VoiceHint()
+                    inputs.add(0, input)
+                    input.ilat = node.iLat
+                    input.ilon = node.iLon
+                    input.selev = node.sElev
+                    input.goodWay = node.message
+                    input.oldWay = node.message
+                    input.indexInTrack = nodes.size - 1
+                    input.command = VoiceHint.Companion.END
+                }
+                val input = VoiceHint()
+                inputs.add(input)
+                input.ilat = node.origin!!.iLat
+                input.ilon = node.origin!!.iLon
+                input.selev = node.origin!!.sElev
+                input.indexInTrack = --nodeNr
+                input.goodWay = node.message
+                input.oldWay =
+                    if (node.origin!!.message == null) node.message else node.origin!!.message
+                if (rc.turnInstructionMode == 8 || rc.turnInstructionMode == 4 || rc.turnInstructionMode == 2 || rc.turnInstructionMode == 9) {
+                    val mwpt = getMatchedWaypoint(nodeNr)
+                    if (mwpt != null && mwpt.direct) {
+                        input.command = VoiceHint.Companion.BL
+                        input.angle =
+                            (if (nodeNr == 0) node.origin!!.message!!.turnangle else node.message!!.turnangle)
+                        input.distanceToNext = node.calcDistance(node.origin!!).toDouble()
+                    }
+                }
+                if (detourMap != null) {
+                    val detours = detourMap!!.get(node.origin!!.idFromPos)
+                    if (nodeNr >= 0 && detours != null) {
+                        var h: OsmPathElementHolder? = detours
+                        while (h != null) {
+                            val e = h.node
+                            input.addBadWay(startSection(e, node.origin!!))
+                            h = h.nextHolder
+                        }
+                    }
+                }
+                /* else if (nodeNr == 0 && detours != null) {
           OsmPathElementHolder h = detours;
           OsmPathElement e = h.node;
           input.addBadWay(startSection(e, e));
         } */
-      }
-      node = node.origin;
+            }
+            node = node.origin!!
+        }
+
+        val transportMode = voiceHints!!.transportMode()
+        val vproc = VoiceHintProcessor(
+            rc.turnInstructionCatchingRange,
+            rc.turnInstructionRoundabouts,
+            transportMode
+        )
+        val results = vproc.process(inputs)
+
+        val minDistance = this.minDistance.toDouble()
+        val resultsLast = vproc.postProcess(results, rc.turnInstructionCatchingRange, minDistance)
+        for (hint in resultsLast) {
+            voiceHints!!.list.add(hint)
+        }
     }
 
-    int transportMode = voiceHints.transportMode();
-    VoiceHintProcessor vproc = new VoiceHintProcessor(rc.turnInstructionCatchingRange, rc.turnInstructionRoundabouts, transportMode);
-    List<VoiceHint> results = vproc.process(inputs);
+    val minDistance: Int
+        get() {
+            if (voiceHints != null) {
+                when (voiceHints!!.transportMode()) {
+                    VoiceHintList.Companion.TRANS_MODE_CAR -> return 20
+                    VoiceHintList.Companion.TRANS_MODE_FOOT -> return 3
+                    VoiceHintList.Companion.TRANS_MODE_BIKE -> return 5
+                    else -> return 5
+                }
+            }
+            return 2
+        }
 
-    double minDistance = getMinDistance();
-    List<VoiceHint> resultsLast = vproc.postProcess(results, rc.turnInstructionCatchingRange, minDistance);
-    for (VoiceHint hint : resultsLast) {
-      voiceHints.list.add(hint);
+    fun getVoiceHintTime(i: Int): Float {
+        if (voiceHints!!.list.isEmpty()) {
+            return 0f
+        }
+        if (i < voiceHints!!.list.size) {
+            return voiceHints!!.list.get(i).time
+        }
+        if (nodes.isEmpty()) {
+            return 0f
+        }
+        return nodes.get(nodes.size - 1).time
     }
 
-  }
+    fun removeVoiceHint(i: Int) {
+        if (voiceHints != null) {
+            var remove: VoiceHint? = null
+            for (vh in voiceHints!!.list) {
+                if (vh.indexInTrack == i) remove = vh
+            }
+            if (remove != null) voiceHints!!.list.remove(remove)
+        }
+    }
 
-  int getMinDistance() {
-    if (voiceHints != null) {
-      switch (voiceHints.transportMode()) {
-        case VoiceHintList.TRANS_MODE_CAR:
-          return 20;
-        case VoiceHintList.TRANS_MODE_FOOT:
-          return 3;
-        case VoiceHintList.TRANS_MODE_BIKE:
-        default:
-          return 5;
-      }
+    private fun startSection(element: OsmPathElement?, root: OsmPathElement): MessageData? {
+        var e = element
+        var cnt = 0
+        while (e != null && e.origin != null) {
+            if (e.origin!!.iLat == root.iLat && e.origin!!.iLon == root.iLon) {
+                return e.message
+            }
+            e = e.origin
+            require(cnt++ != 1000000) { "ups: " + root + "->" + element }
+        }
+        return null
     }
-    return 2;
-  }
 
-  public float getVoiceHintTime(int i) {
-    if (voiceHints.list.isEmpty()) {
-      return 0f;
-    }
-    if (i < voiceHints.list.size()) {
-      return voiceHints.list.get(i).getTime();
-    }
-    if (nodes.isEmpty()) {
-      return 0f;
-    }
-    return nodes.get(nodes.size() - 1).getTime();
-  }
+    companion object {
+        const val version: String = "1.7.8"
+        const val versionDate: String = "12072025"
 
-  public void removeVoiceHint(int i) {
-    if (voiceHints != null) {
-      VoiceHint remove = null;
-      for (VoiceHint vh : voiceHints.list) {
-        if (vh.indexInTrack == i)
-          remove = vh;
-      }
-      if (remove != null)
-        voiceHints.list.remove(remove);
-    }
-  }
+        // csv-header-line
+        private const val MESSAGES_HEADER =
+            "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy"
 
-  private MessageData startSection(OsmPathElement element, OsmPathElement root) {
-    OsmPathElement e = element;
-    int cnt = 0;
-    while (e != null && e.origin != null) {
-      if (e.origin.getILat() == root.getILat() && e.origin.getILon() == root.getILon()) {
-        return e.message;
-      }
-      e = e.origin;
-      if (cnt++ == 1000000) {
-        throw new IllegalArgumentException("ups: " + root + "->" + element);
-      }
+        fun readBinary(
+            filename: String?,
+            newEp: OsmNodeNamed,
+            nogoChecksums: LongArray,
+            profileChecksum: Long,
+            debugInfo: StringBuilder?
+        ): OsmTrack? {
+            var t: OsmTrack? = null
+            if (filename != null) {
+                val f = File(filename)
+                if (f.exists()) {
+                    try {
+                        val dis = DataInputStream(BufferedInputStream(FileInputStream(f)))
+                        val ep = readFromStream(dis)
+                        val dlon: Int = ep.waypoint!!.iLon - newEp.iLon
+                        val dlat = ep.waypoint!!.iLat - newEp.iLat
+                        val targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20
+                        if (debugInfo != null) {
+                            debugInfo.append("target-delta = " + dlon + "/" + dlat + " targetMatch=" + targetMatch)
+                        }
+                        if (targetMatch) {
+                            t = OsmTrack()
+                            t.endPoint = ep
+                            val n = dis.readInt()
+                            var last_pe: OsmPathElement? = null
+                            for (i in 0..<n) {
+                                val pe: OsmPathElement =
+                                    OsmPathElement.Companion.readFromStream(dis)
+                                pe.origin = last_pe
+                                last_pe = pe
+                                t.nodes.add(pe)
+                            }
+                            t.cost = last_pe!!.cost
+                            t.buildMap()
+
+                            // check cheecksums, too
+                            val al = LongArray(3)
+                            var pchecksum: Long = 0
+                            try {
+                                al[0] = dis.readLong()
+                                al[1] = dis.readLong()
+                                al[2] = dis.readLong()
+                            } catch (eof: EOFException) { /* kind of expected */
+                            }
+                            try {
+                                t.isDirty = dis.readBoolean()
+                            } catch (eof: EOFException) { /* kind of expected */
+                            }
+                            try {
+                                pchecksum = dis.readLong()
+                            } catch (eof: EOFException) { /* kind of expected */
+                            }
+                            val nogoCheckOk =
+                                abs(al[0] - nogoChecksums[0]) <= 20 && abs(al[1] - nogoChecksums[1]) <= 20 && abs(
+                                    al[2] - nogoChecksums[2]
+                                ) <= 20
+                            val profileCheckOk = pchecksum == profileChecksum
+
+                            if (debugInfo != null) {
+                                debugInfo.append(" nogoCheckOk=" + nogoCheckOk + " profileCheckOk=" + profileCheckOk)
+                                debugInfo.append(
+                                    " al=" + formatLongs(al) + " nogoChecksums=" + formatLongs(
+                                        nogoChecksums
+                                    )
+                                )
+                            }
+                            if (!(nogoCheckOk && profileCheckOk)) return null
+                        }
+                        dis.close()
+                    } catch (e: Exception) {
+                        if (debugInfo != null) {
+                            debugInfo.append("Error reading rawTrack: " + e)
+                        }
+                    }
+                }
+            }
+            return t
+        }
+
+        private fun formatLongs(al: LongArray): String {
+            val sb = StringBuilder()
+            sb.append('{')
+            for (l in al) {
+                sb.append(l)
+                sb.append(' ')
+            }
+            sb.append('}')
+            return sb.toString()
+        }
     }
-    return null;
-  }
 }

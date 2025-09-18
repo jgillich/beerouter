@@ -1,9 +1,10 @@
-package btools.util;
+package btools.util
 
-public abstract class LruMapNode {
-  LruMapNode nextInBin; // next entry for hash-bin
-  LruMapNode next; // next in lru sequence (towards mru)
-  LruMapNode previous; // previous in lru sequence (towards lru)
+abstract class LruMapNode {
+    var nextInBin: LruMapNode? = null // next entry for hash-bin
+    var next: LruMapNode? = null // next in lru sequence (towards mru)
+    var previous: LruMapNode? = null // previous in lru sequence (towards lru)
 
-  public int hash;
+    @JvmField
+    var hash: Int = 0
 }

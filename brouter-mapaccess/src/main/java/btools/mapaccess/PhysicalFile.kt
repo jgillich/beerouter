@@ -3,154 +3,163 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import btools.codec.DataBuffers
+import btools.codec.MicroCache
+import btools.util.ByteDataReader
+import btools.util.Crc32.crc
+import java.io.File
+import java.io.IOException
+import java.io.RandomAccessFile
 
-import btools.codec.DataBuffers;
-import btools.codec.MicroCache;
-import btools.util.ByteDataReader;
-import btools.util.Crc32;
+class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookupMinorVersion: Int) {
+    var ra: RandomAccessFile? = null
+    var fileIndex: LongArray = LongArray(25)
+    var fileHeaderCrcs: IntArray = IntArray(0)
 
-final public class PhysicalFile {
-  RandomAccessFile ra = null;
-  long[] fileIndex = new long[25];
-  int[] fileHeaderCrcs;
+    var creationTime: Long = 0L
 
-  public long creationTime;
+    var fileName: String?
 
-  String fileName;
+    @JvmField
+    var divisor: Int = 80
+    var elevationType: Byte = 3
 
-  public int divisor = 80;
-  public byte elevationType = 3;
-
-  public static void main(String[] args) {
-    MicroCache.debug = true;
-
-    try {
-      checkFileIntegrity(new File(args[0]));
-    } catch (IOException e) {
-      System.err.println("************************************");
-      e.printStackTrace();
-      System.err.println("************************************");
-    }
-  }
-
-  public static int checkVersionIntegrity(File f) {
-    int version = -1;
-    RandomAccessFile raf = null;
-    try {
-      byte[] iobuffer = new byte[200];
-      raf = new RandomAccessFile(f, "r");
-      raf.readFully(iobuffer, 0, 200);
-      ByteDataReader dis = new ByteDataReader(iobuffer);
-      long lv = dis.readLong();
-      version = (int) (lv >> 48);
-    } catch (IOException e) {
-    } finally {
-      try {
-        if (raf != null) raf.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return version;
-  }
-
-  /**
-   * Checks the integrity of the file using the build-in checksums
-   *
-   * @return the error message if file corrupt, else null
-   */
-  public static String checkFileIntegrity(File f) throws IOException {
-    PhysicalFile pf = null;
-    try {
-      DataBuffers dataBuffers = new DataBuffers();
-      pf = new PhysicalFile(f, dataBuffers, -1, -1);
-      int div = pf.divisor;
-      for (int lonDegree = 0; lonDegree < 5; lonDegree++) { // doesn't really matter..
-        for (int latDegree = 0; latDegree < 5; latDegree++) { // ..where on earth we are
-          OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
-          if (osmf.hasData())
-            for (int lonIdx = 0; lonIdx < div; lonIdx++)
-              for (int latIdx = 0; latIdx < div; latIdx++)
-                osmf.createMicroCache(lonDegree * div + lonIdx, latDegree * div + latIdx, dataBuffers, null, null, MicroCache.debug, null);
+    init {
+        fileName = f.getName()
+        val iobuffer = dataBuffers.iobuffer
+        ra = RandomAccessFile(f, "r")
+        ra!!.readFully(iobuffer, 0, 200)
+        val fileIndexCrc = crc(iobuffer!!, 0, 200)
+        var dis = ByteDataReader(iobuffer)
+        for (i in 0..24) {
+            val lv = dis.readLong()
+            val readVersion = (lv shr 48).toShort()
+            if (i == 0 && lookupVersion != -1 && readVersion.toInt() != lookupVersion) {
+                throw IOException(
+                    ("lookup version mismatch (old rd5?) lookups.dat="
+                            + lookupVersion + " " + f.getName() + "=" + readVersion)
+                )
+            }
+            fileIndex[i] = lv and 0xffffffffffffL
         }
-      }
-    } finally {
-      if (pf != null)
-        try {
-          pf.ra.close();
-        } catch (Exception ee) {
+
+        // read some extra info from the end of the file, if present
+        val len = ra!!.length()
+
+        val pos = fileIndex[24]
+        var extraLen = 8 + 26 * 4
+
+        if (len != pos) {
+            if ((len - pos) > extraLen) {
+                extraLen++
+            }
+
+            if (len < pos + extraLen) { // > is o.k. for future extensions!
+                throw IOException("file of size " + len + " too short, should be " + (pos + extraLen))
+            }
+
+            ra!!.seek(pos)
+            ra!!.readFully(iobuffer, 0, extraLen)
+            dis = ByteDataReader(iobuffer)
+            creationTime = dis.readLong()
+
+            val crcData = dis.readInt()
+            if (crcData == fileIndexCrc) {
+                divisor = 80 // old format
+            } else if ((crcData xor 2) == fileIndexCrc) {
+                divisor = 32 // new format
+            } else {
+                throw IOException("top index checksum error")
+            }
+            fileHeaderCrcs = IntArray(25)
+            for (i in 0..24) {
+                fileHeaderCrcs[i] = dis.readInt()
+            }
+            try {
+                elevationType = dis.readByte()
+            } catch (e: Exception) {
+            }
         }
     }
-    return null;
-  }
 
-  public PhysicalFile(File f, DataBuffers dataBuffers, int lookupVersion, int lookupMinorVersion) throws IOException {
-    fileName = f.getName();
-    byte[] iobuffer = dataBuffers.iobuffer;
-    ra = new RandomAccessFile(f, "r");
-    ra.readFully(iobuffer, 0, 200);
-    int fileIndexCrc = Crc32.crc(iobuffer, 0, 200);
-    ByteDataReader dis = new ByteDataReader(iobuffer);
-    for (int i = 0; i < 25; i++) {
-      long lv = dis.readLong();
-      short readVersion = (short) (lv >> 48);
-      if (i == 0 && lookupVersion != -1 && readVersion != lookupVersion) {
-        throw new IOException("lookup version mismatch (old rd5?) lookups.dat="
-          + lookupVersion + " " + f.getName() + "=" + readVersion);
-      }
-      fileIndex[i] = lv & 0xffffffffffffL;
+    fun close() {
+        if (ra != null) {
+            try {
+                ra!!.close()
+            } catch (ee: Exception) {
+            }
+        }
     }
 
-    // read some extra info from the end of the file, if present
-    long len = ra.length();
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            try {
+                checkFileIntegrity(File(args[0]))
+            } catch (e: IOException) {
+                System.err.println("************************************")
+                e.printStackTrace()
+                System.err.println("************************************")
+            }
+        }
 
-    long pos = fileIndex[24];
-    int extraLen = 8 + 26 * 4;
+        fun checkVersionIntegrity(f: File): Int {
+            var version = -1
+            var raf: RandomAccessFile? = null
+            try {
+                val iobuffer = ByteArray(200)
+                raf = RandomAccessFile(f, "r")
+                raf.readFully(iobuffer, 0, 200)
+                val dis = ByteDataReader(iobuffer)
+                val lv = dis.readLong()
+                version = (lv shr 48).toInt()
+            } catch (e: IOException) {
+            } finally {
+                try {
+                    if (raf != null) raf.close()
+                } catch (e: IOException) {
+                    throw RuntimeException(e)
+                }
+            }
+            return version
+        }
 
-    if (len == pos) return; // old format o.k.
-
-    if ((len-pos) > extraLen) {
-      extraLen++;
+        /**
+         * Checks the integrity of the file using the build-in checksums
+         *
+         * @return the error message if file corrupt, else null
+         */
+        @JvmStatic
+        @Throws(IOException::class)
+        fun checkFileIntegrity(f: File): String? {
+            var pf: PhysicalFile? = null
+            try {
+                val dataBuffers = DataBuffers()
+                pf = PhysicalFile(f, dataBuffers, -1, -1)
+                val div = pf.divisor
+                for (lonDegree in 0..4) { // doesn't really matter..
+                    for (latDegree in 0..4) { // ..where on earth we are
+                        val osmf = OsmFile(pf, lonDegree, latDegree, dataBuffers)
+                        if (osmf.hasData()) for (lonIdx in 0..<div) for (latIdx in 0..<div) osmf.createMicroCache(
+                            lonDegree * div + lonIdx,
+                            latDegree * div + latIdx,
+                            dataBuffers,
+                            null,
+                            null,
+                            true,
+                            null
+                        )
+                    }
+                }
+            } finally {
+                if (pf != null) try {
+                    pf.ra!!.close()
+                } catch (ee: Exception) {
+                }
+            }
+            return null
+        }
     }
-
-    if (len < pos + extraLen) { // > is o.k. for future extensions!
-      throw new IOException("file of size " + len + " too short, should be " + (pos + extraLen));
-    }
-
-    ra.seek(pos);
-    ra.readFully(iobuffer, 0, extraLen);
-    dis = new ByteDataReader(iobuffer);
-    creationTime = dis.readLong();
-
-    int crcData = dis.readInt();
-    if (crcData == fileIndexCrc) {
-      divisor = 80; // old format
-    } else if ((crcData ^ 2) == fileIndexCrc) {
-      divisor = 32; // new format
-    } else {
-      throw new IOException("top index checksum error");
-    }
-    fileHeaderCrcs = new int[25];
-    for (int i = 0; i < 25; i++) {
-      fileHeaderCrcs[i] = dis.readInt();
-    }
-    try {
-      elevationType = dis.readByte();
-    } catch (Exception e) {}
-  }
-
-  public void close(){
-    if (ra != null) {
-      try {
-        ra.close();
-      } catch (Exception ee) {
-      }
-    }
-  }
-
 }

@@ -3,14 +3,19 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
 
-public final class OsmTransferNode {
-  public OsmTransferNode next;
+class OsmTransferNode {
+    @JvmField
+    var next: OsmTransferNode? = null
 
-  public int ilon;
-  public int ilat;
-  public short selev;
+    @JvmField
+    var ilon: Int = 0
 
+    @JvmField
+    var ilat: Int = 0
+
+    @JvmField
+    var selev: Short = 0
 }

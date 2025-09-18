@@ -3,18 +3,19 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import java.util.Map;
-
-import btools.expressions.BExpressionContextNode;
-import btools.expressions.BExpressionContextWay;
-
+import btools.expressions.BExpressionContextNode
+import btools.expressions.BExpressionContextWay
 
 abstract class OsmPathModel {
-  public abstract OsmPrePath createPrePath();
+    abstract fun createPrePath(): OsmPrePath?
 
-  public abstract OsmPath createPath();
+    abstract fun createPath(): OsmPath
 
-  public abstract void init(BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String, String> keyValues);
+    abstract fun init(
+        expctxWay: BExpressionContextWay?,
+        expctxNode: BExpressionContextNode?,
+        keyValues: MutableMap<String?, String?>
+    )
 }

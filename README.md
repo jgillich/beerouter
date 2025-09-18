@@ -7,7 +7,6 @@ and energy-based car routing.
 
 For more infos see [http://brouter.de/brouter](http://brouter.de/brouter).
 
-
 ## BRouter on Android
 
 You can install the BRouter app on your Android device from
@@ -32,7 +31,6 @@ device.
 A full documentation on how to set this up is available at
 [https://www.locusmap.eu/locus-map-can-navigate-offline/](https://www.locusmap.eu/locus-map-can-navigate-offline/).
 
-
 ### Android with OSMAnd
 
 Alternatively, you can also use BRouter as the offline routing engine for
@@ -41,17 +39,16 @@ Alternatively, you can also use BRouter as the offline routing engine for
 A full documentation on how to set this up is available at
 [`docs/users/osmand.md`](docs/users/osmand.md).
 
-
 ## BRouter on Windows/Linux/Mac OS
 
 ### Build and Install
 
-To compile the BRouter Android app, the Android SDK path must first be set in a file called `local.properties` in the main folder:
+To compile the BRouter Android app, the Android SDK path must first be set in a file called
+`local.properties` in the main folder:
 
 ```
 sdk.dir=<your/android/sdk/path>
 ```
-
 
 Build BRouter with the Android app (if Android SDK path is set):
 
@@ -77,7 +74,6 @@ Build ZIP file for distribution with readmes, profiles, APK and JAR:
 ./gradlew distZip # places ZIP file in brouter-server/build/distributions/
 ```
 
-
 ### Get the required segments (data) files
 
 Routing data files are organised as 5*5 degree files,
@@ -90,7 +86,6 @@ of the square, which means:
 These data files, called "segments" across BRouter, are generated from
 [OpenStreetMap](https://www.openstreetmap.org/) data and stored in a custom
 binary format (rd5) for improved efficiency of BRouter routing.
-
 
 #### Download them from brouter.de
 
@@ -108,7 +103,6 @@ of OpenStreetMap data (or a [GeoFabrik extract](https://download.geofabrik.de/))
 More documentation of this is available in the
 [`docs/developers/build_segments.md`](docs/developers/build_segments.md) file.
 
-
 ### (Optional) Generate profile variants
 
 This repository holds examples of BRouter profiles for many different
@@ -123,7 +117,6 @@ Have a look at the
 [`docs/developers/profile_developers_guide.md`](docs/developers/profile_developers_guide.md)
 for an in-depth guide on profiles edition and customization.
 
-
 ### Run the BRouter HTTP server
 
 Helpers scripts are provided in `misc/scripts/standalone` to quickly spawn a
@@ -131,10 +124,11 @@ BRouter HTTP server for various platforms.
 
 * Linux/Mac OS: `./misc/scripts/standalone/server.sh`
 * Windows (using Bash): `./misc/scripts/standalone/server.sh`
-* Windows (using CMD): `misc\scripts\standalone\server.cmd`
+* Windows (using CMD): `misc\scripts\standalone\server.command`
 
 The API endpoints exposed by this HTTP server are documented in the
-[`brouter-server/src/main/java/btools/server/request/ServerHandler.java`](brouter-server/src/main/java/btools/server/request/ServerHandler.java)
+[
+`brouter-server/src/main/java/btools/server/request/ServerHandler.java`](brouter-server/src/main/java/btools/server/request/ServerHandler.java)
 file.
 
 The server emits log data for each routing request on stdout. For each routing
@@ -179,7 +173,8 @@ docker run --rm \
 
 This will start brouter with a set of default routing profiles. It will be accessible on port 17777.
 
-If you want to provide your own routing profiles, you can also mount the folder containing the custom profiles:
+If you want to provide your own routing profiles, you can also mount the folder containing the
+custom profiles:
 
 ```
 docker run --rm \
@@ -194,17 +189,15 @@ docker run --rm \
 
 More documentation is available in the [`docs`](docs) folder.
 
-
 ## Related Projects
 
 * [nrenner/BRouter-web](https://github.com/nrenner/brouter-web), a web interface on
-    top of the BRouter HTTP server. An online instance is available at
-    [http://brouter.de/brouter-web/](http://brouter.de/brouter-web/).
+  top of the BRouter HTTP server. An online instance is available at
+  [http://brouter.de/brouter-web/](http://brouter.de/brouter-web/).
 * [poutnikl/Brouter-profiles](https://github.com/poutnikl/Brouter-profiles/wiki),
-    a collection of BRouter profiles.
+  a collection of BRouter profiles.
 * [Phyks/BRouterTesting](https://github.com/Phyks/BrouterTesting), a
-    collection of test cases for helping develop new BRouter profiles.
-
+  collection of test cases for helping develop new BRouter profiles.
 
 ## License
 

@@ -3,262 +3,278 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-final class KinematicPath extends OsmPath {
-  private double ekin; // kinetic energy (Joule)
-  private double totalTime;  // travel time (seconds)
-  private double totalEnergy; // total route energy (Joule)
-  private float floatingAngleLeft; // sliding average left bend (degree)
-  private float floatingAngleRight; // sliding average right bend (degree)
+import btools.mapaccess.OsmLinkHolder
+import kotlin.math.exp
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sqrt
 
-  @Override
-  protected void init(OsmPath orig) {
-    KinematicPath origin = (KinematicPath) orig;
-    ekin = origin.ekin;
-    totalTime = origin.totalTime;
-    totalEnergy = origin.totalEnergy;
-    floatingAngleLeft = origin.floatingAngleLeft;
-    floatingAngleRight = origin.floatingAngleRight;
-  }
+internal class KinematicPath : OsmPath() {
+    private var ekin = 0.0 // kinetic energy (Joule)
+    override var totalTime = 0.0 // travel time (seconds)
+    override var totalEnergy = 0.0 // total route energy (Joule)
+    private var floatingAngleLeft = 0f // sliding average left bend (degree)
+    private var floatingAngleRight = 0f // sliding average right bend (degree)
 
-  @Override
-  protected void resetState() {
-    ekin = 0.;
-    totalTime = 0.;
-    totalEnergy = 0.;
-    floatingAngleLeft = 0.f;
-    floatingAngleRight = 0.f;
-  }
+    override var nextForLink: OsmLinkHolder? = null
 
-  @Override
-  protected double processWaySection(RoutingContext rc, double dist, double delta_h, double elevation, double angle, double cosangle, boolean isStartpoint, int nsection, int lastpriorityclassifier) {
-    KinematicModel km = (KinematicModel) rc.pm;
+    override fun init(orig: OsmPath?) {
+        val origin = orig as KinematicPath
+        ekin = origin.ekin
+        totalTime = origin.totalTime
+        totalEnergy = origin.totalEnergy
+        floatingAngleLeft = origin.floatingAngleLeft
+        floatingAngleRight = origin.floatingAngleRight
+    }
 
-    double cost = 0.;
-    double extraTime = 0.;
+    override fun resetState() {
+        ekin = 0.0
+        totalTime = 0.0
+        totalEnergy = 0.0
+        floatingAngleLeft = 0f
+        floatingAngleRight = 0f
+    }
 
-    if (isStartpoint) {
-      // for forward direction, we start with target speed
-      if (!rc.inverseDirection) {
-        extraTime = 0.5 * (1. - cosangle) * 40.; // 40 seconds turn penalty
-      }
-    } else {
-      double turnspeed = 999.; // just high
+    override fun processWaySection(
+        rc: RoutingContext,
+        dist: Double,
+        delta_h: Double,
+        elevation: Double,
+        angle: Double,
+        cosangle: Double,
+        isStartpoint: Boolean,
+        nsection: Int,
+        lastpriorityclassifier: Int
+    ): Double {
+        val km = rc.pm as KinematicModel
 
-      if (km.turnAngleDecayTime != 0.) { // process turn-angle slowdown
-        if (angle < 0) floatingAngleLeft -= (float) angle;
-        else floatingAngleRight += (float) angle;
-        float aa = Math.max(floatingAngleLeft, floatingAngleRight);
+        var cost = 0.0
+        var extraTime = 0.0
 
-        double curveSpeed = aa > 10. ? 200. / aa : 20.;
-        double distanceTime = dist / curveSpeed;
-        double decayFactor = Math.exp(-distanceTime / km.turnAngleDecayTime);
-        floatingAngleLeft = (float) (floatingAngleLeft * decayFactor);
-        floatingAngleRight = (float) (floatingAngleRight * decayFactor);
+        if (isStartpoint) {
+            // for forward direction, we start with target speed
+            if (!rc.inverseDirection) {
+                extraTime = 0.5 * (1.0 - cosangle) * 40.0 // 40 seconds turn penalty
+            }
+        } else {
+            var turnspeed = 999.0 // just high
 
-        if (curveSpeed < 20.) {
-          turnspeed = curveSpeed;
+            if (km.turnAngleDecayTime != 0.0) { // process turn-angle slowdown
+                if (angle < 0) floatingAngleLeft -= angle.toFloat()
+                else floatingAngleRight += angle.toFloat()
+                val aa = max(floatingAngleLeft, floatingAngleRight)
+
+                val curveSpeed = if (aa > 10.0) 200.0 / aa else 20.0
+                val distanceTime = dist / curveSpeed
+                val decayFactor = exp(-distanceTime / km.turnAngleDecayTime)
+                floatingAngleLeft = (floatingAngleLeft * decayFactor).toFloat()
+                floatingAngleRight = (floatingAngleRight * decayFactor).toFloat()
+
+                if (curveSpeed < 20.0) {
+                    turnspeed = curveSpeed
+                }
+            }
+
+            if (nsection == 0) { // process slowdown by crossing geometry
+                var junctionspeed = 999.0 // just high
+
+                val classifiermask = rc.expctxWay!!.classifierMask.toInt()
+
+                // penalty for equal priority crossing
+                var hasLeftWay = false
+                var hasRightWay = false
+                var hasResidential = false
+                var prePath = rc.firstPrePath
+                while (prePath != null) {
+                    val pp = prePath as KinematicPrePath
+
+                    if (((pp.classifiermask xor classifiermask) and 8) != 0) { // exactly one is linktype
+                        prePath = prePath.next
+                        continue
+                    }
+
+                    if ((pp.classifiermask and 32) != 0) { // touching a residential?
+                        hasResidential = true
+                    }
+
+                    if (pp.priorityclassifier > priorityclassifier || pp.priorityclassifier == priorityclassifier && priorityclassifier < 20) {
+                        val diff = pp.angle - angle
+                        if (diff < -40.0 && diff > -140.0) hasLeftWay = true
+                        if (diff > 40.0 && diff < 140.0) hasRightWay = true
+                    }
+                    prePath = prePath.next
+                }
+                val residentialSpeed = 13.0
+
+                if (hasLeftWay && junctionspeed > km.leftWaySpeed) junctionspeed = km.leftWaySpeed
+                if (hasRightWay && junctionspeed > km.rightWaySpeed) junctionspeed =
+                    km.rightWaySpeed
+                if (hasResidential && junctionspeed > residentialSpeed) junctionspeed =
+                    residentialSpeed
+
+                if ((lastpriorityclassifier < 20) xor (priorityclassifier < 20)) {
+                    extraTime += 10.0
+                    junctionspeed = 0.0 // full stop for entering or leaving road network
+                }
+
+                if (lastpriorityclassifier != priorityclassifier && (classifiermask and 8) != 0) {
+                    extraTime += 2.0 // two seconds for entering a link-type
+                }
+                turnspeed = if (turnspeed > junctionspeed) junctionspeed else turnspeed
+
+                message?.let { it.vnode0 = (junctionspeed * 3.6 + 0.5).toInt() }
+            }
+            cutEkin(km.totalweight, turnspeed) // apply turnspeed
         }
-      }
 
-      if (nsection == 0) { // process slowdown by crossing geometry
-        double junctionspeed = 999.; // just high
+        // linear temperature correction
+        val tcorr = (20.0 - km.outside_temp) * 0.0035
 
-        int classifiermask = (int) rc.expctxWay.getClassifierMask();
+        // air_pressure down 1mb/8m
+        val ecorr = 0.0001375 * (elevation - 100.0)
 
-        // penalty for equal priority crossing
-        boolean hasLeftWay = false;
-        boolean hasRightWay = false;
-        boolean hasResidential = false;
-        for (OsmPrePath prePath = rc.firstPrePath; prePath != null; prePath = prePath.next) {
-          KinematicPrePath pp = (KinematicPrePath) prePath;
+        val f_air = km.f_air * (1.0 + tcorr - ecorr)
 
-          if (((pp.classifiermask ^ classifiermask) & 8) != 0) { // exactly one is linktype
-            continue;
-          }
-
-          if ((pp.classifiermask & 32) != 0) { // touching a residential?
-            hasResidential = true;
-          }
-
-          if (pp.priorityclassifier > priorityclassifier || pp.priorityclassifier == priorityclassifier && priorityclassifier < 20) {
-            double diff = pp.angle - angle;
-            if (diff < -40. && diff > -140.) hasLeftWay = true;
-            if (diff > 40. && diff < 140.) hasRightWay = true;
-          }
-        }
-        double residentialSpeed = 13.;
-
-        if (hasLeftWay && junctionspeed > km.leftWaySpeed) junctionspeed = km.leftWaySpeed;
-        if (hasRightWay && junctionspeed > km.rightWaySpeed) junctionspeed = km.rightWaySpeed;
-        if (hasResidential && junctionspeed > residentialSpeed) junctionspeed = residentialSpeed;
-
-        if ((lastpriorityclassifier < 20) ^ (priorityclassifier < 20)) {
-          extraTime += 10.;
-          junctionspeed = 0; // full stop for entering or leaving road network
-        }
-
-        if (lastpriorityclassifier != priorityclassifier && (classifiermask & 8) != 0) {
-          extraTime += 2.; // two seconds for entering a link-type
-        }
-        turnspeed = turnspeed > junctionspeed ? junctionspeed : turnspeed;
+        val distanceCost = evolveDistance(km, dist, delta_h, f_air)
 
         if (message != null) {
-          message.vnode0 = (int) (junctionspeed * 3.6 + 0.5);
+            message!!.costfactor = (distanceCost / dist).toFloat()
+            message!!.vmax = (km.wayMaxspeed * 3.6 + 0.5).toInt()
+            message!!.vmaxExplicit = (km.wayMaxspeedExplicit * 3.6 + 0.5).toInt()
+            message!!.vmin = (km.wayMinspeed * 3.6 + 0.5).toInt()
+            message!!.extraTime = (extraTime * 1000).toInt()
         }
-      }
-      cutEkin(km.totalweight, turnspeed); // apply turnspeed
+
+        cost += extraTime * km.pw / km.cost0
+        totalTime += extraTime
+
+        return cost + distanceCost
     }
 
-    // linear temperature correction
-    double tcorr = (20. - km.outside_temp) * 0.0035;
 
-    // air_pressure down 1mb/8m
-    double ecorr = 0.0001375 * (elevation - 100.);
+    protected fun evolveDistance(
+        km: KinematicModel,
+        dist: Double,
+        delta_h: Double,
+        f_air: Double
+    ): Double {
+        // elevation force
+        val fh = delta_h * km.totalweight * 9.81 / dist
 
-    double f_air = km.f_air * (1. + tcorr - ecorr);
-
-    double distanceCost = evolveDistance(km, dist, delta_h, f_air);
-
-    if (message != null) {
-      message.costfactor = (float) (distanceCost / dist);
-      message.vmax = (int) (km.getWayMaxspeed() * 3.6 + 0.5);
-      message.vmaxExplicit = (int) (km.getWayMaxspeedExplicit() * 3.6 + 0.5);
-      message.vmin = (int) (km.getWayMinspeed() * 3.6 + 0.5);
-      message.extraTime = (int) (extraTime * 1000);
-    }
-
-    cost += extraTime * km.pw / km.cost0;
-    totalTime += extraTime;
-
-    return cost + distanceCost;
-  }
-
-
-  protected double evolveDistance(KinematicModel km, double dist, double delta_h, double f_air) {
-    // elevation force
-    double fh = delta_h * km.totalweight * 9.81 / dist;
-
-    double effectiveSpeedLimit = km.getEffectiveSpeedLimit();
-    double emax = 0.5 * km.totalweight * effectiveSpeedLimit * effectiveSpeedLimit;
-    if (emax <= 0.) {
-      return -1.;
-    }
-    double vb = km.getBreakingSpeed(effectiveSpeedLimit);
-    double elow = 0.5 * km.totalweight * vb * vb;
-
-    double elapsedTime = 0.;
-    double dissipatedEnergy = 0.;
-
-    double v = Math.sqrt(2. * ekin / km.totalweight);
-    double d = dist;
-    while (d > 0.) {
-      boolean slow = ekin < elow;
-      boolean fast = ekin >= emax;
-      double etarget = slow ? elow : emax;
-      double f = km.f_roll + f_air * v * v + fh;
-      double f_recup = Math.max(0., fast ? -f : (slow ? km.f_recup : 0) - fh); // additional recup for slow part
-      f += f_recup;
-
-      double delta_ekin;
-      double timeStep;
-      double x;
-      if (fast) {
-        x = d;
-        delta_ekin = x * f;
-        timeStep = x / v;
-        ekin = etarget;
-      } else {
-        delta_ekin = etarget - ekin;
-        double b = 2. * f_air / km.totalweight;
-        double x0 = delta_ekin / f;
-        double x0b = x0 * b;
-        x = x0 * (1. - x0b * (0.5 + x0b * (0.333333333 - x0b * 0.25))); // = ln( delta_ekin*b/f + 1.) / b;
-        double maxstep = Math.min(50., d);
-        if (x >= maxstep) {
-          x = maxstep;
-          double xb = x * b;
-          delta_ekin = x * f * (1. + xb * (0.5 + xb * (0.166666667 + xb * 0.0416666667))); // = f/b* exp(xb-1)
-          ekin += delta_ekin;
-        } else {
-          ekin = etarget;
+        val effectiveSpeedLimit = km.effectiveSpeedLimit
+        val emax = 0.5 * km.totalweight * effectiveSpeedLimit * effectiveSpeedLimit
+        if (emax <= 0.0) {
+            return -1.0
         }
-        double v2 = Math.sqrt(2. * ekin / km.totalweight);
-        double a = f / km.totalweight; // TODO: average force?
-        timeStep = (v2 - v) / a;
-        v = v2;
-      }
-      d -= x;
-      elapsedTime += timeStep;
+        val vb = km.getBreakingSpeed(effectiveSpeedLimit)
+        val elow = 0.5 * km.totalweight * vb * vb
 
-      // dissipated energy does not contain elevation and efficient recup
-      dissipatedEnergy += delta_ekin - x * (fh + f_recup * km.recup_efficiency);
+        var elapsedTime = 0.0
+        var dissipatedEnergy = 0.0
 
-      // correction: inefficient recup going into heating is half efficient
-      double ieRecup = x * f_recup * (1. - km.recup_efficiency);
-      double eaux = timeStep * km.p_standby;
-      dissipatedEnergy -= Math.max(ieRecup, eaux) * 0.5;
+        var v = sqrt(2.0 * ekin / km.totalweight)
+        var d = dist
+        while (d > 0.0) {
+            val slow = ekin < elow
+            val fast = ekin >= emax
+            val etarget = if (slow) elow else emax
+            var f = km.f_roll + f_air * v * v + fh
+            val f_recup = max(
+                0.0,
+                if (fast) -f else (if (slow) km.f_recup else 0.0) - fh
+            ) // additional recup for slow part
+            f += f_recup
+
+            var delta_ekin: Double
+            val timeStep: Double
+            var x: Double
+            if (fast) {
+                x = d
+                delta_ekin = x * f
+                timeStep = x / v
+                ekin = etarget
+            } else {
+                delta_ekin = etarget - ekin
+                val b = 2.0 * f_air / km.totalweight
+                val x0 = delta_ekin / f
+                val x0b = x0 * b
+                x =
+                    x0 * (1.0 - x0b * (0.5 + x0b * (0.333333333 - x0b * 0.25))) // = ln( delta_ekin*b/f + 1.) / b;
+                val maxstep = min(50.0, d)
+                if (x >= maxstep) {
+                    x = maxstep
+                    val xb = x * b
+                    delta_ekin =
+                        x * f * (1.0 + xb * (0.5 + xb * (0.166666667 + xb * 0.0416666667))) // = f/b* exp(xb-1)
+                    ekin += delta_ekin
+                } else {
+                    ekin = etarget
+                }
+                val v2 = sqrt(2.0 * ekin / km.totalweight)
+                val a = f / km.totalweight // TODO: average force?
+                timeStep = (v2 - v) / a
+                v = v2
+            }
+            d -= x
+            elapsedTime += timeStep
+
+            // dissipated energy does not contain elevation and efficient recup
+            dissipatedEnergy += delta_ekin - x * (fh + f_recup * km.recup_efficiency)
+
+            // correction: inefficient recup going into heating is half efficient
+            val ieRecup = x * f_recup * (1.0 - km.recup_efficiency)
+            val eaux = timeStep * km.p_standby
+            dissipatedEnergy -= max(ieRecup, eaux) * 0.5
+        }
+
+        dissipatedEnergy += elapsedTime * km.p_standby
+
+        totalTime += elapsedTime
+        totalEnergy += dissipatedEnergy + dist * fh
+
+        return (km.pw * elapsedTime + dissipatedEnergy) / km.cost0 // =cost
     }
 
-    dissipatedEnergy += elapsedTime * km.p_standby;
+    override fun processTargetNode(rc: RoutingContext): Double {
+        val km = rc.pm as KinematicModel
 
-    totalTime += elapsedTime;
-    totalEnergy += dissipatedEnergy + dist * fh;
+        // finally add node-costs for target node
+        if (targetNode!!.nodeDescription != null) {
+            rc.expctxNode!!.evaluate(false, targetNode!!.nodeDescription!!)
+            val initialcost = rc.expctxNode!!.initialcost
+            if (initialcost >= 1000000.0) {
+                return -1.0
+            }
+            cutEkin(km.totalweight, km.nodeMaxspeed.toDouble()) // apply node maxspeed
 
-    return (km.pw * elapsedTime + dissipatedEnergy) / km.cost0; // =cost
-  }
+            if (message != null) {
+                message!!.linknodecost += initialcost.toInt()
+                message!!.nodeKeyValues =
+                    rc.expctxNode!!.getKeyValueDescription(false, targetNode!!.nodeDescription!!)
 
-  @Override
-  protected double processTargetNode(RoutingContext rc) {
-    KinematicModel km = (KinematicModel) rc.pm;
-
-    // finally add node-costs for target node
-    if (targetNode.nodeDescription != null) {
-      rc.expctxNode.evaluate(false, targetNode.nodeDescription);
-      float initialcost = rc.expctxNode.getInitialcost();
-      if (initialcost >= 1000000.) {
-        return -1.;
-      }
-      cutEkin(km.totalweight, km.getNodeMaxspeed()); // apply node maxspeed
-
-      if (message != null) {
-        message.linknodecost += (int) initialcost;
-        message.nodeKeyValues = rc.expctxNode.getKeyValueDescription(false, targetNode.nodeDescription);
-
-        message.vnode1 = (int) (km.getNodeMaxspeed() * 3.6 + 0.5);
-      }
-      return initialcost;
+                message!!.vnode1 = (km.nodeMaxspeed * 3.6 + 0.5).toInt()
+            }
+            return initialcost.toDouble()
+        }
+        return 0.0
     }
-    return 0.;
-  }
 
-  private void cutEkin(double weight, double speed) {
-    double e = 0.5 * weight * speed * speed;
-    if (ekin > e) ekin = e;
-  }
+    private fun cutEkin(weight: Double, speed: Double) {
+        val e = 0.5 * weight * speed * speed
+        if (ekin > e) ekin = e
+    }
 
 
-  @Override
-  public int elevationCorrection() {
-    return 0;
-  }
+    override fun elevationCorrection(): Int {
+        return 0
+    }
 
-  @Override
-  public boolean definitlyWorseThan(OsmPath path) {
-    KinematicPath p = (KinematicPath) path;
+    override fun definitlyWorseThan(path: OsmPath?): Boolean {
+        val p = path as KinematicPath
 
-    int c = p.cost;
-    return cost > c + 100;
-  }
-
-  @Override
-  public double getTotalTime() {
-    return totalTime;
-  }
-
-  @Override
-  public double getTotalEnergy() {
-    return totalEnergy;
-  }
+        val c = p.cost
+        return cost > c + 100
+    }
 }

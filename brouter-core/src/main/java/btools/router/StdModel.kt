@@ -3,34 +3,33 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import java.util.Map;
+import btools.expressions.BExpressionContext
+import btools.expressions.BExpressionContextNode
+import btools.expressions.BExpressionContextWay
 
-import btools.expressions.BExpressionContext;
-import btools.expressions.BExpressionContextNode;
-import btools.expressions.BExpressionContextWay;
+internal class StdModel : OsmPathModel() {
+    override fun createPrePath(): OsmPrePath? {
+        return null
+    }
 
+    override fun createPath(): OsmPath {
+        return StdPath()
+    }
 
-final class StdModel extends OsmPathModel {
-  public OsmPrePath createPrePath() {
-    return null;
-  }
-
-  public OsmPath createPath() {
-    return new StdPath();
-  }
-
-  protected BExpressionContextWay ctxWay;
-  protected BExpressionContextNode ctxNode;
+    protected var ctxWay: BExpressionContextWay? = null
+    protected var ctxNode: BExpressionContextNode? = null
 
 
-  @Override
-  public void init(BExpressionContextWay expctxWay, BExpressionContextNode expctxNode, Map<String, String> keyValues) {
-    ctxWay = expctxWay;
-    ctxNode = expctxNode;
+    override fun init(
+        expctxWay: BExpressionContextWay?,
+        expctxNode: BExpressionContextNode?,
+        keyValues: MutableMap<String?, String?>
+    ) {
+        ctxWay = expctxWay
+        ctxNode = expctxNode
 
-    BExpressionContext expctxGlobal = expctxWay; // just one of them...
-
-  }
+        val expctxGlobal: BExpressionContext? = expctxWay // just one of them...
+    }
 }

@@ -3,102 +3,91 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
 
-final class MessageData implements Cloneable {
-  int linkdist = 0;
-  int linkelevationcost = 0;
-  int linkturncost = 0;
-  int linknodecost = 0;
-  int linkinitcost = 0;
+class MessageData : Cloneable {
+    var linkdist: Int = 0
+    var linkelevationcost: Int = 0
+    var linkturncost: Int = 0
+    var linknodecost: Int = 0
+    var linkinitcost: Int = 0
 
-  float costfactor;
-  int priorityclassifier;
-  int classifiermask;
-  float turnangle;
-  String wayKeyValues;
-  String nodeKeyValues;
+    var costfactor: Float = 0f
+    var priorityclassifier: Int = 0
+    var classifiermask: Int = 0
+    var turnangle: Float = 0f
+    var wayKeyValues: String? = null
+    var nodeKeyValues: String? = null
 
-  int lon;
-  int lat;
-  short ele;
+    var lon: Int = 0
+    var lat: Int = 0
+    var ele: Short = 0
 
-  float time;
-  float energy;
+    var time: Float = 0f
+    var energy: Float = 0f
 
-  // speed profile
-  int vmaxExplicit = -1;
-  int vmax = -1;
-  int vmin = -1;
-  int vnode0 = 999;
-  int vnode1 = 999;
-  int extraTime = 0;
+    // speed profile
+    var vmaxExplicit: Int = -1
+    var vmax: Int = -1
+    var vmin: Int = -1
+    var vnode0: Int = 999
+    var vnode1: Int = 999
+    var extraTime: Int = 0
 
-  String toMessage() {
-    if (wayKeyValues == null) {
-      return null;
+    fun toMessage(): String? {
+        if (wayKeyValues == null) {
+            return null
+        }
+
+        val iCost = (costfactor * 1000 + 0.5f).toInt()
+        return ((lon - 180000000).toString() + "\t"
+                + (lat - 90000000) + "\t"
+                + ele / 4 + "\t"
+                + linkdist + "\t"
+                + iCost + "\t"
+                + linkelevationcost
+                + "\t" + linkturncost
+                + "\t" + linknodecost
+                + "\t" + linkinitcost
+                + "\t" + wayKeyValues
+                + "\t" + (if (nodeKeyValues == null) "" else nodeKeyValues)
+                + "\t" + (time.toInt())
+                + "\t" + (energy.toInt()))
     }
 
-    int iCost = (int) (costfactor * 1000 + 0.5f);
-    return (lon - 180000000) + "\t"
-      + (lat - 90000000) + "\t"
-      + ele / 4 + "\t"
-      + linkdist + "\t"
-      + iCost + "\t"
-      + linkelevationcost
-      + "\t" + linkturncost
-      + "\t" + linknodecost
-      + "\t" + linkinitcost
-      + "\t" + wayKeyValues
-      + "\t" + (nodeKeyValues == null ? "" : nodeKeyValues)
-      + "\t" + ((int) time)
-      + "\t" + ((int) energy);
-  }
-
-  void add(MessageData d) {
-    linkdist += d.linkdist;
-    linkelevationcost += d.linkelevationcost;
-    linkturncost += d.linkturncost;
-    linknodecost += d.linknodecost;
-    linkinitcost += d.linkinitcost;
-  }
-
-  MessageData copy() {
-    try {
-      return (MessageData) clone();
-    } catch (CloneNotSupportedException e) {
-      throw new RuntimeException(e);
+    fun add(d: MessageData) {
+        linkdist += d.linkdist
+        linkelevationcost += d.linkelevationcost
+        linkturncost += d.linkturncost
+        linknodecost += d.linknodecost
+        linkinitcost += d.linkinitcost
     }
-  }
 
-  @Override
-  public String toString() {
-    return "dist=" + linkdist + " prio=" + priorityclassifier + " turn=" + turnangle;
-  }
+    fun copy(): MessageData? {
+        try {
+            return clone() as MessageData?
+        } catch (e: CloneNotSupportedException) {
+            throw RuntimeException(e)
+        }
+    }
 
-  public int getPrio() {
-    return priorityclassifier;
-  }
+    override fun toString(): String {
+        return "dist=" + linkdist + " prio=" + this.priorityclassifier + " turn=" + turnangle
+    }
 
-  public boolean isBadOneway() {
-    return (classifiermask & 1) != 0;
-  }
+    val isBadOneway: Boolean
+        get() = (classifiermask and 1) != 0
 
-  public boolean isGoodOneway() {
-    return (classifiermask & 2) != 0;
-  }
+    val isGoodOneway: Boolean
+        get() = (classifiermask and 2) != 0
 
-  public boolean isRoundabout() {
-    return (classifiermask & 4) != 0;
-  }
+    val isRoundabout: Boolean
+        get() = (classifiermask and 4) != 0
 
-  public boolean isLinktType() {
-    return (classifiermask & 8) != 0;
-  }
+    val isLinktType: Boolean
+        get() = (classifiermask and 8) != 0
 
-  public boolean isGoodForCars() {
-    return (classifiermask & 16) != 0;
-  }
-
+    val isGoodForCars: Boolean
+        get() = (classifiermask and 16) != 0
 }

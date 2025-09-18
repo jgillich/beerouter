@@ -3,10 +3,10 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
 
-final class NodesList {
-  public OsmNode node;
-  public NodesList next;
+internal class NodesList {
+    var node: OsmNode? = null
+    var next: NodesList? = null
 }

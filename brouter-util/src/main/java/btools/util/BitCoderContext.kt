@@ -1,320 +1,327 @@
-package btools.util;
+package btools.util
 
 
-public class BitCoderContext {
-  private byte[] ab;
-  private int idxMax;
-  private int idx = -1;
-  private int bits; // bits left in buffer
-  private int b; // buffer word
+open class BitCoderContext(private var ab: ByteArray) {
+    private var idxMax: Int
+    private var idx = -1
+    private var bits = 0 // bits left in buffer
+    private var b = 0 // buffer word
 
-  public static final int[] vl_values = new int[4096];
-  public static final int[] vl_length = new int[4096];
-
-  private static final int[] vc_values = new int[4096];
-  private static final int[] vc_length = new int[4096];
-
-  private static final int[] reverse_byte = new int[256];
-
-  private static final int[] bm2bits = new int[256];
-
-  static {
-    // fill varbits lookup table
-
-    BitCoderContext bc = new BitCoderContext(new byte[4]);
-    for (int i = 0; i < 4096; i++) {
-      bc.reset();
-      bc.bits = 14;
-      bc.b = 0x1000 + i;
-
-      int b0 = bc.getReadingBitPosition();
-      vl_values[i] = bc.decodeVarBits2();
-      vl_length[i] = bc.getReadingBitPosition() - b0;
+    init {
+        idxMax = ab.size - 1
     }
-    for (int i = 0; i < 4096; i++) {
-      bc.reset();
-      int b0 = bc.getWritingBitPosition();
-      bc.encodeVarBits2(i);
-      vc_values[i] = bc.b;
-      vc_length[i] = bc.getWritingBitPosition() - b0;
+
+    fun reset(ab: ByteArray) {
+        this.ab = ab
+        idxMax = ab.size - 1
+        reset()
     }
-    for (int i = 0; i < 1024; i++) {
-      bc.reset();
-      bc.bits = 14;
-      bc.b = 0x1000 + i;
 
-      int b0 = bc.getReadingBitPosition();
-      vl_values[i] = bc.decodeVarBits2();
-      vl_length[i] = bc.getReadingBitPosition() - b0;
+    fun reset() {
+        idx = -1
+        bits = 0
+        b = 0
     }
-    for (int b = 0; b < 256; b++) {
-      int r = 0;
-      for (int i = 0; i < 8; i++) {
-        if ((b & (1 << i)) != 0) r |= 1 << (7 - i);
-      }
-      reverse_byte[b] = r;
+
+    /**
+     * encode a distance with a variable bit length
+     * (poor mans huffman tree)
+     * `1 -> 0`
+     * `01 -> 1` + following 1-bit word ( 1..2 )
+     * `001 -> 3` + following 2-bit word ( 3..6 )
+     * `0001 -> 7` + following 3-bit word ( 7..14 ) etc.
+     *
+     * @see .decodeVarBits
+     */
+    fun encodeVarBits2(value: Int) {
+        var value = value
+        var range = 0
+        while (value > range) {
+            encodeBit(false)
+            value -= range + 1
+            range = 2 * range + 1
+        }
+        encodeBit(true)
+        encodeBounded(range, value)
     }
-    for (int b = 0; b < 8; b++) {
-      bm2bits[1 << b] = b;
+
+    fun encodeVarBits(value: Int) {
+        if ((value and 0xfff) == value) {
+            flushBuffer()
+            b = b or (vc_values[value] shl bits)
+            bits += vc_length[value]
+        } else {
+            encodeVarBits2(value) // slow fallback for large values
+        }
     }
-  }
 
-
-  public BitCoderContext(byte[] ab) {
-    this.ab = ab;
-    idxMax = ab.length - 1;
-  }
-
-  public final void reset(byte[] ab) {
-    this.ab = ab;
-    idxMax = ab.length - 1;
-    reset();
-  }
-
-  public final void reset() {
-    idx = -1;
-    bits = 0;
-    b = 0;
-  }
-
-  /**
-   * encode a distance with a variable bit length
-   * (poor mans huffman tree)
-   * {@code 1 -> 0}
-   * {@code 01 -> 1} + following 1-bit word ( 1..2 )
-   * {@code 001 -> 3} + following 2-bit word ( 3..6 )
-   * {@code 0001 -> 7} + following 3-bit word ( 7..14 ) etc.
-   *
-   * @see #decodeVarBits
-   */
-  public final void encodeVarBits2(int value) {
-    int range = 0;
-    while (value > range) {
-      encodeBit(false);
-      value -= range + 1;
-      range = 2 * range + 1;
+    /**
+     * @see .encodeVarBits
+     */
+    fun decodeVarBits2(): Int {
+        var range = 0
+        while (!decodeBit()) {
+            range = 2 * range + 1
+        }
+        return range + decodeBounded(range)
     }
-    encodeBit(true);
-    encodeBounded(range, value);
-  }
 
-  public final void encodeVarBits(int value) {
-    if ((value & 0xfff) == value) {
-      flushBuffer();
-      b |= vc_values[value] << bits;
-      bits += vc_length[value];
-    } else {
-      encodeVarBits2(value); // slow fallback for large values
+    fun decodeVarBits(): Int {
+        fillBuffer()
+        val b12 = b and 0xfff
+        val len: Int = vl_length[b12]
+        if (len <= 12) {
+            b = b ushr len
+            bits -= len
+            return vl_values[b12] // full value lookup
+        }
+        if (len <= 23) { // // only length lookup
+            val len2 = len shr 1
+            b = b ushr (len2 + 1)
+            var mask = -0x1 ushr (32 - len2)
+            mask += b and mask
+            b = b ushr len2
+            bits -= len
+            return mask
+        }
+        if ((b and 0xffffff) != 0) {
+            // here we just know len in [25..47]
+            // ( fillBuffer guarantees only 24 bits! )
+            b = b ushr 12
+            val len3: Int = 1 + (vl_length[b and 0xfff] shr 1)
+            b = b ushr len3
+            val len2 = 11 + len3
+            bits -= len2 + 1
+            fillBuffer()
+            var mask = -0x1 ushr (32 - len2)
+            mask += b and mask
+            b = b ushr len2
+            bits -= len2
+            return mask
+        }
+        return decodeVarBits2() // no chance, use the slow one
     }
-  }
-
-  /**
-   * @see #encodeVarBits
-   */
-  public final int decodeVarBits2() {
-    int range = 0;
-    while (!decodeBit()) {
-      range = 2 * range + 1;
-    }
-    return range + decodeBounded(range);
-  }
-
-  public final int decodeVarBits() {
-    fillBuffer();
-    int b12 = b & 0xfff;
-    int len = vl_length[b12];
-    if (len <= 12) {
-      b >>>= len;
-      bits -= len;
-      return vl_values[b12]; // full value lookup
-    }
-    if (len <= 23) { // // only length lookup
-      int len2 = len >> 1;
-      b >>>= (len2 + 1);
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len;
-      return mask;
-    }
-    if ((b & 0xffffff) != 0) {
-      // here we just know len in [25..47]
-      // ( fillBuffer guarantees only 24 bits! )
-      b >>>= 12;
-      int len3 = 1 + (vl_length[b & 0xfff] >> 1);
-      b >>>= len3;
-      int len2 = 11 + len3;
-      bits -= len2 + 1;
-      fillBuffer();
-      int mask = 0xffffffff >>> (32 - len2);
-      mask += b & mask;
-      b >>>= len2;
-      bits -= len2;
-      return mask;
-    }
-    return decodeVarBits2(); // no chance, use the slow one
-  }
 
 
-  public final void encodeBit(boolean value) {
-    if (bits > 31) {
-      ab[++idx] = (byte) (b & 0xff);
-      b >>>= 8;
-      bits -= 8;
+    fun encodeBit(value: Boolean) {
+        if (bits > 31) {
+            ab[++idx] = (b and 0xff).toByte()
+            b = b ushr 8
+            bits -= 8
+        }
+        if (value) {
+            b = b or (1 shl bits)
+        }
+        bits++
     }
-    if (value) {
-      b |= 1 << bits;
+
+    fun decodeBit(): Boolean {
+        if (bits == 0) {
+            bits = 8
+            b = ab[++idx].toInt() and 0xff
+        }
+        val value = ((b and 1) != 0)
+        b = b ushr 1
+        bits--
+        return value
     }
-    bits++;
-  }
 
-  public final boolean decodeBit() {
-    if (bits == 0) {
-      bits = 8;
-      b = ab[++idx] & 0xff;
+    /**
+     * encode an integer in the range 0..max (inclusive).
+     * For max = 2^n-1, this just encodes n bits, but in general
+     * this is variable length encoding, with the shorter codes
+     * for the central value range
+     */
+    fun encodeBounded(max: Int, value: Int) {
+        var max = max
+        var im = 1 // integer mask
+        while (im <= max) {
+            if ((value and im) != 0) {
+                encodeBit(true)
+                max -= im
+            } else {
+                encodeBit(false)
+            }
+            im = im shl 1
+        }
     }
-    boolean value = ((b & 1) != 0);
-    b >>>= 1;
-    bits--;
-    return value;
-  }
 
-  /**
-   * encode an integer in the range 0..max (inclusive).
-   * For max = 2^n-1, this just encodes n bits, but in general
-   * this is variable length encoding, with the shorter codes
-   * for the central value range
-   */
-  public final void encodeBounded(int max, int value) {
-    int im = 1; // integer mask
-    while (im <= max) {
-      if ((value & im) != 0) {
-        encodeBit(true);
-        max -= im;
-      } else {
-        encodeBit(false);
-      }
-      im <<= 1;
+    /**
+     * decode an integer in the range 0..max (inclusive).
+     *
+     * @see .encodeBounded
+     */
+    fun decodeBounded(max: Int): Int {
+        var value = 0
+        var im = 1 // integer mask
+        while ((value or im) <= max) {
+            if (bits == 0) {
+                bits = 8
+                b = ab[++idx].toInt() and 0xff
+            }
+            if ((b and 1) != 0) value = value or im
+            b = b ushr 1
+            bits--
+            im = im shl 1
+        }
+        return value
     }
-  }
 
-  /**
-   * decode an integer in the range 0..max (inclusive).
-   *
-   * @see #encodeBounded
-   */
-  public final int decodeBounded(int max) {
-    int value = 0;
-    int im = 1; // integer mask
-    while ((value | im) <= max) {
-      if (bits == 0) {
-        bits = 8;
-        b = ab[++idx] & 0xff;
-      }
-      if ((b & 1) != 0)
-        value |= im;
-      b >>>= 1;
-      bits--;
-      im <<= 1;
+    fun decodeBits(count: Int): Int {
+        fillBuffer()
+        val mask = -0x1 ushr (32 - count)
+        val value = b and mask
+        b = b ushr count
+        bits -= count
+        return value
     }
-    return value;
-  }
 
-  public final int decodeBits(int count) {
-    fillBuffer();
-    int mask = 0xffffffff >>> (32 - count);
-    int value = b & mask;
-    b >>>= count;
-    bits -= count;
-    return value;
-  }
-
-  public final int decodeBitsReverse(int count) {
-    fillBuffer();
-    int value = 0;
-    while (count > 8) {
-      value = (value << 8) | reverse_byte[b & 0xff];
-      b >>= 8;
-      count -= 8;
-      bits -= 8;
-      fillBuffer();
+    fun decodeBitsReverse(count: Int): Int {
+        var count = count
+        fillBuffer()
+        var value = 0
+        while (count > 8) {
+            value = (value shl 8) or reverse_byte[b and 0xff]
+            b = b shr 8
+            count -= 8
+            bits -= 8
+            fillBuffer()
+        }
+        value = (value shl count) or (reverse_byte[b and 0xff] shr (8 - count))
+        bits -= count
+        b = b shr count
+        return value
     }
-    value = (value << count) | reverse_byte[b & 0xff] >> (8 - count);
-    bits -= count;
-    b >>= count;
-    return value;
-  }
 
-  private void fillBuffer() {
-    while (bits < 24) {
-      if (idx++ < idxMax) {
-        b |= (ab[idx] & 0xff) << bits;
-      }
-      bits += 8;
+    private fun fillBuffer() {
+        while (bits < 24) {
+            if (idx++ < idxMax) {
+                b = b or ((ab[idx].toInt() and 0xff) shl bits)
+            }
+            bits += 8
+        }
     }
-  }
 
-  private void flushBuffer() {
-    while (bits > 7) {
-      ab[++idx] = (byte) (b & 0xff);
-      b >>>= 8;
-      bits -= 8;
+    private fun flushBuffer() {
+        while (bits > 7) {
+            ab[++idx] = (b and 0xff).toByte()
+            b = b ushr 8
+            bits -= 8
+        }
     }
-  }
 
-  /**
-   * flushes and closes the (write-mode) context
-   *
-   * @return the encoded length in bytes
-   */
-  public final int closeAndGetEncodedLength() {
-    flushBuffer();
-    if (bits > 0) {
-      ab[++idx] = (byte) (b & 0xff);
+    /**
+     * flushes and closes the (write-mode) context
+     *
+     * @return the encoded length in bytes
+     */
+    fun closeAndGetEncodedLength(): Int {
+        flushBuffer()
+        if (bits > 0) {
+            ab[++idx] = (b and 0xff).toByte()
+        }
+        return idx + 1
     }
-    return idx + 1;
-  }
 
-  /**
-   * @return the encoded length in bits
-   */
-  public final int getWritingBitPosition() {
-    return (idx << 3) + 8 + bits;
-  }
+    val writingBitPosition: Int
+        /**
+         * @return the encoded length in bits
+         */
+        get() = (idx shl 3) + 8 + bits
 
-  public final int getReadingBitPosition() {
-    return (idx << 3) + 8 - bits;
-  }
+    var readingBitPosition: Int
+        get() = (idx shl 3) + 8 - bits
+        set(pos) {
+            idx = pos ushr 3
+            bits = (idx shl 3) + 8 - pos
+            b = ab[idx].toInt() and 0xff
+            b = b ushr (8 - bits)
+        }
 
-  public final void setReadingBitPosition(int pos) {
-    idx = pos >>> 3;
-    bits = (idx << 3) + 8 - pos;
-    b = ab[idx] & 0xff;
-    b >>>= (8 - bits);
-  }
+    companion object {
+        @JvmField
+        val vl_values: IntArray = IntArray(4096)
 
-  public static void main(String[] args) {
-    byte[] ab = new byte[581969];
-    BitCoderContext ctx = new BitCoderContext(ab);
-    for (int i = 0; i < 31; i++) {
-      ctx.encodeVarBits((1 << i) + 3);
+        @JvmField
+        val vl_length: IntArray = IntArray(4096)
+
+        private val vc_values = IntArray(4096)
+        private val vc_length = IntArray(4096)
+
+        private val reverse_byte = IntArray(256)
+
+        private val bm2bits = IntArray(256)
+
+        init {
+            // fill varbits lookup table
+
+            val bc = BitCoderContext(ByteArray(4))
+            for (i in 0..4095) {
+                bc.reset()
+                bc.bits = 14
+                bc.b = 0x1000 + i
+
+                val b0 = bc.readingBitPosition
+                vl_values[i] = bc.decodeVarBits2()
+                vl_length[i] = bc.readingBitPosition - b0
+            }
+            for (i in 0..4095) {
+                bc.reset()
+                val b0 = bc.writingBitPosition
+                bc.encodeVarBits2(i)
+                vc_values[i] = bc.b
+                vc_length[i] = bc.writingBitPosition - b0
+            }
+            for (i in 0..1023) {
+                bc.reset()
+                bc.bits = 14
+                bc.b = 0x1000 + i
+
+                val b0 = bc.readingBitPosition
+                vl_values[i] = bc.decodeVarBits2()
+                vl_length[i] = bc.readingBitPosition - b0
+            }
+            for (b in 0..255) {
+                var r = 0
+                for (i in 0..7) {
+                    if ((b and (1 shl i)) != 0) r = r or (1 shl (7 - i))
+                }
+                reverse_byte[b] = r
+            }
+            for (b in 0..7) {
+                bm2bits[1 shl b] = b
+            }
+        }
+
+
+        @JvmStatic
+        fun main(args: Array<String>) {
+            val ab = ByteArray(581969)
+            var ctx = BitCoderContext(ab)
+            for (i in 0..30) {
+                ctx.encodeVarBits((1 shl i) + 3)
+            }
+            run {
+                var i = 0
+                while (i < 100000) {
+                    ctx.encodeVarBits(i)
+                    i += 13
+                }
+            }
+            ctx.closeAndGetEncodedLength()
+            ctx = BitCoderContext(ab)
+
+            for (i in 0..30) {
+                val value = ctx.decodeVarBits()
+                val v0 = (1 shl i) + 3
+                if (v0 != value) throw RuntimeException("value mismatch value=" + value + "v0=" + v0)
+            }
+            var i = 0
+            while (i < 100000) {
+                val value = ctx.decodeVarBits()
+                if (value != i) throw RuntimeException("value mismatch i=" + i + "v=" + value)
+                i += 13
+            }
+        }
     }
-    for (int i = 0; i < 100000; i += 13) {
-      ctx.encodeVarBits(i);
-    }
-    ctx.closeAndGetEncodedLength();
-    ctx = new BitCoderContext(ab);
-
-    for (int i = 0; i < 31; i++) {
-      int value = ctx.decodeVarBits();
-      int v0 = (1 << i) + 3;
-      if (v0 != value)
-        throw new RuntimeException("value mismatch value=" + value + "v0=" + v0);
-    }
-    for (int i = 0; i < 100000; i += 13) {
-      int value = ctx.decodeVarBits();
-      if (value != i)
-        throw new RuntimeException("value mismatch i=" + i + "v=" + value);
-    }
-  }
 }

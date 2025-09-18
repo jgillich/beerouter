@@ -1,110 +1,104 @@
-package btools.router;
+package btools.router
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.io.BufferedWriter
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
-public abstract class Formatter {
+abstract class Formatter {
+    var rc: RoutingContext? = null
 
-  static final String MESSAGES_HEADER = "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy";
-
-  RoutingContext rc;
-
-  Formatter() {
-  }
-
-  Formatter(RoutingContext rc) {
-    this.rc = rc;
-  }
-
-  /**
-   * writes the track in gpx-format to a file
-   *
-   * @param filename the filename to write to
-   * @param t        the track to write
-   */
-  public void write(String filename, OsmTrack t) throws Exception {
-    BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
-    bw.write(format(t));
-    bw.close();
-  }
-
-  public OsmTrack read(String filename) throws Exception {
-    return null;
-  }
-
-  /**
-   * writes the track in a selected output format to a string
-   *
-   * @param t the track to format
-   * @return the formatted string
-   */
-  public abstract String format(OsmTrack t);
-
-
-  static String formatILon(int ilon) {
-    return formatPos(ilon - 180000000);
-  }
-
-  static String formatILat(int ilat) {
-    return formatPos(ilat - 90000000);
-  }
-
-  private static String formatPos(int p) {
-    boolean negative = p < 0;
-    if (negative)
-      p = -p;
-    char[] ac = new char[12];
-    int i = 11;
-    while (p != 0 || i > 3) {
-      ac[i--] = (char) ('0' + (p % 10));
-      p /= 10;
-      if (i == 5)
-        ac[i--] = '.';
+    internal constructor(rc: RoutingContext) {
+        this.rc = rc
     }
-    if (negative)
-      ac[i--] = '-';
-    return new String(ac, i + 1, 11 - i);
-  }
 
-  public static String getFormattedTime2(int s) {
-    int seconds = (int) (s + 0.5);
-    int hours = seconds / 3600;
-    int minutes = (seconds - hours * 3600) / 60;
-    seconds = seconds - hours * 3600 - minutes * 60;
-    String time = "";
-    if (hours != 0)
-      time = "" + hours + "h ";
-    if (minutes != 0)
-      time = time + minutes + "m ";
-    if (seconds != 0)
-      time = time + seconds + "s";
-    return time;
-  }
+    /**
+     * writes the track in gpx-format to a file
+     *
+     * @param filename the filename to write to
+     * @param t        the track to write
+     */
+    @Throws(Exception::class)
+    fun write(filename: String, t: OsmTrack) {
+        val bw = BufferedWriter(FileWriter(filename))
+        bw.write(format(t))
+        bw.close()
+    }
 
-  static public String getFormattedEnergy(int energy) {
-    return format1(energy / 3600000.) + "kwh";
-  }
+    @Throws(Exception::class)
+    open fun read(filename: String): OsmTrack? {
+        return null
+    }
 
-  static private String format1(double n) {
-    String s = "" + (long) (n * 10 + 0.5);
-    int len = s.length();
-    return s.substring(0, len - 1) + "." + s.charAt(len - 1);
-  }
+    /**
+     * writes the track in a selected output format to a string
+     *
+     * @param t the track to format
+     * @return the formatted string
+     */
+    abstract fun format(t: OsmTrack): String?
 
 
-  static final String dateformat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    companion object {
+        const val MESSAGES_HEADER: String =
+            "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy"
 
-  static public String getFormattedTime3(float time) {
-    SimpleDateFormat TIMESTAMP_FORMAT = new SimpleDateFormat(dateformat, Locale.US);
-    TIMESTAMP_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-    // yyyy-mm-ddThh:mm:ss.SSSZ
-    Date d = new Date((long) (time * 1000f));
-    return TIMESTAMP_FORMAT.format(d);
-  }
+        fun formatILon(ilon: Int): String {
+            return formatPos(ilon - 180000000)
+        }
+
+        fun formatILat(ilat: Int): String {
+            return formatPos(ilat - 90000000)
+        }
+
+        private fun formatPos(p: Int): String {
+            var p = p
+            val negative = p < 0
+            if (negative) p = -p
+            val ac = CharArray(12)
+            var i = 11
+            while (p != 0 || i > 3) {
+                ac[i--] = ('0'.code + (p % 10)).toChar()
+                p /= 10
+                if (i == 5) ac[i--] = '.'
+            }
+            if (negative) ac[i--] = '-'
+            return String(ac, i + 1, 11 - i)
+        }
+
+        fun getFormattedTime2(s: Int): String {
+            var seconds = (s + 0.5).toInt()
+            val hours = seconds / 3600
+            val minutes = (seconds - hours * 3600) / 60
+            seconds = seconds - hours * 3600 - minutes * 60
+            var time = ""
+            if (hours != 0) time = "" + hours + "h "
+            if (minutes != 0) time = time + minutes + "m "
+            if (seconds != 0) time = time + seconds + "s"
+            return time
+        }
+
+        fun getFormattedEnergy(energy: Int): String {
+            return format1(energy / 3600000.0) + "kwh"
+        }
+
+        private fun format1(n: Double): String {
+            val s = "" + (n * 10 + 0.5).toLong()
+            val len = s.length
+            return s.substring(0, len - 1) + "." + s.get(len - 1)
+        }
 
 
+        const val dateformat: String = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+
+        fun getFormattedTime3(time: Float): String {
+            val TIMESTAMP_FORMAT = SimpleDateFormat(dateformat, Locale.US)
+            TIMESTAMP_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
+            // yyyy-mm-ddThh:mm:ss.SSSZ
+            val d = Date((time * 1000f).toLong())
+            return TIMESTAMP_FORMAT.format(d)
+        }
+    }
 }

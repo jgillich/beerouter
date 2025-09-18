@@ -184,7 +184,8 @@ public class BRouterView extends View {
           public void run() {
             if (!oldMigrationPath.equals(basedir + "/brouter"))
               moveFolders(oldMigrationPath, basedir + "/brouter");
-          }});
+          }
+        });
         t.start();
         try {
           t.join(500);
@@ -250,7 +251,8 @@ public class BRouterView extends View {
         Intent intent = new Intent(getContext(), BInstallerActivity.class);
         getContext().startActivity(intent);
         return;
-      };
+      }
+      ;
 
       if (!RoutingHelper.hasDirectoryAnyDatafiles(segmentDir)) {
         ((BRouterActivity) getContext()).selectProfile(profiles.toArray(new String[0]), false);
@@ -388,7 +390,7 @@ public class BRouterView extends View {
       try {
         cor.readAllPoints();
       } catch (Exception e) {
-        msg = getContext().getString(R.string.msg_read_wpt_error)+  ": " + e;
+        msg = getContext().getString(R.string.msg_read_wpt_error) + ": " + e;
       }
 
       int size = cor.allpoints.size();
@@ -505,7 +507,8 @@ public class BRouterView extends View {
           RoutingParamCollector routingParamCollector = new RoutingParamCollector();
           profileParamsCollection = routingParamCollector.getUrlParams(params);
           routingParamCollector.setProfileParams(rc, profileParamsCollection);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
       }
 
       int plain_distance = 0;

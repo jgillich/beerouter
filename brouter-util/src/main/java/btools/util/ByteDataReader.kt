@@ -3,133 +3,137 @@
  *
  * @author ab
  */
-package btools.util;
+package btools.util
 
 
-public class ByteDataReader {
-  protected byte[] ab;
-  protected int aboffset;
-  protected int aboffsetEnd;
+open class ByteDataReader {
+    @JvmField
+    protected var ab: ByteArray = ByteArray(0)
 
-  public ByteDataReader(byte[] byteArray) {
-    ab = byteArray;
-    aboffsetEnd = ab == null ? 0 : ab.length;
-  }
+    @JvmField
+    protected var aboffset: Int = 0
 
-  public ByteDataReader(byte[] byteArray, int offset) {
-    ab = byteArray;
-    aboffset = offset;
-    aboffsetEnd = ab == null ? 0 : ab.length;
-  }
+    @JvmField
+    protected var aboffsetEnd: Int
 
-  public final void reset(byte[] byteArray) {
-    ab = byteArray;
-    aboffset = 0;
-    aboffsetEnd = ab == null ? 0 : ab.length;
-  }
-
-
-  public final int readInt() {
-    int i3 = ab[aboffset++] & 0xff;
-    int i2 = ab[aboffset++] & 0xff;
-    int i1 = ab[aboffset++] & 0xff;
-    int i0 = ab[aboffset++] & 0xff;
-    return (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
-  }
-
-  public final long readLong() {
-    long i7 = ab[aboffset++] & 0xff;
-    long i6 = ab[aboffset++] & 0xff;
-    long i5 = ab[aboffset++] & 0xff;
-    long i4 = ab[aboffset++] & 0xff;
-    long i3 = ab[aboffset++] & 0xff;
-    long i2 = ab[aboffset++] & 0xff;
-    long i1 = ab[aboffset++] & 0xff;
-    long i0 = ab[aboffset++] & 0xff;
-    return (i7 << 56) + (i6 << 48) + (i5 << 40) + (i4 << 32) + (i3 << 24) + (i2 << 16) + (i1 << 8) + i0;
-  }
-
-  public final boolean readBoolean() {
-    int i0 = ab[aboffset++] & 0xff;
-    return i0 != 0;
-  }
-
-  public final byte readByte() {
-    int i0 = ab[aboffset++] & 0xff;
-    return (byte) (i0);
-  }
-
-  public final short readShort() {
-    int i1 = ab[aboffset++] & 0xff;
-    int i0 = ab[aboffset++] & 0xff;
-    return (short) ((i1 << 8) | i0);
-  }
-
-  /**
-   * Read a size value and return a pointer to the end of a data section of that size
-   *
-   * @return the pointer to the first byte after that section
-   */
-  public final int getEndPointer() {
-    int size = readVarLengthUnsigned();
-    return aboffset + size;
-  }
-
-  public final byte[] readDataUntil(int endPointer) {
-    int size = endPointer - aboffset;
-    if (size == 0) {
-      return null;
+    constructor(byteArray: ByteArray = ByteArray(0)) {
+        ab = byteArray
+        aboffsetEnd = if (ab == null) 0 else ab!!.size
     }
-    byte[] data = new byte[size];
-    readFully(data);
-    return data;
-  }
 
-  public final byte[] readVarBytes() {
-    int len = readVarLengthUnsigned();
-    if (len == 0) {
-      return null;
+    constructor(byteArray: ByteArray, offset: Int) {
+        ab = byteArray
+        aboffset = offset
+        aboffsetEnd = if (ab == null) 0 else ab!!.size
     }
-    byte[] bytes = new byte[len];
-    readFully(bytes);
-    return bytes;
-  }
 
-  public final int readVarLengthSigned() {
-    int v = readVarLengthUnsigned();
-    return (v & 1) == 0 ? v >> 1 : -(v >> 1);
-  }
+    fun reset(byteArray: ByteArray) {
+        ab = byteArray
+        aboffset = 0
+        aboffsetEnd = if (ab == null) 0 else ab!!.size
+    }
 
-  public final int readVarLengthUnsigned() {
-    byte b;
-    int v = (b = ab[aboffset++]) & 0x7f;
-    if (b >= 0) return v;
-    v |= ((b = ab[aboffset++]) & 0x7f) << 7;
-    if (b >= 0) return v;
-    v |= ((b = ab[aboffset++]) & 0x7f) << 14;
-    if (b >= 0) return v;
-    v |= ((b = ab[aboffset++]) & 0x7f) << 21;
-    if (b >= 0) return v;
-    v |= ((b = ab[aboffset++]) & 0xf) << 28;
-    return v;
-  }
 
-  public final void readFully(byte[] ta) {
-    System.arraycopy(ab, aboffset, ta, 0, ta.length);
-    aboffset += ta.length;
-  }
+    fun readInt(): Int {
+        val i3 = ab!![aboffset++].toInt() and 0xff
+        val i2 = ab!![aboffset++].toInt() and 0xff
+        val i1 = ab!![aboffset++].toInt() and 0xff
+        val i0 = ab!![aboffset++].toInt() and 0xff
+        return (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
+    }
 
-  public final boolean hasMoreData() {
-    return aboffset < aboffsetEnd;
-  }
+    fun readLong(): Long {
+        val i7 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i6 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i5 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i4 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i3 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i2 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i1 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i0 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        return (i7 shl 56) + (i6 shl 48) + (i5 shl 40) + (i4 shl 32) + (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
+    }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder("[");
-    for (int i = 0; i < ab.length; i++)
-      sb.append(i == 0 ? " " : ", ").append(Integer.toString(ab[i]));
-    sb.append(" ]");
-    return sb.toString();
-  }
+    fun readBoolean(): Boolean {
+        val i0 = ab!![aboffset++].toInt() and 0xff
+        return i0 != 0
+    }
 
+    fun readByte(): Byte {
+        val i0 = ab!![aboffset++].toInt() and 0xff
+        return (i0).toByte()
+    }
+
+    fun readShort(): Short {
+        val i1 = ab!![aboffset++].toInt() and 0xff
+        val i0 = ab!![aboffset++].toInt() and 0xff
+        return ((i1 shl 8) or i0).toShort()
+    }
+
+    val endPointer: Int
+        /**
+         * Read a size value and return a pointer to the end of a data section of that size
+         *
+         * @return the pointer to the first byte after that section
+         */
+        get() {
+            val size = readVarLengthUnsigned()
+            return aboffset + size
+        }
+
+    fun readDataUntil(endPointer: Int): ByteArray? {
+        val size = endPointer - aboffset
+        if (size == 0) {
+            return null
+        }
+        val data = ByteArray(size)
+        readFully(data)
+        return data
+    }
+
+    fun readVarBytes(): ByteArray? {
+        val len = readVarLengthUnsigned()
+        if (len == 0) {
+            return null
+        }
+        val bytes = ByteArray(len)
+        readFully(bytes)
+        return bytes
+    }
+
+    fun readVarLengthSigned(): Int {
+        val v = readVarLengthUnsigned()
+        return if ((v and 1) == 0) v shr 1 else -(v shr 1)
+    }
+
+    fun readVarLengthUnsigned(): Int {
+        var b: Byte
+        var v = (ab[aboffset++].also { b = it }).toInt() and 0x7f
+        if (b >= 0) return v
+        v = v or (((ab[aboffset++].also { b = it }).toInt() and 0x7f) shl 7)
+        if (b >= 0) return v
+        v = v or (((ab[aboffset++].also { b = it }).toInt() and 0x7f) shl 14)
+        if (b >= 0) return v
+        v = v or (((ab[aboffset++].also { b = it }).toInt() and 0x7f) shl 21)
+        if (b >= 0) return v
+        v = v or (((ab[aboffset++].also { b = it }).toInt() and 0xf) shl 28)
+        return v
+    }
+
+    fun readFully(ta: ByteArray) {
+        System.arraycopy(ab, aboffset, ta, 0, ta.size)
+        aboffset += ta.size
+    }
+
+    fun hasMoreData(): Boolean {
+        return aboffset < aboffsetEnd
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder("[")
+        for (i in ab.indices) sb.append(if (i == 0) " " else ", ")
+            .append(ab[i].toInt().toString())
+        sb.append(" ]")
+        return sb.toString()
+    }
 }

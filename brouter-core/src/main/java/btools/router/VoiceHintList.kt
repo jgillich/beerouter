@@ -4,58 +4,52 @@
  *
  * @author ab
  */
-package btools.router;
+package btools.router
 
-import java.util.ArrayList;
-import java.util.List;
+class VoiceHintList {
+    private var transportMode: Int = TRANS_MODE_BIKE
+    var turnInstructionMode: Int = 0
+    var list: MutableList<VoiceHint> = ArrayList<VoiceHint>()
 
-public class VoiceHintList {
-
-  static final int TRANS_MODE_NONE = 0;
-  static final int TRANS_MODE_FOOT = 1;
-  static final int TRANS_MODE_BIKE = 2;
-  static final int TRANS_MODE_CAR  = 3;
-
-  private int transportMode = TRANS_MODE_BIKE;
-  int turnInstructionMode;
-  List<VoiceHint> list = new ArrayList<>();
-
-  public void setTransportMode(boolean isCar, boolean isBike) {
-    transportMode = isCar ? TRANS_MODE_CAR : (isBike ? TRANS_MODE_BIKE : TRANS_MODE_FOOT);
-  }
-
-  public void setTransportMode(int mode) {
-    transportMode = mode;
-  }
-
-  public String getTransportMode() {
-    String ret;
-    switch (transportMode) {
-      case TRANS_MODE_FOOT:
-        ret = "foot";
-        break;
-      case TRANS_MODE_CAR:
-        ret = "car";
-        break;
-      case TRANS_MODE_BIKE:
-      default:
-        ret = "bike";
-        break;
+    fun setTransportMode(isCar: Boolean, isBike: Boolean) {
+        transportMode =
+            if (isCar) TRANS_MODE_CAR else (if (isBike) TRANS_MODE_BIKE else TRANS_MODE_FOOT)
     }
-    return ret;
-  }
 
-  public int transportMode() {
-    return transportMode;
-  }
+    fun setTransportMode(mode: Int) {
+        transportMode = mode
+    }
 
-  public int getLocusRouteType() {
-    if (transportMode == TRANS_MODE_CAR) {
-      return 0;
+    fun getTransportMode(): String {
+        val ret: String
+        when (transportMode) {
+            TRANS_MODE_FOOT -> ret = "foot"
+            TRANS_MODE_CAR -> ret = "car"
+            TRANS_MODE_BIKE -> ret = "bike"
+            else -> ret = "bike"
+        }
+        return ret
     }
-    if (transportMode == TRANS_MODE_BIKE) {
-      return 5;
+
+    fun transportMode(): Int {
+        return transportMode
     }
-    return 3; // foot
-  }
+
+    val locusRouteType: Int
+        get() {
+            if (transportMode == TRANS_MODE_CAR) {
+                return 0
+            }
+            if (transportMode == TRANS_MODE_BIKE) {
+                return 5
+            }
+            return 3 // foot
+        }
+
+    companion object {
+        const val TRANS_MODE_NONE: Int = 0
+        const val TRANS_MODE_FOOT: Int = 1
+        const val TRANS_MODE_BIKE: Int = 2
+        const val TRANS_MODE_CAR: Int = 3
+    }
 }

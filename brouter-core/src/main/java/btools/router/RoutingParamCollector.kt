@@ -1,371 +1,401 @@
-package btools.router;
+package btools.router
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.UnsupportedEncodingException
+import java.net.URLDecoder
+import java.util.Locale
+import java.util.StringTokenizer
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
+class RoutingParamCollector {
+    private val logger: Logger = LoggerFactory.getLogger(RoutingParamCollector::class.java)
 
-public class RoutingParamCollector {
-  private Logger logger = LoggerFactory.getLogger(RoutingParamCollector.class);
+    /**
+     * get a list of points and optional extra info for the points
+     *
+     * @param lonLats linked list separated by ';' or '|'
+     * @return a list
+     */
+    fun getWayPointList(lonLats: String): MutableList<OsmNodeNamed?> {
+        val coords = lonLats.split(";|\\|".toRegex()).dropLastWhile { it.isEmpty() }
+            .toTypedArray() // use both variantes
+        require(!(coords.size < 1 || !coords[0].contains(","))) { "we need one lat/lon point at least!" }
 
-  /**
-   * get a list of points and optional extra info for the points
-   *
-   * @param lonLats linked list separated by ';' or '|'
-   * @return a list
-   */
-  public List<OsmNodeNamed> getWayPointList(String lonLats) {
-    if (lonLats == null) throw new IllegalArgumentException("lonlats parameter not set");
-
-    String[] coords = lonLats.split(";|\\|"); // use both variantes
-    if (coords.length < 1 || !coords[0].contains(","))
-      throw new IllegalArgumentException("we need one lat/lon point at least!");
-
-    List<OsmNodeNamed> wplist = new ArrayList<>();
-    for (int i = 0; i < coords.length; i++) {
-      String[] lonLat = coords[i].split(",");
-      if (lonLat.length < 1)
-        throw new IllegalArgumentException("we need one lat/lon point at least!");
-      wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i));
-      if (lonLat.length > 2) {
-        if (lonLat[2].equals("d")) {
-          wplist.get(wplist.size() - 1).direct = true;
-        } else {
-          wplist.get(wplist.size() - 1).name = lonLat[2];
-        }
-      }
-    }
-
-    if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
-    if (wplist.get(wplist.size() - 1).name.startsWith("via")) {
-      wplist.get(wplist.size() - 1).name = "to";
-    }
-
-    return wplist;
-  }
-
-  /**
-   * get a list of points (old style, positions only)
-   *
-   * @param lons array with longitudes
-   * @param lats array with latitudes
-   * @return a list
-   */
-  public List<OsmNodeNamed> readPositions(double[] lons, double[] lats) {
-    List<OsmNodeNamed> wplist = new ArrayList<>();
-
-    if (lats == null || lats.length < 2 || lons == null || lons.length < 2) {
-      return wplist;
-    }
-
-    for (int i = 0; i < lats.length && i < lons.length; i++) {
-      OsmNodeNamed n = new OsmNodeNamed();
-      n.name = "via" + i;
-      n.ilon = (int) ((lons[i] + 180.) * 1000000. + 0.5);
-      n.ilat = (int) ((lats[i] + 90.) * 1000000. + 0.5);
-      wplist.add(n);
-    }
-
-    if (wplist.get(0).name.startsWith("via")) wplist.get(0).name = "from";
-    if (wplist.get(wplist.size() - 1).name.startsWith("via")) {
-      wplist.get(wplist.size() - 1).name = "to";
-    }
-
-    return wplist;
-  }
-
-  private OsmNodeNamed readPosition(String vlon, String vlat, String name) {
-    if (vlon == null) throw new IllegalArgumentException("lon " + name + " not found in input");
-    if (vlat == null) throw new IllegalArgumentException("lat " + name + " not found in input");
-
-    return readPosition(Double.parseDouble(vlon), Double.parseDouble(vlat), name);
-  }
-
-  private OsmNodeNamed readPosition(double lon, double lat, String name) {
-    OsmNodeNamed n = new OsmNodeNamed();
-    n.name = name;
-    n.ilon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.ilat = (int) ((lat + 90.) * 1000000. + 0.5);
-    return n;
-  }
-
-  /**
-   * read a url like parameter list linked with '&'
-   *
-   * @param url parameter list
-   * @return a hashmap of the parameter
-   * @throws UnsupportedEncodingException
-   */
-  public Map<String, String> getUrlParams(String url) throws UnsupportedEncodingException {
-    Map<String, String> params = new HashMap<>();
-    String decoded = URLDecoder.decode(url, "UTF-8");
-    StringTokenizer tk = new StringTokenizer(decoded, "?&");
-    while (tk.hasMoreTokens()) {
-      String t = tk.nextToken();
-      StringTokenizer tk2 = new StringTokenizer(t, "=");
-      if (tk2.hasMoreTokens()) {
-        String key = tk2.nextToken();
-        if (tk2.hasMoreTokens()) {
-          String value = tk2.nextToken();
-          params.put(key, value);
-        }
-      }
-    }
-    return params;
-  }
-
-  /**
-   * fill a parameter map into the routing context
-   *
-   * @param rctx   the context
-   * @param wplist the list of way points needed for 'straight' parameter
-   * @param params the list of parameters
-   */
-  public void setParams(RoutingContext rctx, List<OsmNodeNamed> wplist, Map<String, String> params) {
-    if (params != null) {
-      if (params.size() == 0) return;
-
-      // prepare nogos extra
-      if (params.containsKey("profile")) {
-        rctx.localFunction = params.get("profile");
-      }
-      if (params.containsKey("nogoLats") && params.get("nogoLats").length() > 0) {
-        List<OsmNodeNamed> nogoList = readNogos(params.get("nogoLons"), params.get("nogoLats"), params.get("nogoRadi"));
-        if (nogoList != null) {
-          RoutingContext.prepareNogoPoints(nogoList);
-          if (rctx.nogopoints == null) {
-            rctx.nogopoints = nogoList;
-          } else {
-            rctx.nogopoints.addAll(nogoList);
-          }
-        }
-        params.remove("nogoLats");
-        params.remove("nogoLons");
-        params.remove("nogoRadi");
-      }
-      if (params.containsKey("nogos")) {
-        List<OsmNodeNamed> nogoList = readNogoList(params.get("nogos"));
-        if (nogoList != null) {
-          RoutingContext.prepareNogoPoints(nogoList);
-          if (rctx.nogopoints == null) {
-            rctx.nogopoints = nogoList;
-          } else {
-            rctx.nogopoints.addAll(nogoList);
-          }
-        }
-        params.remove("nogos");
-      }
-      if (params.containsKey("polylines")) {
-        List<OsmNodeNamed> result = new ArrayList<>();
-        parseNogoPolygons(params.get("polylines"), result, false);
-        if (rctx.nogopoints == null) {
-          rctx.nogopoints = result;
-        } else {
-          rctx.nogopoints.addAll(result);
-        }
-        params.remove("polylines");
-      }
-      if (params.containsKey("polygons")) {
-        List<OsmNodeNamed> result = new ArrayList<>();
-        parseNogoPolygons(params.get("polygons"), result, true);
-        if (rctx.nogopoints == null) {
-          rctx.nogopoints = result;
-        } else {
-          rctx.nogopoints.addAll(result);
-        }
-        params.remove("polygons");
-      }
-
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        String key = e.getKey();
-        String value = e.getValue();
-        logger.debug("params key={} value={}", key, value);
-
-        if (key.equals("straight")) {
-          try {
-            String[] sa = value.split(",");
-            for (int i = 0; i < sa.length; i++) {
-              int v = Integer.parseInt(sa[i]);
-              if (wplist.size() > v) wplist.get(v).direct = true;
+        val wplist: MutableList<OsmNodeNamed?> = ArrayList<OsmNodeNamed?>()
+        for (i in coords.indices) {
+            val lonLat =
+                coords[i].split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            require(lonLat.size >= 1) { "we need one lat/lon point at least!" }
+            wplist.add(readPosition(lonLat[0], lonLat[1], "via" + i))
+            if (lonLat.size > 2) {
+                if (lonLat[2] == "d") {
+                    wplist.get(wplist.size - 1)!!.direct = true
+                } else {
+                    wplist.get(wplist.size - 1)!!.name = lonLat[2]
+                }
             }
-          } catch (Exception ex) {
-            logger.error("error {}", ex.getStackTrace()[0].getLineNumber(), ex);
-          }
-        } else if (key.equals("pois")) {
-          rctx.poipoints = readPoisList(value);
-        } else if (key.equals("heading")) {
-          rctx.startDirection = Integer.valueOf(value);
-          rctx.forceUseStartDirection = true;
-        } else if (key.equals("direction")) {
-          rctx.startDirection = Integer.valueOf(value);
-        } else if (key.equals("roundTripDistance")) {
-          rctx.roundTripDistance = Integer.valueOf(value);
-        } else if (key.equals("roundTripDirectionAdd")) {
-          rctx.roundTripDirectionAdd = Integer.valueOf(value);
-        } else if (key.equals("roundTripPoints")) {
-          rctx.roundTripPoints = Integer.valueOf(value);
-          if (rctx.roundTripPoints == null || rctx.roundTripPoints < 3 || rctx.roundTripPoints > 20) {
-            rctx.roundTripPoints = 5;
-          }
-        } else if (key.equals("allowSamewayback")) {
-          rctx.allowSamewayback = Integer.parseInt(value) == 1;
-        } else if (key.equals("alternativeidx")) {
-          rctx.setAlternativeIdx(Integer.parseInt(value));
-        } else if (key.equals("turnInstructionMode")) {
-          rctx.turnInstructionMode = Integer.parseInt(value);
-        } else if (key.equals("timode")) {
-          rctx.turnInstructionMode = Integer.parseInt(value);
-        } else if (key.equals("turnInstructionFormat")) {
-          if ("osmand".equalsIgnoreCase(value)) {
-            rctx.turnInstructionMode = 3;
-          } else if ("locus".equalsIgnoreCase(value)) {
-            rctx.turnInstructionMode = 2;
-          }
-        } else if (key.equals("exportWaypoints")) {
-          rctx.exportWaypoints = (Integer.parseInt(value) == 1);
-        } else if (key.equals("exportCorrectedWaypoints")) {
-          rctx.exportCorrectedWaypoints = (Integer.parseInt(value) == 1);
-        } else if (key.equals("format")) {
-          rctx.outputFormat = ((String) value).toLowerCase();
-        } else if (key.equals("trackFormat")) {
-          rctx.outputFormat = ((String) value).toLowerCase();
-        } else if (key.startsWith("profile:")) {
-          if (rctx.keyValues == null) rctx.keyValues = new HashMap<>();
-          rctx.keyValues.put(key.substring(8), value);
         }
-        // ignore other params
-      }
-    }
-  }
 
-  /**
-   * fill profile parameter list
-   *
-   * @param rctx   the routing context
-   * @param params the list of parameters
-   */
-  public void setProfileParams(RoutingContext rctx, Map<String, String> params) {
-    if (params != null) {
-      if (params.size() == 0) return;
-      if (rctx.keyValues == null) rctx.keyValues = new HashMap<>();
-      for (Map.Entry<String, String> e : params.entrySet()) {
-        String key = e.getKey();
-        String value = e.getValue();
-        logger.debug("params key={} value={}", key, value);
-        rctx.keyValues.put(key, value);
-      }
-    }
-  }
-
-  private void parseNogoPolygons(String polygons, List<OsmNodeNamed> result, boolean closed) {
-    if (polygons != null) {
-      String[] polygonList = polygons.split("\\|");
-      for (int i = 0; i < polygonList.length; i++) {
-        String[] lonLatList = polygonList[i].split(",");
-        if (lonLatList.length > 1) {
-          OsmNogoPolygon polygon = new OsmNogoPolygon(closed);
-          int j;
-          for (j = 0; j < 2 * (lonLatList.length / 2) - 1; ) {
-            String slon = lonLatList[j++];
-            String slat = lonLatList[j++];
-            int lon = (int) ((Double.parseDouble(slon) + 180.) * 1000000. + 0.5);
-            int lat = (int) ((Double.parseDouble(slat) + 90.) * 1000000. + 0.5);
-            polygon.addVertex(lon, lat);
-          }
-
-          String nogoWeight = "NaN";
-          if (j < lonLatList.length) {
-            nogoWeight = lonLatList[j];
-          }
-          polygon.nogoWeight = Double.parseDouble(nogoWeight);
-          if (polygon.points.size() > 0) {
-            polygon.calcBoundingCircle();
-            result.add(polygon);
-          }
+        if (wplist.get(0)!!.name!!.startsWith("via")) wplist.get(0)!!.name = "from"
+        if (wplist.get(wplist.size - 1)!!.name!!.startsWith("via")) {
+            wplist.get(wplist.size - 1)!!.name = "to"
         }
-      }
-    }
-  }
 
-  public List<OsmNodeNamed> readPoisList(String pois) {
-    // lon,lat,name|...
-    if (pois == null) return null;
-
-    String[] lonLatNameList = pois.split("\\|");
-
-    List<OsmNodeNamed> poisList = new ArrayList<>();
-    for (int i = 0; i < lonLatNameList.length; i++) {
-      String[] lonLatName = lonLatNameList[i].split(",");
-
-      if (lonLatName.length != 3)
-        continue;
-
-      OsmNodeNamed n = new OsmNodeNamed();
-      n.ilon = (int) ((Double.parseDouble(lonLatName[0]) + 180.) * 1000000. + 0.5);
-      n.ilat = (int) ((Double.parseDouble(lonLatName[1]) + 90.) * 1000000. + 0.5);
-      n.name = lonLatName[2];
-      poisList.add(n);
+        return wplist
     }
 
-    return poisList;
-  }
+    /**
+     * get a list of points (old style, positions only)
+     *
+     * @param lons array with longitudes
+     * @param lats array with latitudes
+     * @return a list
+     */
+    fun readPositions(lons: DoubleArray?, lats: DoubleArray?): MutableList<OsmNodeNamed?> {
+        val wplist: MutableList<OsmNodeNamed?> = ArrayList<OsmNodeNamed?>()
 
-  public List<OsmNodeNamed> readNogoList(String nogos) {
-    // lon,lat,radius[,weight]|...
+        if (lats == null || lats.size < 2 || lons == null || lons.size < 2) {
+            return wplist
+        }
 
-    if (nogos == null) return null;
+        var i = 0
+        while (i < lats.size && i < lons.size) {
+            val n = OsmNodeNamed()
+            n.name = "via" + i
+            n.iLon = ((lons[i] + 180.0) * 1000000.0 + 0.5).toInt()
+            n.iLat = ((lats[i] + 90.0) * 1000000.0 + 0.5).toInt()
+            wplist.add(n)
+            i++
+        }
 
-    String[] lonLatRadList = nogos.split("\\|");
+        if (wplist.get(0)!!.name!!.startsWith("via")) wplist.get(0)!!.name = "from"
+        if (wplist.get(wplist.size - 1)!!.name!!.startsWith("via")) {
+            wplist.get(wplist.size - 1)!!.name = "to"
+        }
 
-    List<OsmNodeNamed> nogoList = new ArrayList<>();
-    for (int i = 0; i < lonLatRadList.length; i++) {
-      String[] lonLatRad = lonLatRadList[i].split(",");
-      String nogoWeight = "NaN";
-      if (lonLatRad.length > 3) {
-        nogoWeight = lonLatRad[3];
-      }
-      nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2], nogoWeight));
+        return wplist
     }
 
-    return nogoList;
-  }
+    private fun readPosition(vlon: String, vlat: String, name: String?): OsmNodeNamed {
+        requireNotNull(vlon) { "lon " + name + " not found in input" }
+        requireNotNull(vlat) { "lat " + name + " not found in input" }
 
-  public List<OsmNodeNamed> readNogos(String nogoLons, String nogoLats, String nogoRadi) {
-    if (nogoLons == null || nogoLats == null || nogoRadi == null) return null;
-    List<OsmNodeNamed> nogoList = new ArrayList<>();
-
-    String[] lons = nogoLons.split(",");
-    String[] lats = nogoLats.split(",");
-    String[] radi = nogoRadi.split(",");
-    String nogoWeight = "undefined";
-    for (int i = 0; i < lons.length && i < lats.length && i < radi.length; i++) {
-      OsmNodeNamed n = readNogo(lons[i].trim(), lats[i].trim(), radi[i].trim(), nogoWeight);
-      nogoList.add(n);
+        return readPosition(vlon.toDouble(), vlat.toDouble(), name)
     }
-    return nogoList;
-  }
+
+    private fun readPosition(lon: Double, lat: Double, name: String?): OsmNodeNamed {
+        val n = OsmNodeNamed()
+        n.name = name
+        n.iLon = ((lon + 180.0) * 1000000.0 + 0.5).toInt()
+        n.iLat = ((lat + 90.0) * 1000000.0 + 0.5).toInt()
+        return n
+    }
+
+    /**
+     * read a url like parameter list linked with '&'
+     *
+     * @param url parameter list
+     * @return a hashmap of the parameter
+     * @throws UnsupportedEncodingException
+     */
+    @Throws(UnsupportedEncodingException::class)
+    fun getUrlParams(url: String): MutableMap<String?, String?> {
+        val params: MutableMap<String?, String?> = HashMap<String?, String?>()
+        val decoded = URLDecoder.decode(url, "UTF-8")
+        val tk = StringTokenizer(decoded, "?&")
+        while (tk.hasMoreTokens()) {
+            val t = tk.nextToken()
+            val tk2 = StringTokenizer(t, "=")
+            if (tk2.hasMoreTokens()) {
+                val key = tk2.nextToken()
+                if (tk2.hasMoreTokens()) {
+                    val value = tk2.nextToken()
+                    params.put(key, value)
+                }
+            }
+        }
+        return params
+    }
+
+    /**
+     * fill a parameter map into the routing context
+     *
+     * @param rctx   the context
+     * @param wplist the list of way points needed for 'straight' parameter
+     * @param params the list of parameters
+     */
+    fun setParams(
+        rctx: RoutingContext,
+        wplist: MutableList<OsmNodeNamed?>,
+        params: MutableMap<String?, String?>?
+    ) {
+        if (params != null) {
+            if (params.size == 0) return
+
+            // prepare nogos extra
+            if (params.containsKey("profile")) {
+                rctx.localFunction = params.get("profile")
+            }
+            if (params.containsKey("nogoLats") && params.get("nogoLats")!!.length > 0) {
+                val nogoList = readNogos(
+                    params.get("nogoLons"),
+                    params.get("nogoLats"),
+                    params.get("nogoRadi")
+                )
+                if (nogoList != null) {
+                    RoutingContext.Companion.prepareNogoPoints(nogoList)
+                    if (rctx.nogopoints == null) {
+                        rctx.nogopoints = nogoList
+                    } else {
+                        rctx.nogopoints.addAll(nogoList)
+                    }
+                }
+                params.remove("nogoLats")
+                params.remove("nogoLons")
+                params.remove("nogoRadi")
+            }
+            if (params.containsKey("nogos")) {
+                val nogoList = readNogoList(params.get("nogos"))
+                if (nogoList != null) {
+                    RoutingContext.Companion.prepareNogoPoints(nogoList)
+                    if (rctx.nogopoints == null) {
+                        rctx.nogopoints = nogoList
+                    } else {
+                        rctx.nogopoints.addAll(nogoList)
+                    }
+                }
+                params.remove("nogos")
+            }
+            if (params.containsKey("polylines")) {
+                val result: MutableList<OsmNodeNamed> = ArrayList()
+                parseNogoPolygons(params.get("polylines"), result, false)
+                if (rctx.nogopoints == null) {
+                    rctx.nogopoints = result
+                } else {
+                    rctx.nogopoints.addAll(result)
+                }
+                params.remove("polylines")
+            }
+            if (params.containsKey("polygons")) {
+                val result: MutableList<OsmNodeNamed> = ArrayList<OsmNodeNamed>()
+                parseNogoPolygons(params.get("polygons"), result, true)
+                if (rctx.nogopoints == null) {
+                    rctx.nogopoints = result
+                } else {
+                    rctx.nogopoints.addAll(result)
+                }
+                params.remove("polygons")
+            }
+
+            for (e in params.entries) {
+                val key: String = e.key!!
+                val value: String = e.value!!
+                logger.debug("params key={} value={}", key, value)
+
+                if (key == "straight") {
+                    try {
+                        val sa =
+                            value.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                        for (i in sa.indices) {
+                            val v = sa[i].toInt()
+                            if (wplist.size > v) wplist.get(v)!!.direct = true
+                        }
+                    } catch (ex: Exception) {
+                        logger.error("error {}", ex.getStackTrace()[0].getLineNumber(), ex)
+                    }
+                } else if (key == "pois") {
+                    rctx.poipoints = readPoisList(value)!!
+                } else if (key == "heading") {
+                    rctx.startDirection = value.toInt()
+                    rctx.forceUseStartDirection = true
+                } else if (key == "direction") {
+                    rctx.startDirection = value.toInt()
+                } else if (key == "roundTripDistance") {
+                    rctx.roundTripDistance = value.toInt()
+                } else if (key == "roundTripDirectionAdd") {
+                    rctx.roundTripDirectionAdd = value.toInt()
+                } else if (key == "roundTripPoints") {
+                    rctx.roundTripPoints = value.toInt()
+                    if (rctx.roundTripPoints == null || rctx.roundTripPoints!! < 3 || rctx.roundTripPoints!! > 20) {
+                        rctx.roundTripPoints = 5
+                    }
+                } else if (key == "allowSamewayback") {
+                    rctx.allowSamewayback = value.toInt() == 1
+                } else if (key == "alternativeidx") {
+                    rctx.alternativeIdx = (value.toInt())
+                } else if (key == "turnInstructionMode") {
+                    rctx.turnInstructionMode = value.toInt()
+                } else if (key == "timode") {
+                    rctx.turnInstructionMode = value.toInt()
+                } else if (key == "turnInstructionFormat") {
+                    if ("osmand".equals(value, ignoreCase = true)) {
+                        rctx.turnInstructionMode = 3
+                    } else if ("locus".equals(value, ignoreCase = true)) {
+                        rctx.turnInstructionMode = 2
+                    }
+                } else if (key == "exportWaypoints") {
+                    rctx.exportWaypoints = (value.toInt() == 1)
+                } else if (key == "exportCorrectedWaypoints") {
+                    rctx.exportCorrectedWaypoints = (value.toInt() == 1)
+                } else if (key == "format") {
+                    rctx.outputFormat = value.lowercase(Locale.getDefault())
+                } else if (key == "trackFormat") {
+                    rctx.outputFormat = value.lowercase(Locale.getDefault())
+                } else if (key.startsWith("profile:")) {
+                    if (rctx.keyValues == null) rctx.keyValues = HashMap<String?, String?>()
+                    rctx.keyValues!!.put(key.substring(8), value)
+                }
+                // ignore other params
+            }
+        }
+    }
+
+    /**
+     * fill profile parameter list
+     *
+     * @param rctx   the routing context
+     * @param params the list of parameters
+     */
+    fun setProfileParams(rctx: RoutingContext, params: MutableMap<String?, String?>?) {
+        if (params != null) {
+            if (params.size == 0) return
+            if (rctx.keyValues == null) rctx.keyValues = HashMap<String?, String?>()
+            for (e in params.entries) {
+                val key = e.key
+                val value = e.value
+                logger.debug("params key={} value={}", key, value)
+                rctx.keyValues!!.put(key, value)
+            }
+        }
+    }
+
+    private fun parseNogoPolygons(
+        polygons: String?,
+        result: MutableList<OsmNodeNamed>,
+        closed: Boolean
+    ) {
+        if (polygons != null) {
+            val polygonList =
+                polygons.split("\\|".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            for (i in polygonList.indices) {
+                val lonLatList = polygonList[i].split(",".toRegex()).dropLastWhile { it.isEmpty() }
+                    .toTypedArray()
+                if (lonLatList.size > 1) {
+                    val polygon = OsmNogoPolygon(closed)
+                    var j: Int
+                    j = 0
+                    while (j < 2 * (lonLatList.size / 2) - 1) {
+                        val slon = lonLatList[j++]
+                        val slat = lonLatList[j++]
+                        val lon = ((slon.toDouble() + 180.0) * 1000000.0 + 0.5).toInt()
+                        val lat = ((slat.toDouble() + 90.0) * 1000000.0 + 0.5).toInt()
+                        polygon.addVertex(lon, lat)
+                    }
+
+                    var nogoWeight = "NaN"
+                    if (j < lonLatList.size) {
+                        nogoWeight = lonLatList[j]
+                    }
+                    polygon.nogoWeight = nogoWeight.toDouble()
+                    if (polygon.points.size > 0) {
+                        polygon.calcBoundingCircle()
+                        result.add(polygon)
+                    }
+                }
+            }
+        }
+    }
+
+    fun readPoisList(pois: String?): MutableList<OsmNodeNamed>? {
+        // lon,lat,name|...
+        if (pois == null) return null
+
+        val lonLatNameList =
+            pois.split("\\|".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+
+        val poisList: MutableList<OsmNodeNamed> = ArrayList()
+        for (i in lonLatNameList.indices) {
+            val lonLatName =
+                lonLatNameList[i].split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+
+            if (lonLatName.size != 3) continue
+
+            val n = OsmNodeNamed()
+            n.iLon = ((lonLatName[0].toDouble() + 180.0) * 1000000.0 + 0.5).toInt()
+            n.iLat = ((lonLatName[1].toDouble() + 90.0) * 1000000.0 + 0.5).toInt()
+            n.name = lonLatName[2]
+            poisList.add(n)
+        }
+
+        return poisList
+    }
+
+    fun readNogoList(nogos: String?): MutableList<OsmNodeNamed>? {
+        // lon,lat,radius[,weight]|...
+
+        if (nogos == null) return null
+
+        val lonLatRadList =
+            nogos.split("\\|".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+
+        val nogoList: MutableList<OsmNodeNamed> = ArrayList()
+        for (i in lonLatRadList.indices) {
+            val lonLatRad =
+                lonLatRadList[i].split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            var nogoWeight = "NaN"
+            if (lonLatRad.size > 3) {
+                nogoWeight = lonLatRad[3]
+            }
+            nogoList.add(readNogo(lonLatRad[0], lonLatRad[1], lonLatRad[2], nogoWeight))
+        }
+
+        return nogoList
+    }
+
+    fun readNogos(
+        nogoLons: String?,
+        nogoLats: String?,
+        nogoRadi: String?
+    ): MutableList<OsmNodeNamed>? {
+        if (nogoLons == null || nogoLats == null || nogoRadi == null) return null
+        val nogoList: MutableList<OsmNodeNamed> = ArrayList()
+
+        val lons = nogoLons.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val lats = nogoLats.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val radi = nogoRadi.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val nogoWeight = "undefined"
+        var i = 0
+        while (i < lons.size && i < lats.size && i < radi.size) {
+            val n = readNogo(
+                lons[i].trim { it <= ' ' },
+                lats[i].trim { it <= ' ' },
+                radi[i].trim { it <= ' ' },
+                nogoWeight
+            )
+            nogoList.add(n)
+            i++
+        }
+        return nogoList
+    }
 
 
-  private OsmNodeNamed readNogo(String lon, String lat, String radius, String nogoWeight) {
-    double weight = "undefined".equals(nogoWeight) ? Double.NaN : Double.parseDouble(nogoWeight);
-    return readNogo(Double.parseDouble(lon), Double.parseDouble(lat), (int) Double.parseDouble(radius), weight);
-  }
+    private fun readNogo(
+        lon: String,
+        lat: String,
+        radius: String,
+        nogoWeight: String
+    ): OsmNodeNamed {
+        val weight = if ("undefined" == nogoWeight) Double.Companion.NaN else nogoWeight.toDouble()
+        return readNogo(lon.toDouble(), lat.toDouble(), radius.toDouble().toInt(), weight)
+    }
 
-  private OsmNodeNamed readNogo(double lon, double lat, int radius, double nogoWeight) {
-    OsmNodeNamed n = new OsmNodeNamed();
-    n.name = "nogo" + radius;
-    n.ilon = (int) ((lon + 180.) * 1000000. + 0.5);
-    n.ilat = (int) ((lat + 90.) * 1000000. + 0.5);
-    n.isNogo = true;
-    n.nogoWeight = nogoWeight;
-    return n;
-  }
-
-
+    private fun readNogo(lon: Double, lat: Double, radius: Int, nogoWeight: Double): OsmNodeNamed {
+        val n = OsmNodeNamed()
+        n.name = "nogo" + radius
+        n.iLon = ((lon + 180.0) * 1000000.0 + 0.5).toInt()
+        n.iLat = ((lat + 90.0) * 1000000.0 + 0.5).toInt()
+        n.isNogo = true
+        n.nogoWeight = nogoWeight
+        return n
+    }
 }

@@ -1,100 +1,96 @@
-package btools.util;
+package btools.util
 
 /**
  * Something like LinkedHashMap, but purpose build, less dynamic and memory efficient
  *
  * @author ab
  */
-public final class LruMap {
-  private int hashbins;
-  private int maxsize;
-  private int size;
+class LruMap(private val hashbins: Int, private val maxsize: Int) {
+    private var size = 0
 
-  private LruMapNode lru;
-  private LruMapNode mru;
+    private var lru: LruMapNode? = null
+    private var mru: LruMapNode? = null
 
-  private LruMapNode[] binArray;
+    private val binArray: Array<LruMapNode?>
 
-  public LruMap(int bins, int size) {
-    hashbins = bins;
-    maxsize = size;
-    binArray = new LruMapNode[hashbins];
-  }
-
-  public LruMapNode get(LruMapNode key) {
-    int bin = (key.hash & 0xfffffff) % hashbins;
-
-    LruMapNode e = binArray[bin];
-    while (e != null) {
-      if (key.equals(e)) {
-        return e;
-      }
-      e = e.nextInBin;
-    }
-    return null;
-  }
-
-  // put e to the mru end of the queue
-  public void touch(LruMapNode e) {
-    LruMapNode n = e.next;
-    LruMapNode p = e.previous;
-
-    if (n == null) {
-      return; // already at mru
-    }
-    n.previous = p;
-    if (p != null) {
-      p.next = n;
-    } else {
-      lru = n;
+    init {
+        binArray = arrayOfNulls<LruMapNode>(hashbins)
     }
 
-    mru.next = e;
-    e.previous = mru;
-    e.next = null;
-    mru = e;
-  }
+    fun get(key: LruMapNode): LruMapNode? {
+        val bin = (key.hash and 0xfffffff) % hashbins
 
-  public LruMapNode removeLru() {
-    if (size < maxsize) {
-      return null;
-    }
-    size--;
-    // unlink the lru from it's bin-queue
-    int bin = (lru.hashCode() & 0xfffffff) % hashbins;
-    LruMapNode e = binArray[bin];
-    if (e == lru) {
-      binArray[bin] = lru.nextInBin;
-    } else {
-      while (e != null) {
-        LruMapNode prev = e;
-        e = e.nextInBin;
-        if (e == lru) {
-          prev.nextInBin = lru.nextInBin;
-          break;
+        var e = binArray[bin]
+        while (e != null) {
+            if (key == e) {
+                return e
+            }
+            e = e.nextInBin
         }
-      }
+        return null
     }
 
-    LruMapNode res = lru;
-    lru = lru.next;
-    lru.previous = null;
-    return res;
-  }
+    // put e to the mru end of the queue
+    fun touch(e: LruMapNode) {
+        val n = e.next
+        val p = e.previous
 
-  public void put(LruMapNode val) {
-    int bin = (val.hashCode() & 0xfffffff) % hashbins;
-    val.nextInBin = binArray[bin];
-    binArray[bin] = val;
+        if (n == null) {
+            return  // already at mru
+        }
+        n.previous = p
+        if (p != null) {
+            p.next = n
+        } else {
+            lru = n
+        }
 
-    val.previous = mru;
-    val.next = null;
-    if (mru == null) {
-      lru = val;
-    } else {
-      mru.next = val;
+        mru!!.next = e
+        e.previous = mru
+        e.next = null
+        mru = e
     }
-    mru = val;
-    size++;
-  }
+
+    fun removeLru(): LruMapNode? {
+        if (size < maxsize) {
+            return null
+        }
+        size--
+        // unlink the lru from it's bin-queue
+        val bin = (lru.hashCode() and 0xfffffff) % hashbins
+        var e = binArray[bin]
+        if (e === lru) {
+            binArray[bin] = lru!!.nextInBin
+        } else {
+            while (e != null) {
+                val prev: LruMapNode? = e
+                e = e.nextInBin
+                if (e === lru) {
+                    prev!!.nextInBin = lru!!.nextInBin
+                    break
+                }
+            }
+        }
+
+        val res = lru
+        lru = lru!!.next
+        lru!!.previous = null
+        return res
+    }
+
+    fun put(`val`: LruMapNode) {
+        val bin = (`val`.hashCode() and 0xfffffff) % hashbins
+        `val`.nextInBin = binArray[bin]
+        binArray[bin] = `val`
+
+        `val`.previous = mru
+        `val`.next = null
+        if (mru == null) {
+            lru = `val`
+        } else {
+            mru!!.next = `val`
+        }
+        mru = `val`
+        size++
+    }
 }

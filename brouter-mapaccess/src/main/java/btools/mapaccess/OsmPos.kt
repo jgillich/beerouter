@@ -3,20 +3,19 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
 
-public interface OsmPos {
-  int getILat();
+interface OsmPos {
+    val iLat: Int
 
-  int getILon();
+    val iLon: Int
 
-  short getSElev();
+    val sElev: Short
 
-  double getElev();
+    val elev: Double
 
-  int calcDistance(OsmPos p);
+    fun calcDistance(p: OsmPos): Int
 
-  long getIdFromPos();
-
+    val idFromPos: Long
 }

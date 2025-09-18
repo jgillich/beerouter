@@ -1,57 +1,47 @@
 /**
  * A lookup value with optional aliases
- * <p>
+ *
+ *
  * toString just gives the primary value,
  * equals just compares against primary value
  * matches() also compares aliases
  *
  * @author ab
  */
-package btools.expressions;
+package btools.expressions
 
-import java.util.ArrayList;
-import java.util.List;
+class BExpressionLookupValue(var value: String) {
+    var aliases: MutableList<String>? = null
 
-final class BExpressionLookupValue {
-  String value;
-  List<String> aliases;
-
-  @Override
-  public String toString() {
-    return value;
-  }
-
-  public BExpressionLookupValue(String value) {
-    this.value = value;
-  }
-
-  public void addAlias(String alias) {
-    if (aliases == null) aliases = new ArrayList<>();
-    aliases.add(alias);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o instanceof String) {
-      String v = (String) o;
-      return value.equals(v);
+    override fun toString(): String {
+        return value
     }
-    if (o instanceof BExpressionLookupValue) {
-      BExpressionLookupValue v = (BExpressionLookupValue) o;
 
-      return value.equals(v.value);
+    fun addAlias(alias: String?) {
+        if (aliases == null) aliases = ArrayList<String>()
+        aliases!!.add(alias!!)
     }
-    return false;
-  }
 
-  public boolean matches(String s) {
-    if (value.equals(s)) return true;
-    if (aliases != null) {
-      for (String alias : aliases) {
-        if (alias.equals(s)) return true;
-      }
+    override fun equals(o: Any?): Boolean {
+        if (o is String) {
+            val v = o
+            return value == v
+        }
+        if (o is BExpressionLookupValue) {
+            val v = o
+
+            return value == v.value
+        }
+        return false
     }
-    return false;
-  }
 
+    fun matches(s: String?): Boolean {
+        if (value == s) return true
+        if (aliases != null) {
+            for (alias in aliases) {
+                if (alias == s) return true
+            }
+        }
+        return false
+    }
 }

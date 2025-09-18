@@ -3,416 +3,452 @@
  *
  * @author ab
  */
-package btools.mapaccess;
+package btools.mapaccess
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import btools.codec.DataBuffers
+import btools.codec.MicroCache
+import btools.codec.WaypointMatcher
+import btools.expressions.BExpressionContextWay
+import java.io.File
+import java.io.IOException
+import kotlin.Array
+import kotlin.Double
+import kotlin.Exception
+import kotlin.Int
+import kotlin.Long
+import kotlin.RuntimeException
+import kotlin.String
+import kotlin.Throws
+import kotlin.arrayOfNulls
+import kotlin.require
 
-import btools.codec.DataBuffers;
-import btools.codec.MicroCache;
-import btools.codec.WaypointMatcher;
-import btools.expressions.BExpressionContextWay;
-
-public final class NodesCache {
-
-  final static int RETRY_RANGE = 250;
-
-  private int MAX_DYNAMIC_CATCHES = 20; // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
-
-
-  private File segmentDir;
-  private File secondarySegmentsDir = null;
-
-  public OsmNodesMap nodesMap;
-  private BExpressionContextWay expCtxWay;
-  private int lookupVersion;
-  private int lookupMinorVersion;
-  private boolean forceSecondaryData;
-  private String currentFileName;
-
-  private Map<String, PhysicalFile> fileCache;
-  private DataBuffers dataBuffers;
-
-  private OsmFile[][] fileRows;
-
-  public WaypointMatcher waypointMatcher;
-
-  public boolean first_file_access_failed = false;
-  public String first_file_access_name;
-
-  private long cacheSum = 0;
-  private long maxmemtiles;
-  private boolean detailed; // NOPMD used in constructor
-
-  private boolean garbageCollectionEnabled = false;
-  private boolean ghostCleaningDone = false;
+class NodesCache(
+    private var segmentDir: File,
+    ctxWay: BExpressionContextWay,
+    forceSecondaryData: Boolean,
+    maxmem: Long,
+    oldCache: NodesCache?,
+    detailed: Boolean
+) {
+    private val MAX_DYNAMIC_CATCHES = 20 // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
 
 
-  private long cacheSumClean = 0;
-  private long ghostSum = 0;
-  private long ghostWakeup = 0;
+    private var secondarySegmentsDir: File? = null
 
-  private boolean directWeaving = !Boolean.getBoolean("disableDirectWeaving");
+    @JvmField
+    var nodesMap: OsmNodesMap
+    private val expCtxWay: BExpressionContextWay?
+    private val lookupVersion: Int
+    private val lookupMinorVersion: Int
+    private val forceSecondaryData: Boolean
+    private var currentFileName: String? = null
 
-  public String formatStatus() {
-    return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup;
-  }
+    private var fileCache: MutableMap<String?, PhysicalFile?>? = null
+    private var dataBuffers: DataBuffers = DataBuffers()
 
-  public NodesCache(File segmentDir, BExpressionContextWay ctxWay, boolean forceSecondaryData, long maxmem, NodesCache oldCache, boolean detailed) {
-    this.maxmemtiles = maxmem / 8;
-    this.segmentDir = segmentDir;
-    this.nodesMap = new OsmNodesMap();
-    this.nodesMap.maxmem = (2L * maxmem) / 3L;
-    this.expCtxWay = ctxWay;
-    this.lookupVersion = ctxWay.meta.lookupVersion;
-    this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion;
-    this.forceSecondaryData = forceSecondaryData;
-    this.detailed = detailed;
+    private var fileRows: Array<Array<OsmFile?>?>
 
-    if (ctxWay != null) {
-      ctxWay.setDecodeForbidden(detailed);
+    var waypointMatcher: WaypointMatcher? = null
+
+    var first_file_access_failed: Boolean = false
+    var first_file_access_name: String?
+
+    private var cacheSum: Long = 0
+    private var maxmemtiles: Long
+    private var detailed: Boolean // NOPMD used in constructor
+
+    private var garbageCollectionEnabled = false
+    private var ghostCleaningDone = false
+
+
+    private var cacheSumClean: Long = 0
+    private var ghostSum: Long = 0
+    private var ghostWakeup: Long = 0
+
+    private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
+
+    fun formatStatus(): String {
+        return "collecting=" + garbageCollectionEnabled + " noGhosts=" + ghostCleaningDone + " cacheSum=" + cacheSum + " cacheSumClean=" + cacheSumClean + " ghostSum=" + ghostSum + " ghostWakeup=" + ghostWakeup
     }
 
-    first_file_access_failed = false;
-    first_file_access_name = null;
+    init {
+        this.maxmemtiles = maxmem / 8
+        this.nodesMap = OsmNodesMap()
+        this.nodesMap.maxmem = (2L * maxmem) / 3L
+        this.expCtxWay = ctxWay
+        this.lookupVersion = ctxWay.meta.lookupVersion.toInt()
+        this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion.toInt()
+        this.forceSecondaryData = forceSecondaryData
+        this.detailed = detailed
 
-    if (!this.segmentDir.isDirectory())
-      throw new RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist");
-
-    if (oldCache != null) {
-      fileCache = oldCache.fileCache;
-      dataBuffers = oldCache.dataBuffers;
-      secondarySegmentsDir = oldCache.secondarySegmentsDir;
-
-      // re-use old, virgin caches (if same detail-mode)
-      if (oldCache.detailed == detailed) {
-        fileRows = oldCache.fileRows;
-        for (OsmFile[] fileRow : fileRows) {
-          if (fileRow == null)
-            continue;
-          for (OsmFile osmf : fileRow) {
-            cacheSum += osmf.setGhostState();
-          }
+        if (ctxWay != null) {
+            ctxWay.setDecodeForbidden(detailed)
         }
-      } else {
-        fileRows = new OsmFile[180][];
-      }
-    } else {
-      fileCache = new HashMap<>(4);
-      fileRows = new OsmFile[180][];
-      dataBuffers = new DataBuffers();
-      secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir(segmentDir);
-    }
-    ghostSum = cacheSum;
-  }
 
-  public void clean(boolean all) {
-    for (OsmFile[] fileRow : fileRows) {
-      if (fileRow == null)
-        continue;
-      for (OsmFile osmf : fileRow) {
-        osmf.clean(all);
-      }
-    }
-  }
+        first_file_access_failed = false
+        first_file_access_name = null
 
-  // if the cache sum exceeded a threshold,
-  // clean all ghosts and enable garbage collection
-  private void checkEnableCacheCleaning() {
-    if (cacheSum < maxmemtiles) {
-      return;
-    }
+        if (!this.segmentDir.isDirectory()) throw RuntimeException("segment directory " + segmentDir.getAbsolutePath() + " does not exist")
 
-    for (int i = 0; i < fileRows.length; i++) {
-      OsmFile[] fileRow = fileRows[i];
-      if (fileRow == null) {
-        continue;
-      }
-      for (OsmFile osmf : fileRow) {
-        if (garbageCollectionEnabled && !ghostCleaningDone) {
-          cacheSum -= osmf.cleanGhosts();
+        if (oldCache != null) {
+            fileCache = oldCache.fileCache
+            dataBuffers = oldCache.dataBuffers
+            secondarySegmentsDir = oldCache.secondarySegmentsDir
+
+            // re-use old, virgin caches (if same detail-mode)
+            if (oldCache.detailed == detailed) {
+                fileRows = oldCache.fileRows
+                for (fileRow in fileRows) {
+                    if (fileRow == null) continue
+                    for (osmf in fileRow) {
+                        cacheSum += osmf!!.setGhostState()
+                    }
+                }
+            } else {
+                fileRows = arrayOfNulls<Array<OsmFile?>>(180)
+            }
         } else {
-          cacheSum -= osmf.collectAll();
+            fileCache = HashMap<String?, PhysicalFile?>(4)
+            fileRows = arrayOfNulls<Array<OsmFile?>>(180)
+            dataBuffers = DataBuffers()
+            secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir(segmentDir)
         }
-      }
+        ghostSum = cacheSum
     }
 
-    if (garbageCollectionEnabled) {
-      ghostCleaningDone = true;
-      maxmemtiles *= 2;
-    } else {
-      cacheSumClean = cacheSum;
-      garbageCollectionEnabled = true;
-    }
-  }
-
-  public int loadSegmentFor(int ilon, int ilat) {
-    MicroCache mc = getSegmentFor(ilon, ilat);
-    return mc == null ? 0 : mc.getSize();
-  }
-
-  public MicroCache getSegmentFor(int ilon, int ilat) {
-    try {
-      int lonDegree = ilon / 1000000;
-      int latDegree = ilat / 1000000;
-      OsmFile osmf = null;
-      OsmFile[] fileRow = fileRows[latDegree];
-      int ndegrees = fileRow == null ? 0 : fileRow.length;
-      for (int i = 0; i < ndegrees; i++) {
-        if (fileRow[i].lonDegree == lonDegree) {
-          osmf = fileRow[i];
-          break;
+    fun clean(all: kotlin.Boolean) {
+        for (fileRow in fileRows) {
+            if (fileRow == null) continue
+            for (osmf in fileRow) {
+                osmf!!.clean(all)
+            }
         }
-      }
-      if (osmf == null) {
-        osmf = fileForSegment(lonDegree, latDegree);
-        OsmFile[] newFileRow = new OsmFile[ndegrees + 1];
-        for (int i = 0; i < ndegrees; i++) {
-          newFileRow[i] = fileRow[i];
+    }
+
+    // if the cache sum exceeded a threshold,
+    // clean all ghosts and enable garbage collection
+    private fun checkEnableCacheCleaning() {
+        if (cacheSum < maxmemtiles) {
+            return
         }
-        newFileRow[ndegrees] = osmf;
-        fileRows[latDegree] = newFileRow;
-      }
-      currentFileName = osmf.filename;
 
-      if (!osmf.hasData()) {
-        return null;
-      }
+        for (i in fileRows.indices) {
+            val fileRow = fileRows[i]
+            if (fileRow == null) {
+                continue
+            }
+            for (osmf in fileRow) {
+                if (garbageCollectionEnabled && !ghostCleaningDone) {
+                    cacheSum -= osmf!!.cleanGhosts()
+                } else {
+                    cacheSum -= osmf!!.collectAll()
+                }
+            }
+        }
 
-      MicroCache segment = osmf.getMicroCache(ilon, ilat);
-      // needed for a second chance
-      if (segment == null || (waypointMatcher != null && ((WaypointMatcherImpl) waypointMatcher).useDynamicRange)) {
-        checkEnableCacheCleaning();
-        segment = osmf.createMicroCache(ilon, ilat, dataBuffers, expCtxWay, waypointMatcher, directWeaving ? nodesMap : null);
-
-        cacheSum += segment.getDataSize();
-      } else if (segment.ghost) {
-        segment.unGhost();
-        ghostWakeup += segment.getDataSize();
-      }
-      return segment;
-    } catch (IOException re) {
-      throw new RuntimeException(re.getMessage());
-    } catch (RuntimeException re) {
-      throw re;
-    } catch (Exception e) {
-      throw new RuntimeException("error reading datafile " + currentFileName + ": " + e, e);
-    }
-  }
-
-  /**
-   * make sure the given node is non-hollow,
-   * which means it contains not just the id,
-   * but also the actual data
-   *
-   * @return true if successfull, false if node is still hollow
-   */
-  public boolean obtainNonHollowNode(OsmNode node) {
-    if (!node.isHollow())
-      return true;
-
-    MicroCache segment = getSegmentFor(node.ilon, node.ilat);
-    if (segment == null) {
-      return false;
-    }
-    if (!node.isHollow()) {
-      return true; // direct weaving...
-    }
-
-    long id = node.getIdFromPos();
-    if (segment.getAndClear(id)) {
-      node.parseNodeBody(segment, nodesMap, expCtxWay);
-    }
-
-    if (garbageCollectionEnabled) { // garbage collection
-      cacheSum -= segment.collect(segment.getSize() >> 1); // threshold = 1/2 of size is deleted
-    }
-
-    return !node.isHollow();
-  }
-
-
-  /**
-   * make sure all link targets of the given node are non-hollow
-   */
-  public void expandHollowLinkTargets(OsmNode n) {
-    for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
-      obtainNonHollowNode(link.getTarget(n));
-    }
-  }
-
-  /**
-   * make sure all link targets of the given node are non-hollow
-   */
-  public boolean hasHollowLinkTargets(OsmNode n) {
-    for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
-      if (link.getTarget(n).isHollow()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * get a node for the given id with all link-targets also non-hollow
-   * <p>
-   * It is required that an instance of the start-node does not yet
-   * exist, not even a hollow instance, so getStartNode should only
-   * be called once right after resetting the cache
-   *
-   * @param id the id of the node to load
-   * @return the fully expanded node for id, or null if it was not found
-   */
-  public OsmNode getStartNode(long id) {
-    // initialize the start-node
-    OsmNode n = new OsmNode(id);
-    n.setHollow();
-    nodesMap.put(n);
-    if (!obtainNonHollowNode(n)) {
-      return null;
-    }
-    expandHollowLinkTargets(n);
-    return n;
-  }
-
-  public OsmNode getGraphNode(OsmNode template) {
-    OsmNode graphNode = new OsmNode(template.ilon, template.ilat);
-    graphNode.setHollow();
-    OsmNode existing = nodesMap.put(graphNode);
-    if (existing == null) {
-      return graphNode;
-    }
-    nodesMap.put(existing);
-    return existing;
-  }
-
-  public boolean matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints, double maxDistance, OsmNodePairSet islandNodePairs) {
-    waypointMatcher = new WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs);
-    for (MatchedWaypoint mwp : unmatchedWaypoints) {
-      int cellsize = 12500;
-      preloadPosition(mwp.waypoint, cellsize, 1, false);
-      // get a second chance
-      if (mwp.crosspoint == null || mwp.radius > RETRY_RANGE) {
-        cellsize = 1000000 / 32;
-        preloadPosition(mwp.waypoint, cellsize, maxDistance < 0 ? MAX_DYNAMIC_CATCHES : 2, maxDistance < 0);
-      }
-    }
-
-    if (first_file_access_failed) {
-      throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
-    }
-    int len = unmatchedWaypoints.size();
-    for (int i = 0; i < len; i++) {
-      MatchedWaypoint mwp = unmatchedWaypoints.get(i);
-      if (mwp.crosspoint == null) {
-        if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-          mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-          mwp.direct = true;
+        if (garbageCollectionEnabled) {
+            ghostCleaningDone = true
+            maxmemtiles *= 2
         } else {
-          // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
-          return false;
+            cacheSumClean = cacheSum
+            garbageCollectionEnabled = true
         }
-      }
-      if (unmatchedWaypoints.size() > 1 && i == unmatchedWaypoints.size() - 1 && unmatchedWaypoints.get(i - 1).direct) {
-        mwp.crosspoint = new OsmNode(mwp.waypoint.ilon, mwp.waypoint.ilat);
-        mwp.direct = true;
-      }
     }
-    return true;
-  }
 
-  private void preloadPosition(OsmNode n, int d, int maxscale, boolean bUseDynamicRange) {
-    first_file_access_failed = false;
-    first_file_access_name = null;
-    loadSegmentFor(n.ilon, n.ilat);
-    if (first_file_access_failed) {
-      throw new IllegalArgumentException("datafile " + first_file_access_name + " not found");
+    fun loadSegmentFor(ilon: Int, ilat: Int): Int {
+        val mc = getSegmentFor(ilon, ilat)
+        return if (mc == null) 0 else mc.size
     }
-    int scale = 1;
-    while (scale < maxscale) {
-      for (int idxLat = -scale; idxLat <= scale; idxLat++)
-        for (int idxLon = -scale; idxLon <= scale; idxLon++) {
-          if (idxLon != 0 || idxLat != 0) {
-            loadSegmentFor(n.ilon + d * idxLon, n.ilat + d * idxLat);
-          }
+
+    fun getSegmentFor(ilon: Int, ilat: Int): MicroCache? {
+        try {
+            val lonDegree = ilon / 1000000
+            val latDegree = ilat / 1000000
+            var osmf: OsmFile? = null
+            val fileRow = fileRows[latDegree]
+            val ndegrees = if (fileRow == null) 0 else fileRow.size
+            for (i in 0..<ndegrees) {
+                if (fileRow!![i]!!.lonDegree == lonDegree) {
+                    osmf = fileRow[i]
+                    break
+                }
+            }
+            if (osmf == null) {
+                osmf = fileForSegment(lonDegree, latDegree)
+                val newFileRow = arrayOfNulls<OsmFile>(ndegrees + 1)
+                for (i in 0..<ndegrees) {
+                    newFileRow[i] = fileRow!![i]
+                }
+                newFileRow[ndegrees] = osmf
+                fileRows[latDegree] = newFileRow
+            }
+            currentFileName = osmf.filename
+
+            if (!osmf.hasData()) {
+                return null
+            }
+
+            var segment = osmf.getMicroCache(ilon, ilat)
+            // needed for a second chance
+            if (segment == null || (waypointMatcher != null && (waypointMatcher as WaypointMatcherImpl).useDynamicRange)) {
+                checkEnableCacheCleaning()
+                segment = osmf.createMicroCache(
+                    ilon,
+                    ilat,
+                    dataBuffers,
+                    expCtxWay,
+                    waypointMatcher,
+                    if (directWeaving) nodesMap else null
+                )
+
+                cacheSum += segment.dataSize.toLong()
+            } else if (segment.ghost) {
+                segment.unGhost()
+                ghostWakeup += segment.dataSize.toLong()
+            }
+            return segment
+        } catch (re: IOException) {
+            throw RuntimeException(re.message)
+        } catch (re: RuntimeException) {
+            throw re
+        } catch (e: Exception) {
+            throw RuntimeException("error reading datafile " + currentFileName + ": " + e, e)
         }
-      if (bUseDynamicRange && waypointMatcher.hasMatch(n.ilon, n.ilat)) break;
-      scale++;
     }
-  }
 
-  private OsmFile fileForSegment(int lonDegree, int latDegree) throws Exception {
-    int lonMod5 = lonDegree % 5;
-    int latMod5 = latDegree % 5;
+    /**
+     * make sure the given node is non-hollow,
+     * which means it contains not just the id,
+     * but also the actual data
+     *
+     * @return true if successfull, false if node is still hollow
+     */
+    fun obtainNonHollowNode(node: OsmNode): kotlin.Boolean {
+        if (!node.isHollow) return true
 
-    int lon = lonDegree - 180 - lonMod5;
-    String slon = lon < 0 ? "W" + (-lon) : "E" + lon;
-    int lat = latDegree - 90 - latMod5;
-
-    String slat = lat < 0 ? "S" + (-lat) : "N" + lat;
-    String filenameBase = slon + "_" + slat;
-
-    currentFileName = filenameBase + ".rd5";
-
-    PhysicalFile ra = null;
-    if (!fileCache.containsKey(filenameBase)) {
-      File f = null;
-      if (!forceSecondaryData) {
-        File primary = new File(segmentDir, filenameBase + ".rd5");
-        if (primary.exists()) {
-          f = primary;
+        val segment = getSegmentFor(node.iLon, node.iLat)
+        if (segment == null) {
+            return false
         }
-      }
-      if (f == null) {
-        File secondary = new File(secondarySegmentsDir, filenameBase + ".rd5");
-        if (secondary.exists()) {
-          f = secondary;
+        if (!node.isHollow) {
+            return true // direct weaving...
         }
-      }
-      if (f != null) {
-        currentFileName = f.getName();
-        ra = new PhysicalFile(f, dataBuffers, lookupVersion, lookupMinorVersion);
-      }
-      fileCache.put(filenameBase, ra);
+
+        val id = node.idFromPos
+        if (segment.getAndClear(id)) {
+            node.parseNodeBody(segment, nodesMap, expCtxWay!!)
+        }
+
+        if (garbageCollectionEnabled) { // garbage collection
+            cacheSum -= segment.collect(segment.size shr 1)
+                .toLong() // threshold = 1/2 of size is deleted
+        }
+
+        return !node.isHollow
     }
-    ra = fileCache.get(filenameBase);
-    OsmFile osmf = new OsmFile(ra, lonDegree, latDegree, dataBuffers);
 
-    if (first_file_access_name == null) {
-      first_file_access_name = currentFileName;
-      first_file_access_failed = osmf.filename == null;
+
+    /**
+     * make sure all link targets of the given node are non-hollow
+     */
+    fun expandHollowLinkTargets(n: OsmNode) {
+        var link = n.firstlink
+        while (link != null) {
+            obtainNonHollowNode(link.getTarget(n)!!)
+            link = link.getNext(n)
+        }
     }
 
-    return osmf;
-  }
-
-  public void close() {
-    for (PhysicalFile f : fileCache.values()) {
-      try {
-        if (f != null)
-          f.ra.close();
-      } catch (IOException ioe) {
-        // ignore
-      }
+    /**
+     * make sure all link targets of the given node are non-hollow
+     */
+    fun hasHollowLinkTargets(n: OsmNode): kotlin.Boolean {
+        var link = n.firstlink
+        while (link != null) {
+            if (link.getTarget(n)!!.isHollow) {
+                return true
+            }
+            link = link.getNext(n)
+        }
+        return false
     }
-  }
 
-  public int getElevationType(int ilon, int ilat) {
-    int lonDegree = ilon / 1000000;
-    int latDegree = ilat / 1000000;
-    OsmFile[] fileRow = fileRows[latDegree];
-    int ndegrees = fileRow == null ? 0 : fileRow.length;
-    for (int i = 0; i < ndegrees; i++) {
-      if (fileRow[i].lonDegree == lonDegree) {
-        OsmFile osmf = fileRow[i];
-        if (osmf != null) return osmf.elevationType;
-        break;
-      }
+    /**
+     * get a node for the given id with all link-targets also non-hollow
+     *
+     *
+     * It is required that an instance of the start-node does not yet
+     * exist, not even a hollow instance, so getStartNode should only
+     * be called once right after resetting the cache
+     *
+     * @param id the id of the node to load
+     * @return the fully expanded node for id, or null if it was not found
+     */
+    fun getStartNode(id: Long): OsmNode? {
+        // initialize the start-node
+        val n = OsmNode(id)
+        n.setHollow()
+        nodesMap.put(n)
+        if (!obtainNonHollowNode(n)) {
+            return null
+        }
+        expandHollowLinkTargets(n)
+        return n
     }
-    return 3;
-  }
 
+    fun getGraphNode(template: OsmNode): OsmNode {
+        val graphNode = OsmNode(template.iLon, template.iLat)
+        graphNode.setHollow()
+        val existing = nodesMap.put(graphNode)
+        if (existing == null) {
+            return graphNode
+        }
+        nodesMap.put(existing)
+        return existing
+    }
+
+    fun matchWaypointsToNodes(
+        unmatchedWaypoints: MutableList<MatchedWaypoint>,
+        maxDistance: Double,
+        islandNodePairs: OsmNodePairSet?
+    ): kotlin.Boolean {
+        waypointMatcher = WaypointMatcherImpl(unmatchedWaypoints, maxDistance, islandNodePairs!!)
+        for (mwp in unmatchedWaypoints) {
+            var cellsize = 12500
+            preloadPosition(mwp.waypoint!!, cellsize, 1, false)
+            // get a second chance
+            if (mwp.crosspoint == null || mwp.radius > RETRY_RANGE) {
+                cellsize = 1000000 / 32
+                preloadPosition(
+                    mwp.waypoint!!,
+                    cellsize,
+                    if (maxDistance < 0) MAX_DYNAMIC_CATCHES else 2,
+                    maxDistance < 0
+                )
+            }
+        }
+
+        require(!first_file_access_failed) { "datafile " + first_file_access_name + " not found" }
+        val len = unmatchedWaypoints.size
+        for (i in 0..<len) {
+            val mwp = unmatchedWaypoints.get(i)
+            if (mwp.crosspoint == null) {
+                if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints.get(
+                        i - 1
+                    ).direct
+                ) {
+                    mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
+                    mwp.direct = true
+                } else {
+                    // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
+                    return false
+                }
+            }
+            if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints.get(
+                    i - 1
+                ).direct
+            ) {
+                mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
+                mwp.direct = true
+            }
+        }
+        return true
+    }
+
+    private fun preloadPosition(
+        n: OsmNode,
+        d: Int,
+        maxscale: Int,
+        bUseDynamicRange: kotlin.Boolean
+    ) {
+        first_file_access_failed = false
+        first_file_access_name = null
+        loadSegmentFor(n.iLon, n.iLat)
+        require(!first_file_access_failed) { "datafile " + first_file_access_name + " not found" }
+        var scale = 1
+        while (scale < maxscale) {
+            for (idxLat in -scale..scale) for (idxLon in -scale..scale) {
+                if (idxLon != 0 || idxLat != 0) {
+                    loadSegmentFor(n.iLon + d * idxLon, n.iLat + d * idxLat)
+                }
+            }
+            if (bUseDynamicRange && waypointMatcher!!.hasMatch(n.iLon, n.iLat)) break
+            scale++
+        }
+    }
+
+    @Throws(Exception::class)
+    private fun fileForSegment(lonDegree: Int, latDegree: Int): OsmFile {
+        val lonMod5 = lonDegree % 5
+        val latMod5 = latDegree % 5
+
+        val lon = lonDegree - 180 - lonMod5
+        val slon = if (lon < 0) "W" + (-lon) else "E" + lon
+        val lat = latDegree - 90 - latMod5
+
+        val slat = if (lat < 0) "S" + (-lat) else "N" + lat
+        val filenameBase = slon + "_" + slat
+
+        currentFileName = filenameBase + ".rd5"
+
+        var ra: PhysicalFile? = null
+        if (!fileCache!!.containsKey(filenameBase)) {
+            var f: File? = null
+            if (!forceSecondaryData) {
+                val primary = File(segmentDir, filenameBase + ".rd5")
+                if (primary.exists()) {
+                    f = primary
+                }
+            }
+            if (f == null) {
+                val secondary = File(secondarySegmentsDir, filenameBase + ".rd5")
+                if (secondary.exists()) {
+                    f = secondary
+                }
+            }
+            if (f != null) {
+                currentFileName = f.getName()
+                ra = PhysicalFile(f, dataBuffers, lookupVersion, lookupMinorVersion)
+            }
+            fileCache!!.put(filenameBase, ra)
+        }
+        ra = fileCache!!.get(filenameBase)
+        val osmf = OsmFile(ra, lonDegree, latDegree, dataBuffers)
+
+        if (first_file_access_name == null) {
+            first_file_access_name = currentFileName
+            first_file_access_failed = osmf.filename == null
+        }
+
+        return osmf
+    }
+
+    fun close() {
+        for (f in fileCache!!.values) {
+            try {
+                if (f != null) f.ra!!.close()
+            } catch (ioe: IOException) {
+                // ignore
+            }
+        }
+    }
+
+    fun getElevationType(ilon: Int, ilat: Int): Int {
+        val lonDegree = ilon / 1000000
+        val latDegree = ilat / 1000000
+        val fileRow = fileRows[latDegree]
+        val ndegrees = if (fileRow == null) 0 else fileRow.size
+        for (i in 0..<ndegrees) {
+            if (fileRow!![i]!!.lonDegree == lonDegree) {
+                val osmf = fileRow[i]
+                if (osmf != null) return osmf.elevationType.toInt()
+                break
+            }
+        }
+        return 3
+    }
+
+    companion object {
+        const val RETRY_RANGE: Int = 250
+    }
 }

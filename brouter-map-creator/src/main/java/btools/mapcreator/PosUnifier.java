@@ -141,7 +141,7 @@ public class PosUnifier extends MapCreatorBase {
     nodesOutStream.close();
     if (outNodeFile != null) {
       if (lastSrtmRaster != null) {
-        String newName = outNodeFile.getAbsolutePath() + (lastSrtmRaster.nrows > 6001 ? "_1": "_3");
+        String newName = outNodeFile.getAbsolutePath() + (lastSrtmRaster.nrows > 6001 ? "_1" : "_3");
         outNodeFile.renameTo(new File(newName));
       }
     }
