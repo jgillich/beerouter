@@ -27,7 +27,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 class RoutingEngine @JvmOverloads constructor(
-    outfileBase: String?, loggerFactory: ILoggerFactory?, segmentDir: File,
+    loggerFactory: ILoggerFactory?, segmentDir: File,
     waypoints: MutableList<OsmNodeNamed>, rc: RoutingContext, engineMode: Int = 0
 ) : Thread() {
     private var loggerFactory: ILoggerFactory? = LoggerFactory.getILoggerFactory()
@@ -64,17 +64,11 @@ class RoutingEngine @JvmOverloads constructor(
     var alternativeIndex: Int = 0
         private set
 
-    var foundInfo: String? = null
-        protected set
-    var errorMessage: String? = null
-        protected set
-
     @Volatile
     var isTerminated: Boolean = false
         private set
 
     protected var segmentDir: File
-    private val outfileBase: String?
     private var stackSampler: StackSampler? = null
     protected var routingContext: RoutingContext
 
@@ -92,8 +86,6 @@ class RoutingEngine @JvmOverloads constructor(
     private var extract: Array<Any?>? = null
 
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
-    var outfile: String? = null
-        private set
 
     init {
         if (loggerFactory != null) {
@@ -101,7 +93,6 @@ class RoutingEngine @JvmOverloads constructor(
         }
         this.logger = this.loggerFactory!!.getLogger(RoutingEngine::class.java.getName())
         this.segmentDir = segmentDir
-        this.outfileBase = outfileBase
         this.waypoints = waypoints
         this.routingContext = rc
         this.engineMode = engineMode
@@ -199,58 +190,16 @@ class RoutingEngine @JvmOverloads constructor(
 
                 messageList.add(track.message)
                 track.messageList = messageList
-                if (outfileBase != null) {
-                    var filename = outfileBase + i + "." + routingContext.outputFormat
-                    var oldTrack: OsmTrack? = null
-                    when (routingContext.outputFormat) {
-                        "gpx" -> oldTrack = FormatGpx(routingContext).read(filename)
-                        "geojson", "json" -> {}
-                        "kml" -> {}
-                        else -> {}
-                    }
-                    if (oldTrack != null && track.equalsTrack(oldTrack)) {
-                        i++
-                        continue
-                    }
-                    oldTrack = null
-                    track.exportWaypoints = routingContext.exportWaypoints
-                    track.exportCorrectedWaypoints = routingContext.exportCorrectedWaypoints
-                    filename = outfileBase + i + "." + routingContext.outputFormat
-                    when (routingContext.outputFormat) {
-                        "gpx" -> this.foundInfo = FormatGpx(routingContext).format(track)
-                        "geojson", "json" -> this.foundInfo =
-                            FormatJson(routingContext).format(track)
 
-                        "kml" -> this.foundInfo = FormatKml(routingContext).format(track)
-                        "csv" -> this.foundInfo = null
-                        else -> this.foundInfo = null
-                    }
-                    if (this.foundInfo != null) {
-                        File(filename)
-                        val fw = FileWriter(filename)
-                        fw.write(this.foundInfo)
-                        fw.close()
-                        this.foundInfo = null
-                    }
 
+                if (i == min(3, max(0, routingContext.alternativeIdx))) {
+                    logger.debug("gpx={}", FormatGpx(routingContext).format(track))
                     foundTrack = track
-                    alternativeIndex = i
-                    outfile = filename
                 } else {
-
-                    if (i == min(3, max(0, routingContext.alternativeIdx))) {
-                        if ("CSV" == System.getProperty("reportFormat")) {
-                            val filename = "$outfileBase$i.csv"
-                            FormatCsv(routingContext).write(filename, track)
-                        } else {
-                            logger.debug("gpx={}", FormatGpx(routingContext).format(track))
-                        }
-                        foundTrack = track
-                    } else {
-                        i++
-                        continue
-                    }
+                    i++
+                    continue
                 }
+
                 break
                 i++
             }
@@ -282,134 +231,103 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
     fun doGetInfo() {
-        try {
-            startTime = System.currentTimeMillis()
+        startTime = System.currentTimeMillis()
 
-            routingContext.freeNoWays()
+        routingContext.freeNoWays()
 
-            val wpt1 = MatchedWaypoint()
-            wpt1.waypoint = waypoints[0]
-            wpt1.name = "wpt_info"
-            val listOne: MutableList<MatchedWaypoint> = ArrayList()
-            listOne.add(wpt1)
-            matchWaypointsToNodes(listOne)
+        val wpt1 = MatchedWaypoint()
+        wpt1.waypoint = waypoints[0]
+        wpt1.name = "wpt_info"
+        val listOne: MutableList<MatchedWaypoint> = ArrayList()
+        listOne.add(wpt1)
+        matchWaypointsToNodes(listOne)
 
-            resetCache(true)
-            nodesCache!!.nodesMap.cleanupMode = 0
+        resetCache(true)
+        nodesCache!!.nodesMap.cleanupMode = 0
 
-            val start1 = nodesCache!!.getGraphNode(listOne[0].node1!!)
-            nodesCache!!.obtainNonHollowNode(start1)
+        val start1 = nodesCache!!.getGraphNode(listOne[0].node1!!)
+        nodesCache!!.obtainNonHollowNode(start1)
 
-            guideTrack = OsmTrack()
-            guideTrack!!.addNode(
-                OsmPathElement.Companion.create(
-                    wpt1.node2!!.iLon,
-                    wpt1.node2!!.iLat,
-                    0.toShort(),
-                    null
-                )
+        guideTrack = OsmTrack()
+        guideTrack!!.addNode(
+            OsmPathElement.Companion.create(
+                wpt1.node2!!.iLon,
+                wpt1.node2!!.iLat,
+                0.toShort(),
+                null
             )
-            guideTrack!!.addNode(
-                OsmPathElement.Companion.create(
-                    wpt1.node1!!.iLon,
-                    wpt1.node1!!.iLat,
-                    0.toShort(),
-                    null
-                )
+        )
+        guideTrack!!.addNode(
+            OsmPathElement.Companion.create(
+                wpt1.node1!!.iLon,
+                wpt1.node1!!.iLat,
+                0.toShort(),
+                null
             )
+        )
 
-            matchedWaypoints = ArrayList()
-            val wp1 = MatchedWaypoint()
-            wp1.crosspoint = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-            wp1.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-            wp1.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-            matchedWaypoints.add(wp1)
-            val wp2 = MatchedWaypoint()
-            wp2.crosspoint = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-            wp2.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-            wp2.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-            matchedWaypoints.add(wp2)
+        matchedWaypoints = ArrayList()
+        val wp1 = MatchedWaypoint()
+        wp1.crosspoint = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+        wp1.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+        wp1.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        matchedWaypoints.add(wp1)
+        val wp2 = MatchedWaypoint()
+        wp2.crosspoint = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        wp2.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+        wp2.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        matchedWaypoints.add(wp2)
 
-            val t = findTrack("getinfo", wp1, wp2, null, null, false)
-            if (t != null) {
-                t.messageList = ArrayList()
-                t.matchedWaypoints = matchedWaypoints
-                t.name = (outfileBase ?: "getinfo")
+        val t = findTrack("getinfo", wp1, wp2, null, null, false)
+        if (t != null) {
+            t.messageList = ArrayList()
+            t.matchedWaypoints = matchedWaypoints
+            t.name = "getinfo"
 
-                // find nearest point
-                var mindist = 99999
-                var minIdx = -1
-                for (i in t.nodes.indices) {
-                    val ope = t.nodes[i]
-                    val dist = ope.calcDistance(listOne[0].crosspoint!!)
-                    if (mindist > dist) {
-                        mindist = dist
-                        minIdx = i
-                    }
+            // find nearest point
+            var mindist = 99999
+            var minIdx = -1
+            for (i in t.nodes.indices) {
+                val ope = t.nodes[i]
+                val dist = ope.calcDistance(listOne[0].crosspoint!!)
+                if (mindist > dist) {
+                    mindist = dist
+                    minIdx = i
                 }
-                var otherIdx: Int
-                otherIdx = if (minIdx == t.nodes.size - 1) {
-                    minIdx - 1
-                } else {
-                    minIdx + 1
-                }
-                val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
-                val minSElev = t.nodes[minIdx].sElev.toInt()
-                val otherSElev = t.nodes[otherIdx].sElev.toInt()
-                var diffSElev: Int
-                diffSElev = otherSElev - minSElev
-                val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
-
-
-                val n = OsmNodeNamed(listOne[0].crosspoint!!)
-                n.name = wpt1.name
-                n.sElev =
-                    if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
-                if (engineMode == BROUTER_ENGINEMODE_GETINFO) {
-                    n.nodeDescription =
-                        (if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null)
-                    t.pois.add(n)
-                    //t.message = "get_info";
-                    //t.messageList.add(t.message);
-                    t.matchedWaypoints = listOne
-                    t.exportWaypoints = routingContext.exportWaypoints
-                }
-
-                when (routingContext.outputFormat) {
-                    "gpx" -> if (engineMode == BROUTER_ENGINEMODE_GETELEV) {
-                        this.foundInfo = FormatGpx(routingContext).formatAsWaypoint(n)
-                    } else {
-                        this.foundInfo = FormatGpx(routingContext).format(t)
-                    }
-
-                    "geojson", "json" -> if (engineMode == BROUTER_ENGINEMODE_GETELEV) {
-                        this.foundInfo = FormatJson(routingContext).formatAsWaypoint(n)
-                    } else {
-                        this.foundInfo = FormatJson(routingContext).format(t)
-                    }
-
-                    "kml", "csv" -> this.foundInfo = null
-                    else -> this.foundInfo = null
-                }
-                if (outfileBase != null) {
-                    val filename = outfileBase + "." + routingContext.outputFormat
-                    val fw = FileWriter(filename)
-                    fw.write(this.foundInfo)
-                    fw.close()
-                    this.foundInfo = null
-                } else {
-                    if (this.foundInfo != null) {
-                        logger.debug(this.foundInfo)
-                    }
-                }
-            } else {
-                if (errorMessage == null) errorMessage = "no track found"
             }
-            val endTime = System.currentTimeMillis()
-            logger.info("execution time=" + (endTime - startTime) / 1000.0 + " seconds")
-        } catch (e: Exception) {
-            logger.error(e.message, e)
+            var otherIdx: Int
+            otherIdx = if (minIdx == t.nodes.size - 1) {
+                minIdx - 1
+            } else {
+                minIdx + 1
+            }
+            val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
+            val minSElev = t.nodes[minIdx].sElev.toInt()
+            val otherSElev = t.nodes[otherIdx].sElev.toInt()
+            var diffSElev: Int
+            diffSElev = otherSElev - minSElev
+            val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
+
+
+            val n = OsmNodeNamed(listOne[0].crosspoint!!)
+            n.name = wpt1.name
+            n.sElev =
+                if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
+            if (engineMode == BROUTER_ENGINEMODE_GETINFO) {
+                n.nodeDescription =
+                    (if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null)
+                t.pois.add(n)
+                //t.message = "get_info";
+                //t.messageList.add(t.message);
+                t.matchedWaypoints = listOne
+                t.exportWaypoints = routingContext.exportWaypoints
+            }
+
+        } else {
+            throw Error("no track found")
         }
+        val endTime = System.currentTimeMillis()
+        logger.info("execution time=" + (endTime - startTime) / 1000.0 + " seconds")
     }
 
     fun doRoundTrip() {
@@ -549,7 +467,6 @@ class RoutingEngine @JvmOverloads constructor(
 //            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
 
             re = RoutingEngine(
-                null,
                 loggerFactory,
                 segmentDir,
                 wpliststart,

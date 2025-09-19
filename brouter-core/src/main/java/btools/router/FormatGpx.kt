@@ -30,7 +30,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
     @Throws(IOException::class)
     fun formatAsGpx(sb: BufferedWriter, t: OsmTrack): String? {
         val turnInstructionMode =
-            if (t.voiceHints != null) t.voiceHints!!.turnInstructionMode else 0
+            if (t.voiceHints != null) t.voiceHints.turnInstructionMode else 0
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         if (turnInstructionMode != 9) {
@@ -43,15 +43,15 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         }
 
         if (turnInstructionMode == 4) { // comment style
-            sb.append("<!-- \$transport-mode$").append(t.voiceHints!!.getTransportMode())
+            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
                 .append("$ -->\n")
             sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n")
             sb.append("<!-- \$turn-instruction-start$\n")
-            for (hint in t.voiceHints!!.list) {
+            for (hint in t.voiceHints.list) {
                 sb.append(
                     String.format(
                         "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
-                        hint!!.getCommandString(turnInstructionMode),
+                        hint.getCommandString(turnInstructionMode),
                         hint.indexInTrack,
                         formatILon(hint.ilon),
                         formatILat(hint.ilat),
@@ -116,7 +116,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
                 first.append("    <offset>0</offset>\n  </extensions>\n </rtept>\n")
             }
             if (turnInstructionMode == 8) {
-                if (t.matchedWaypoints!![0].direct && t.voiceHints.list[0]!!.indexInTrack == 0) {
+                if (t.matchedWaypoints[0].direct && t.voiceHints.list[0].indexInTrack == 0) {
                     // has a voice hint do nothing, voice hint will do
                 } else {
                     sb.append(first.toString())
@@ -126,13 +126,13 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             }
 
             for (i in t.voiceHints.list.indices) {
-                val hint = t.voiceHints!!.list[i]
+                val hint = t.voiceHints.list[i]
                 sb.append("  <rtept lat=\"").append(formatILat(hint.ilat))
                     .append("\" lon=\"")
-                    .append(formatILon(hint!!.ilon)).append("\">\n")
+                    .append(formatILon(hint.ilon)).append("\">\n")
                     .append("   <desc>")
                     .append(
-                        if (turnInstructionMode == 3) hint!!.getMessageString(
+                        if (turnInstructionMode == 3) hint.getMessageString(
                             turnInstructionMode
                         ) else hint.cruiserMessageString
                     )
@@ -169,7 +169,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
             for (i in t.voiceHints.list.indices) {
                 val hint = t.voiceHints.list[i]
-                sb.append(" <wpt lon=\"").append(formatILon(hint!!.ilon))
+                sb.append(" <wpt lon=\"").append(formatILon(hint.ilon))
                     .append("\" lat=\"")
                     .append(formatILat(hint.ilat)).append("\">")
                     .append(if (hint.selev == Short.Companion.MIN_VALUE) "" else "<ele>" + (hint.selev / 4.0) + "</ele>")
@@ -211,13 +211,13 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             for (hint in t.voiceHints.list) {
                 sb.append(" <wpt lat=\"").append(formatILat(hint.ilat))
                     .append("\" lon=\"")
-                    .append(formatILon(hint!!.ilon)).append("\">")
-                    .append(if (hint!!.selev == Short.Companion.MIN_VALUE) "" else "<ele>" + (hint.selev / 4.0) + "</ele>")
+                    .append(formatILon(hint.ilon)).append("\">")
+                    .append(if (hint.selev == Short.Companion.MIN_VALUE) "" else "<ele>" + (hint.selev / 4.0) + "</ele>")
                     .append(
                         "<extensions>\n" +
                                 "  <om:oruxmapsextensions xmlns:om=\"http://www.oruxmaps.com/oruxmapsextensions/1/0\">\n" +
                                 "   <om:ext type=\"ICON\" subtype=\"0\">"
-                    ).append("" + hint!!.oruxAction)
+                    ).append("" + hint.oruxAction)
                     .append(
                         "</om:ext>\n" +
                                 "  </om:oruxmapsextensions>\n" +
@@ -229,18 +229,18 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
 
         for (i in 0..t.pois.size - 1) {
             val poi = t.pois[i]
-            formatWaypointGpx(sb, poi!!, "poi")
+            formatWaypointGpx(sb, poi, "poi")
         }
 
         if (t.exportWaypoints) {
-            for (i in 0..t.matchedWaypoints!!.size - 1) {
-                val wt = t.matchedWaypoints!![i]
+            for (i in 0..t.matchedWaypoints.size - 1) {
+                val wt = t.matchedWaypoints[i]
                 when (i) {
                     0 -> {
                         formatWaypointGpx(sb, wt, "from")
                     }
 
-                    t.matchedWaypoints!!.size - 1 -> {
+                    t.matchedWaypoints.size - 1 -> {
                         formatWaypointGpx(sb, wt, "to")
                     }
 
@@ -251,8 +251,8 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             }
         }
         if (t.exportCorrectedWaypoints) {
-            for (i in 0..t.matchedWaypoints!!.size - 1) {
-                val wt = t.matchedWaypoints!![i]
+            for (i in 0..t.matchedWaypoints.size - 1) {
+                val wt = t.matchedWaypoints[i]
                 if (wt.correctedpoint != null) {
                     val n = OsmNodeNamed(wt.correctedpoint!!)
                     n.name = wt.name + "_corr"
