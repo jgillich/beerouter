@@ -7,8 +7,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
-// MapcreatorTest generates segments which are used in tests
-test.dependsOn ':map-creator:test'
+
 repositories {
     mavenCentral()
 }

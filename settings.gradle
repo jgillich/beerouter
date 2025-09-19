@@ -8,4 +8,4 @@ plugins {
 }
 rootProject.name = 'beerouter'
 
-include ':core', ':map-creator'
+include ':core'
