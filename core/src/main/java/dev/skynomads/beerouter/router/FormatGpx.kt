@@ -33,35 +33,35 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             if (t.voiceHints != null) t.voiceHints.turnInstructionMode else 0
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        if (turnInstructionMode != 9) {
-            for (i in t.messageList!!.indices.reversed()) {
-                var message = t.messageList!![i]
-                if (i < t.messageList!!.size - 1) message =
-                    "(alt-index $i: $message )"
-                if (message != null) sb.append("<!-- ").append(message).append(" -->\n")
-            }
-        }
-
-        if (turnInstructionMode == 4) { // comment style
-            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
-                .append("$ -->\n")
-            sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n")
-            sb.append("<!-- \$turn-instruction-start$\n")
-            for (hint in t.voiceHints.list) {
-                sb.append(
-                    String.format(
-                        "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
-                        hint.getCommandString(turnInstructionMode),
-                        hint.indexInTrack,
-                        formatILon(hint.ilon),
-                        formatILat(hint.ilat),
-                        (hint.distanceToNext).toInt(),
-                        hint.formatGeometry()
-                    )
-                )
-            }
-            sb.append("    \$turn-instruction-end$ -->\n")
-        }
+//        if (turnInstructionMode != 9) {
+//            for (i in t.messageList!!.indices.reversed()) {
+//                var message = t.messageList!![i]
+//                if (i < t.messageList!!.size - 1) message =
+//                    "(alt-index $i: $message )"
+//                if (message != null) sb.append("<!-- ").append(message).append(" -->\n")
+//            }
+//        }
+//
+//        if (turnInstructionMode == 4) { // comment style
+//            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
+//                .append("$ -->\n")
+//            sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n")
+//            sb.append("<!-- \$turn-instruction-start$\n")
+//            for (hint in t.voiceHints.list) {
+//                sb.append(
+//                    String.format(
+//                        "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
+//                        hint.getCommandString(turnInstructionMode),
+//                        hint.indexInTrack,
+//                        formatILon(hint.ilon),
+//                        formatILat(hint.ilat),
+//                        (hint.distanceToNext).toInt(),
+//                        hint.formatGeometry()
+//                    )
+//                )
+//            }
+//            sb.append("    \$turn-instruction-end$ -->\n")
+//        }
         sb.append("<gpx \n")
         sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n")
         sb.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n")

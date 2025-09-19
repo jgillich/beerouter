@@ -19,7 +19,7 @@ class GeometryDecoder {
 
     init {
         // create some caches
-        cachedNodes = (0..nCachedNodes).map { OsmTransferNode() }.toTypedArray()
+        cachedNodes = (0 until nCachedNodes).map { OsmTransferNode() }.toTypedArray()
     }
 
     fun decodeGeometry(

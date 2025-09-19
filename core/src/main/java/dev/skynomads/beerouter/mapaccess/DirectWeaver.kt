@@ -42,7 +42,7 @@ class DirectWeaver(
 
         bc.decodeSortedArray(faid, 0, size, 29, 0)
 
-        val nodes = (0..size).map { n ->
+        val nodes = (0 until size).map { n ->
             val id = expandId(faid[n])
             val ilon = (id shr 32).toInt()
             val ilat = (id and 0xffffffffL).toInt()

@@ -7,10 +7,14 @@ group 'org.btools'
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://jitpack.io")
+    }
 }
 
 dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation "com.github.pieterclaerhout:kotlin-yellowduck-gpx:34fb8865e5"
 
     testImplementation 'ch.qos.logback:logback-classic:1.5.18'
     testImplementation 'junit:junit:4.13.2'
