@@ -8,6 +8,15 @@ import java.io.File
 class RoutingEngineTest {
     private var workingDir: File? = null
 
+    fun createRoutingContext(): RoutingContext {
+        val wd = workingDir!!.absolutePath
+
+        return RoutingContext(
+            File("$wd/../../../../misc/profiles2/trekking.brf"),
+            File(wd, "/../../../../brouter-map-creator/build/resources/test/tmp/segments"),
+        )
+    }
+
     @Before
     fun before() {
         val resulturl = this.javaClass.getResource("/testtrack0.gpx")
@@ -18,13 +27,13 @@ class RoutingEngineTest {
 
     @Test
     fun routeCrossingSegmentBorder() {
-        calcRoute(8.720897, 50.002515, 8.723658, 49.997510, "testtrack", RoutingContext())
+        calcRoute(8.720897, 50.002515, 8.723658, 49.997510, "testtrack", createRoutingContext())
     }
 
     @Test
     fun routeDestinationPointFarOff() {
         try {
-            calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", RoutingContext())
+            calcRoute(8.720897, 50.002515, 16.723658, 49.997510, "notrack", createRoutingContext())
             Assert.fail("IllegalArgumentException expected")
         } catch (e: IllegalArgumentException) {
             Assert.assertTrue("datafile not found", e.message!!.contains("not found"))
@@ -33,7 +42,7 @@ class RoutingEngineTest {
 
     @Test
     fun overrideParam() {
-        val rctx = RoutingContext()
+        val rctx = createRoutingContext()
         rctx.keyValues = HashMap()
         rctx.keyValues!!.put("avoid_unsafe", "1.0")
         calcRoute(8.723037, 50.000491, 8.712737, 50.002899, "paramTrack", rctx)
@@ -47,7 +56,6 @@ class RoutingEngineTest {
         trackname: String?,
         rctx: RoutingContext
     ) {
-        val wd = workingDir!!.absolutePath
 
         val wplist: MutableList<OsmNodeNamed> = ArrayList()
         var n = OsmNodeNamed()
@@ -62,11 +70,8 @@ class RoutingEngineTest {
         n.iLat = 90000000 + (tlat * 1000000 + 0.5).toInt()
         wplist.add(n)
 
-        rctx.profile = File("$wd/../../../../misc/profiles2/trekking.brf")
 
         val re = RoutingEngine(
-            null,
-            File(wd, "/../../../../brouter-map-creator/build/resources/test/tmp/segments"),
             wplist,
             rctx
         )

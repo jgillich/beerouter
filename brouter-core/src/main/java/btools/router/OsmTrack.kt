@@ -168,7 +168,7 @@ class OsmTrack {
                     if (current.nodeKeyValues != null || current.wayKeyValues != md!!.wayKeyValues) {
                         res.add(current.toMessage())
                     } else {
-                        md!!.add(current)
+                        md.add(current)
                     }
                 }
                 current = md
@@ -278,14 +278,14 @@ class OsmTrack {
 
         if (t.voiceHints != null) {
             if (ourSize > 0) {
-                for (hint in t.voiceHints!!.list) {
+                for (hint in t.voiceHints.list) {
                     hint.indexInTrack = hint.indexInTrack + ourSize - 1
                 }
             }
             if (voiceHints == null) {
                 voiceHints = t.voiceHints
             } else {
-                voiceHints!!.list.addAll(t.voiceHints!!.list)
+                voiceHints.list.addAll(t.voiceHints.list)
             }
         } else {
             if (detourMap == null) {
@@ -315,7 +315,7 @@ class OsmTrack {
 
     fun getVoiceHint(i: Int): VoiceHint? {
         if (voiceHints == null) return null
-        for (hint in voiceHints!!.list) {
+        for (hint in voiceHints.list) {
             if (hint.indexInTrack == i) {
                 return hint
             }
@@ -369,8 +369,8 @@ class OsmTrack {
 
     fun processVoiceHints(rc: RoutingContext) {
         voiceHints = VoiceHintList()
-        voiceHints!!.setTransportMode(rc.carMode, rc.bikeMode)
-        voiceHints!!.turnInstructionMode = rc.turnInstructionMode
+        voiceHints.setTransportMode(rc.carMode, rc.bikeMode)
+        voiceHints.turnInstructionMode = rc.turnInstructionMode
 
         if (detourMap == null && !rc.hasDirectRouting) {
             // only when no direct way points
@@ -438,7 +438,7 @@ class OsmTrack {
             node = node.origin!!
         }
 
-        val transportMode = voiceHints!!.transportMode()
+        val transportMode = voiceHints.transportMode()
         val vproc = VoiceHintProcessor(
             rc.turnInstructionCatchingRange,
             rc.turnInstructionRoundabouts,
@@ -449,14 +449,14 @@ class OsmTrack {
         val minDistance = this.minDistance.toDouble()
         val resultsLast = vproc.postProcess(results, rc.turnInstructionCatchingRange, minDistance)
         for (hint in resultsLast) {
-            voiceHints!!.list.add(hint)
+            voiceHints.list.add(hint)
         }
     }
 
     val minDistance: Int
         get() {
             if (voiceHints != null) {
-                return when (voiceHints!!.transportMode()) {
+                return when (voiceHints.transportMode()) {
                     VoiceHintList.Companion.TRANS_MODE_CAR -> 20
                     VoiceHintList.Companion.TRANS_MODE_FOOT -> 3
                     VoiceHintList.Companion.TRANS_MODE_BIKE -> 5
@@ -467,11 +467,11 @@ class OsmTrack {
         }
 
     fun getVoiceHintTime(i: Int): Float {
-        if (voiceHints!!.list.isEmpty()) {
+        if (voiceHints.list.isEmpty()) {
             return 0f
         }
-        if (i < voiceHints!!.list.size) {
-            return voiceHints!!.list[i].time
+        if (i < voiceHints.list.size) {
+            return voiceHints.list[i].time
         }
         if (nodes.isEmpty()) {
             return 0f
@@ -482,10 +482,10 @@ class OsmTrack {
     fun removeVoiceHint(i: Int) {
         if (voiceHints != null) {
             var remove: VoiceHint? = null
-            for (vh in voiceHints!!.list) {
+            for (vh in voiceHints.list) {
                 if (vh.indexInTrack == i) remove = vh
             }
-            if (remove != null) voiceHints!!.list.remove(remove)
+            if (remove != null) voiceHints.list.remove(remove)
         }
     }
 

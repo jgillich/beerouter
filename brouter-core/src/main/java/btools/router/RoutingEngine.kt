@@ -13,11 +13,9 @@ import btools.util.CheapRuler.destination
 import btools.util.CompactLongMap
 import btools.util.SortedHeap
 import btools.util.StackSampler
-import org.slf4j.ILoggerFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.io.FileWriter
 import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
@@ -27,16 +25,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 class RoutingEngine @JvmOverloads constructor(
-    loggerFactory: ILoggerFactory?, segmentDir: File,
-    waypoints: MutableList<OsmNodeNamed>, rc: RoutingContext, engineMode: Int = 0
+    waypoints: MutableList<OsmNodeNamed>,
+    rc: RoutingContext,
+    engineMode: Int = 0
 ) : Thread() {
-    private var loggerFactory: ILoggerFactory? = LoggerFactory.getILoggerFactory()
-    private var logger: Logger
+    private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
     private var nodesCache: NodesCache? = null
     private val openSet = SortedHeap<OsmPath?>()
-    var isFinished: Boolean = false
-        private set
 
     protected var waypoints: MutableList<OsmNodeNamed> = mutableListOf()
     var extraWaypoints: MutableList<OsmNodeNamed> = mutableListOf()
@@ -57,18 +53,10 @@ class RoutingEngine @JvmOverloads constructor(
 
     private val MAX_DYNAMIC_RANGE = 60000
 
-    var foundTrack: OsmTrack = OsmTrack()
-        protected set
-    var foundRawTrack: OsmTrack? = null
-        private set
-    var alternativeIndex: Int = 0
-        private set
-
     @Volatile
     var isTerminated: Boolean = false
         private set
 
-    protected var segmentDir: File
     private var stackSampler: StackSampler? = null
     protected var routingContext: RoutingContext
 
@@ -88,27 +76,12 @@ class RoutingEngine @JvmOverloads constructor(
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
 
     init {
-        if (loggerFactory != null) {
-            this.loggerFactory = loggerFactory
-        }
-        this.logger = this.loggerFactory!!.getLogger(RoutingEngine::class.java.getName())
-        this.segmentDir = segmentDir
         this.waypoints = waypoints
         this.routingContext = rc
         this.engineMode = engineMode
 
-        var baseFolder = routingContext.profile!!.getParentFile()
-        baseFolder = baseFolder?.getParentFile()
-        if (baseFolder != null) {
-            val stackLog = File(baseFolder, "stacks.txt")
-            if (stackLog.exists()) {
-                stackSampler = StackSampler(stackLog, 1000)
-                stackSampler!!.start()
-                logger.info("started stacksampling")
-            }
-        }
         val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
-        logger.info("parsed profile path={} cached={}", rc.profile!!.path, cachedProfile)
+        logger.info("parsed profile path={} cached={}", rc.profile.path, cachedProfile)
     }
 
     override fun run() {
@@ -138,7 +111,7 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
 
-    fun doRouting(maxRunningTime: Long) {
+    fun doRouting(maxRunningTime: Long): OsmTrack? {
         try {
             startTime = System.currentTimeMillis()
             val startTime0 = startTime
@@ -176,7 +149,7 @@ class RoutingEngine @JvmOverloads constructor(
                 track = findTrack(refTracks, lastTracks)!!
 
                 // we are only looking for info
-                if (routingContext.ai != null) return
+                if (routingContext.ai != null) return null
 
                 track.message =
                     ("track-length = " + track.distance + " filtered ascend = " + track.ascend
@@ -186,7 +159,7 @@ class RoutingEngine @JvmOverloads constructor(
                         track.totalSeconds
                     )
                 }
-                track.name = "brouter_" + routingContext.profile!!.name + "_" + i
+                track.name = "brouter_" + routingContext.profile.name + "_" + i
 
                 messageList.add(track.message)
                 track.messageList = messageList
@@ -194,17 +167,15 @@ class RoutingEngine @JvmOverloads constructor(
 
                 if (i == min(3, max(0, routingContext.alternativeIdx))) {
                     logger.debug("gpx={}", FormatGpx(routingContext).format(track))
-                    foundTrack = track
                 } else {
                     i++
                     continue
                 }
-
                 break
-                i++
             }
             val endTime = System.currentTimeMillis()
             logger.info("execution time={} seconds", (endTime - startTime0) / 1000.0)
+            return track
         } finally {
             if (routingContext.expctxWay != null) {
                 logger.info("expression cache stats={}", routingContext.expctxWay!!.cacheStats())
@@ -218,12 +189,11 @@ class RoutingEngine @JvmOverloads constructor(
                 nodesCache = null
             }
             openSet.clear()
-            this.isFinished = true // this signals termination to outside
 
             if (stackSampler != null) {
                 try {
                     stackSampler!!.close()
-                } catch (ignored: Exception) {
+                } catch (_: Exception) {
                 }
                 stackSampler = null
             }
@@ -461,14 +431,12 @@ class RoutingEngine @JvmOverloads constructor(
             }
 
             var re: RoutingEngine?
-            val rc = RoutingContext()
+            val rc = RoutingContext(routingContext.profile, routingContext.segmentDir)
 //            val name = routingContext.localFunction
 //            val idx = name!!.lastIndexOf(File.separator)
 //            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
 
             re = RoutingEngine(
-                loggerFactory,
-                segmentDir,
                 wpliststart,
                 rc,
                 BROUTER_ENGINEMODE_ROUNDTRIP
@@ -520,7 +488,7 @@ class RoutingEngine @JvmOverloads constructor(
             maxscale = max(1, Math.round(maxscale / 31250f / 2) + 1)
 
             areareader.getDirectAllData(
-                segmentDir,
+                rc.segmentDir,
                 rc,
                 wp,
                 maxscale,
@@ -687,7 +655,6 @@ class RoutingEngine @JvmOverloads constructor(
             nodesCache = null
         }
         openSet.clear()
-        this.isFinished = true // this signals termination to outside
     }
 
     private fun findTrack(refTracks: Array<OsmTrack?>, lastTracks: Array<OsmTrack?>): OsmTrack? {
@@ -1604,27 +1571,15 @@ class RoutingEngine @JvmOverloads constructor(
                 }
 
                 var t: OsmTrack?
-                try {
-                    t = findTrack(
-                        if (cfi == 0) "pass0" else "pass1",
-                        startWp,
-                        endWp,
-                        track,
-                        refTrack,
-                        false
-                    )
-                    if (routingContext.ai != null) return t
-                } catch (iae: IllegalArgumentException) {
-                    if (!this.isTerminated && matchPath != null) { // timeout, but eventually prepare a dirty ref track
-                        logger.info("supplying dirty reference track after timeout")
-                        foundRawTrack = mergeTrack(matchPath!!, track!!)
-                        foundRawTrack!!.endPoint = endWp
-                        foundRawTrack!!.nogoChecksums = routingContext.nogoChecksums
-                        foundRawTrack!!.profileTimestamp = routingContext.profileTimestamp
-                        foundRawTrack!!.isDirty = true
-                    }
-                    throw iae
-                }
+                t = findTrack(
+                    if (cfi == 0) "pass0" else "pass1",
+                    startWp,
+                    endWp,
+                    track,
+                    refTrack,
+                    false
+                )
+                if (routingContext.ai != null) return t
 
                 if (t == null && track != null && matchPath != null) {
                     // ups, didn't find it, use a merge
@@ -1647,7 +1602,6 @@ class RoutingEngine @JvmOverloads constructor(
             track.nogoChecksums = routingContext.nogoChecksums
             track.profileTimestamp = routingContext.profileTimestamp
             track.isDirty = isDirty
-            foundRawTrack = track
         }
 
         if (!wasClean && isDirty) {
@@ -1676,7 +1630,7 @@ class RoutingEngine @JvmOverloads constructor(
         val maxmem = routingContext.memoryclass * 1024L * 1024L // in MB
 
         nodesCache = NodesCache(
-            segmentDir,
+            routingContext.segmentDir,
             routingContext.expctxWay!!,
             routingContext.forceSecondaryData,
             maxmem,
@@ -2341,18 +2295,6 @@ class RoutingEngine @JvmOverloads constructor(
             return res
         }
     }
-
-    val distance: Int
-        get() = foundTrack.distance
-
-    val ascend: Int
-        get() = foundTrack.ascend
-
-    val plainAscend: Int
-        get() = foundTrack.plainAscend
-
-    val time: String?
-        get() = Formatter.Companion.getFormattedTime2(foundTrack.totalSeconds)
 
     fun terminate() {
         this.isTerminated = true

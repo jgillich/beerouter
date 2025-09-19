@@ -23,9 +23,6 @@ class ProfileCache {
     companion object {
         var logger: Logger = LoggerFactory.getLogger(ProfileCache::class.java)
 
-        private var lastLookupFile: File? = null
-        private var lastLookupTimestamp: Long = 0
-
         private var apc = arrayOfNulls<ProfileCache>(1)
 
         @Synchronized
@@ -35,21 +32,8 @@ class ProfileCache {
 
         @Synchronized
         fun parseProfile(rc: RoutingContext): Boolean {
-            val profileBaseDir = System.getProperty("profileBaseDir")
-            val profileDir: File = rc.profile!!.getParentFile()
-
-            rc.profileTimestamp = rc.profile!!.lastModified() + rc.keyValueChecksum shl 24
-            val lookupFile = File(profileDir, "lookups.dat")
-
-            // invalidate cache at lookup-table update
-            if (!(lookupFile == lastLookupFile && lookupFile.lastModified() == lastLookupTimestamp)) {
-                if (lastLookupFile != null) {
-                    logger.info("invalidating profile-cache after lookup-file update")
-                }
-                apc = arrayOfNulls(apc.size)
-                lastLookupFile = lookupFile
-                lastLookupTimestamp = lookupFile.lastModified()
-            }
+            rc.profileTimestamp = rc.profile.lastModified() + rc.keyValueChecksum shl 24
+            apc = arrayOfNulls(apc.size)
 
             var lru: ProfileCache? = null
             var unusedSlot = -1
@@ -85,10 +69,10 @@ class ProfileCache {
             rc.expctxNode = BExpressionContextNode(0, meta)
             rc.expctxNode!!.setForeignContext(rc.expctxWay!!)
 
-            meta.readMetaData(File(profileDir, "lookups.dat"))
+            meta.readMetaData(rc.lookupFile)
 
-            rc.expctxWay!!.parseFile(rc.profile!!, "global", rc.keyValues)
-            rc.expctxNode!!.parseFile(rc.profile!!, "global", rc.keyValues)
+            rc.expctxWay!!.parseFile(rc.profile, "global", rc.keyValues)
+            rc.expctxNode!!.parseFile(rc.profile, "global", rc.keyValues)
 
             rc.readGlobalConfig()
 
