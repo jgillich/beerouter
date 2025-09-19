@@ -6,6 +6,6 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
-rootProject.name = 'brouter'
+rootProject.name = 'beerouter'
 
-include ':brouter-mapaccess', ':brouter-core', ':brouter-util', ':brouter-expressions', ':brouter-codec', ':brouter-map-creator'
+include ':core', ':map-creator'
