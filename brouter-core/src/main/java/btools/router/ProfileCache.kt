@@ -36,17 +36,9 @@ class ProfileCache {
         @Synchronized
         fun parseProfile(rc: RoutingContext): Boolean {
             val profileBaseDir = System.getProperty("profileBaseDir")
-            val profileDir: File?
-            val profileFile: File?
-            if (profileBaseDir == null) {
-                profileDir = File(rc.localFunction).getParentFile()
-                profileFile = File(rc.localFunction)
-            } else {
-                profileDir = File(profileBaseDir)
-                profileFile = File(profileDir, rc.localFunction + ".brf")
-            }
+            val profileDir: File = rc.profile!!.getParentFile()
 
-            rc.profileTimestamp = profileFile.lastModified() + rc.keyValueChecksum shl 24
+            rc.profileTimestamp = rc.profile!!.lastModified() + rc.keyValueChecksum shl 24
             val lookupFile = File(profileDir, "lookups.dat")
 
             // invalidate cache at lookup-table update
@@ -67,7 +59,7 @@ class ProfileCache {
                 val pc: ProfileCache? = apc[i]
 
                 if (pc != null) {
-                    if ((!pc.profilesBusy) && profileFile == pc.lastProfileFile) {
+                    if ((!pc.profilesBusy) && rc.profile == pc.lastProfileFile) {
                         if (rc.profileTimestamp == pc.lastProfileTimestamp) {
                             rc.expctxWay = pc.expctxWay
                             rc.expctxNode = pc.expctxNode
@@ -95,8 +87,8 @@ class ProfileCache {
 
             meta.readMetaData(File(profileDir, "lookups.dat"))
 
-            rc.expctxWay!!.parseFile(profileFile, "global", rc.keyValues)
-            rc.expctxNode!!.parseFile(profileFile, "global", rc.keyValues)
+            rc.expctxWay!!.parseFile(rc.profile!!, "global", rc.keyValues)
+            rc.expctxNode!!.parseFile(rc.profile!!, "global", rc.keyValues)
 
             rc.readGlobalConfig()
 
@@ -111,7 +103,7 @@ class ProfileCache {
                     logger.debug(
                         "adding new profile at idx={} for file={}",
                         unusedSlot,
-                        profileFile
+                        rc.profile
                     )
                 }
             }
@@ -121,12 +113,12 @@ class ProfileCache {
                     "replacing profile of age={} sec {}->{}",
                     (System.currentTimeMillis() - lru.lastUseTime) / 1000L,
                     lru.lastProfileFile,
-                    profileFile
+                    rc.profile
                 )
             }
 
             lru.lastProfileTimestamp = rc.profileTimestamp
-            lru.lastProfileFile = profileFile
+            lru.lastProfileFile = rc.profile
             lru.expctxWay = rc.expctxWay
             lru.expctxNode = rc.expctxNode
             lru.profilesBusy = true

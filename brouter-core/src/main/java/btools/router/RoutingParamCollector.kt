@@ -2,6 +2,7 @@ package btools.router
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
 import java.util.Locale
@@ -134,7 +135,11 @@ class RoutingParamCollector {
 
             // prepare nogos extra
             if (params.containsKey("profile")) {
-                rctx.localFunction = params["profile"]
+                val profileName = params["profile"]
+                if (profileName != null) {
+                    rctx.profile = File(profileName)
+                }
+
             }
             if (params.containsKey("nogoLats") && params["nogoLats"]!!.isNotEmpty()) {
                 val nogoList = readNogos(

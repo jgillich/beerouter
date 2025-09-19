@@ -74,7 +74,7 @@ class RoutingEngineTest {
         n.iLat = 90000000 + (tlat * 1000000 + 0.5).toInt()
         wplist.add(n)
 
-        rctx.localFunction = "$wd/../../../../misc/profiles2/trekking.brf"
+        rctx.profile = File("$wd/../../../../misc/profiles2/trekking.brf")
 
         val re = RoutingEngine(
             "$wd/$trackname",

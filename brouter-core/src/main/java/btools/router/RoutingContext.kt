@@ -21,14 +21,10 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 class RoutingContext {
-    fun getAlternativeIdx(min: Int, max: Int): Int {
-        return if (alternativeIdx < min) min else (if (alternativeIdx > max) max else alternativeIdx)
-    }
-
     var alternativeIdx: Int = 0
 
-    @JvmField
-    var localFunction: String? = null
+    var profile: File? = null
+
     var profileTimestamp: Long = 0
 
     @JvmField
@@ -36,15 +32,6 @@ class RoutingContext {
 
     var rawTrackPath: String? = null
     var rawAreaPath: String? = null
-
-    val profileName: String
-        get() {
-            var name = (if (localFunction == null) "unknown" else localFunction)!!
-            if (name.endsWith(".brf")) name = name.substring(0, localFunction!!.length - 4)
-            val idx = name.lastIndexOf(File.separatorChar)
-            if (idx >= 0) name = name.substring(idx + 1)
-            return name
-        }
 
     var expctxWay: BExpressionContextWay? = null
     var expctxNode: BExpressionContextNode? = null
@@ -288,7 +275,7 @@ class RoutingContext {
     }
 
     fun checkMatchedWaypointAgainstNogos(matchedWaypoints: MutableList<MatchedWaypoint>) {
-        if (nogopoints == null) return
+        if (nogopoints.isEmpty()) return
         val theSize = matchedWaypoints.size
         if (theSize < 2) return
         var removed = 0
@@ -338,7 +325,7 @@ class RoutingContext {
     }
 
     fun allInOneNogo(waypoints: MutableList<OsmNode>): Boolean {
-        if (nogopoints == null) return false
+        if (nogopoints.isEmpty()) return false
         var allInTotal = false
         for (nogo in nogopoints) {
             var allIn = nogo.nogoWeight.isNaN()
@@ -362,9 +349,9 @@ class RoutingContext {
     val nogoChecksums: LongArray
         get() {
             val cs = LongArray(3)
-            val n = if (nogopoints == null) 0 else nogopoints!!.size
+            val n = if (nogopoints.isEmpty()) 0 else nogopoints.size
             for (i in 0..<n) {
-                val nogo = nogopoints!![i]
+                val nogo = nogopoints[i]
                 cs[0] += nogo.iLon
                 cs[1] += nogo.iLat.toLong()
                 // 10 is an arbitrary constant to get sub-integer precision in the checksum
@@ -380,8 +367,8 @@ class RoutingContext {
     fun setWaypoint(wp: OsmNodeNamed?, pendingEndpoint: OsmNodeNamed?, endpoint: Boolean) {
         keepnogopoints = nogopoints
         nogopoints = ArrayList()
-        nogopoints!!.add(wp!!)
-        if (keepnogopoints != null) nogopoints!!.addAll(keepnogopoints!!)
+        nogopoints.add(wp!!)
+        if (keepnogopoints.isNotEmpty()) nogopoints.addAll(keepnogopoints)
         isEndpoint = endpoint
         this.pendingEndpoint = pendingEndpoint
     }
@@ -389,7 +376,7 @@ class RoutingContext {
     fun checkPendingEndpoint(): Boolean {
         if (pendingEndpoint != null) {
             isEndpoint = true
-            nogopoints!![0] = pendingEndpoint!!
+            nogopoints[0] = pendingEndpoint!!
             pendingEndpoint = null
             return true
         }
@@ -416,9 +403,9 @@ class RoutingContext {
 
         shortestmatch = false
 
-        if (nogopoints != null && !nogopoints!!.isEmpty() && d > 0.0) {
-            for (ngidx in nogopoints!!.indices) {
-                val nogo = nogopoints!![ngidx]
+        if (!nogopoints.isEmpty() && d > 0.0) {
+            for (ngidx in nogopoints.indices) {
+                val nogo = nogopoints[ngidx]
                 val x1: Double = (lon1 - nogo.iLon) * dlon2m
                 val y1 = (lat1 - nogo.iLat) * dlat2m
                 val x2: Double = (lon2 - nogo.iLon) * dlon2m
@@ -528,7 +515,7 @@ class RoutingContext {
 
     fun createPath(link: OsmLink): OsmPath {
         val p = pm!!.createPath()
-        p!!.init(link)
+        p.init(link)
         return p
     }
 
@@ -539,7 +526,7 @@ class RoutingContext {
         detailMode: Boolean
     ): OsmPath {
         val p = pm!!.createPath()
-        p!!.init(origin, link, refTrack, detailMode, this)
+        p.init(origin, link, refTrack, detailMode, this)
         return p
     }
 

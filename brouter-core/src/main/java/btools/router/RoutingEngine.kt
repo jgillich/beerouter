@@ -106,7 +106,7 @@ class RoutingEngine @JvmOverloads constructor(
         this.routingContext = rc
         this.engineMode = engineMode
 
-        var baseFolder = File(routingContext.localFunction).getParentFile()
+        var baseFolder = routingContext.profile!!.getParentFile()
         baseFolder = baseFolder?.getParentFile()
         if (baseFolder != null) {
             val stackLog = File(baseFolder, "stacks.txt")
@@ -117,7 +117,7 @@ class RoutingEngine @JvmOverloads constructor(
             }
         }
         val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
-        logger.info("parsed profile path={} cached={}", rc.localFunction, cachedProfile)
+        logger.info("parsed profile path={} cached={}", rc.profile!!.path, cachedProfile)
     }
 
     override fun run() {
@@ -195,7 +195,7 @@ class RoutingEngine @JvmOverloads constructor(
                         track.totalSeconds
                     )
                 }
-                track.name = "brouter_" + routingContext.profileName + "_" + i
+                track.name = "brouter_" + routingContext.profile!!.name + "_" + i
 
                 messageList.add(track.message)
                 track.messageList = messageList
@@ -237,7 +237,8 @@ class RoutingEngine @JvmOverloads constructor(
                     alternativeIndex = i
                     outfile = filename
                 } else {
-                    if (i == routingContext.getAlternativeIdx(0, 3)) {
+
+                    if (i == min(3, max(0, routingContext.alternativeIdx))) {
                         if ("CSV" == System.getProperty("reportFormat")) {
                             val filename = "$outfileBase$i.csv"
                             FormatCsv(routingContext).write(filename, track)
@@ -543,9 +544,9 @@ class RoutingEngine @JvmOverloads constructor(
 
             var re: RoutingEngine?
             val rc = RoutingContext()
-            val name = routingContext.localFunction
-            val idx = name!!.lastIndexOf(File.separator)
-            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
+//            val name = routingContext.localFunction
+//            val idx = name!!.lastIndexOf(File.separator)
+//            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
 
             re = RoutingEngine(
                 null,
@@ -917,10 +918,7 @@ class RoutingEngine @JvmOverloads constructor(
                 hasDirectRouting = true
             }
         }
-        for (mwp in matchedWaypoints) {
-            //System.out.println(FormatGpx.getWaypoint(mwp.waypoint.iLon, mwp.waypoint.ilat, mwp.name, null));
-            //System.out.println(FormatGpx.getWaypoint(mwp.crosspoint.iLon, mwp.crosspoint.ilat, mwp.name+"_cp", null));
-        }
+
 
         routingContext.hasDirectRouting = hasDirectRouting
 
