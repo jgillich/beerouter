@@ -229,7 +229,7 @@ class FormatJson(rc: RoutingContext) : Formatter(rc) {
                 n.iLon,
                 n.iLat,
                 n.elev,
-                (if (n.nodeDescription != null) rc!!.expctxWay!!.getKeyValueDescription(
+                (if (n.nodeDescription != null) rc.way.getKeyValueDescription(
                     false,
                     n.nodeDescription!!
                 ) else null)

@@ -144,7 +144,14 @@ class AreaReader {
 
         val maxmem = rc.memoryclass * 1024L * 1024L // in MB
         val nodesCache =
-            NodesCache(segmentFolder!!, expctxWay, rc.forceSecondaryData, maxmem, null, false)
+            NodesCache(
+                segmentFolder!!,
+                expctxWay,
+                rc.global.forceSecondaryData,
+                maxmem,
+                null,
+                false
+            )
         var pf: PhysicalFile? = null
         var lastFilenameBase = ""
         var dataBuffers: DataBuffers? = null

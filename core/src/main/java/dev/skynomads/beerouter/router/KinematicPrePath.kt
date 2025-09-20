@@ -33,7 +33,7 @@ internal class KinematicPrePath : OsmPrePath() {
         val isReverse = link!!.isReverse(sourceNode)
 
         // evaluate the way tags
-        rc.expctxWay!!.evaluate(rc.inverseDirection xor isReverse, description!!)
+        rc.way.evaluate(rc.inverseDirection xor isReverse, description!!)
 
         val transferNode = if (link!!.geometry == null)
             null
@@ -54,7 +54,7 @@ internal class KinematicPrePath : OsmPrePath() {
         val dist = rc.calcDistance(lon1, lat1, lon2, lat2)
 
         angle = rc.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
-        priorityclassifier = rc.expctxWay!!.priorityClassifier.toInt()
-        classifiermask = rc.expctxWay!!.classifierMask.toInt()
+        priorityclassifier = rc.way.priorityClassifier.toInt()
+        classifiermask = rc.way.classifierMask.toInt()
     }
 }

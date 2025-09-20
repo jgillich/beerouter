@@ -13,19 +13,19 @@ import dev.skynomads.beerouter.util.CheapRuler.destination
 import dev.skynomads.beerouter.util.CompactLongMap
 import dev.skynomads.beerouter.util.SortedHeap
 import dev.skynomads.beerouter.util.StackSampler
+import kotlinx.coroutines.ensureActive
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlinx.coroutines.ensureActive
-import kotlin.coroutines.coroutineContext
 
-class RoutingEngine(rc: RoutingContext) : Thread() {
+class RoutingEngine(val routingContext: RoutingContext) : Thread() {
     private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
     private var nodesCache: NodesCache? = null
@@ -48,8 +48,6 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
     private val MAX_DYNAMIC_RANGE = 60000
 
     private var stackSampler: StackSampler? = null
-    protected var routingContext: RoutingContext
-
     var airDistanceCostFactor: Double = 0.0
     var lastAirDistanceCostFactor: Double = 0.0
 
@@ -62,13 +60,6 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
     private var extract: Array<Any?>? = null
 
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
-
-    init {
-        this.routingContext = rc
-
-        val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
-        logger.info("parsed profile path={} cached={}", rc.profile.path, cachedProfile)
-    }
 
     suspend fun doRouting(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val waypoints = waypoints.toMutableList()
@@ -131,11 +122,9 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             }
             return track
         } finally {
-            if (routingContext.expctxWay != null) {
-                logger.info("expression cache stats={}", routingContext.expctxWay!!.cacheStats())
+            if (routingContext.way != null) {
+                logger.info("expression cache stats={}", routingContext.way.cacheStats())
             }
-
-            ProfileCache.Companion.releaseProfile(routingContext)
 
             if (nodesCache != null) {
                 logger.info("NodesCache status before close={}", nodesCache!!.formatStatus())
@@ -252,7 +241,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
     suspend fun doRoundTrip(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val waypoints = waypoints.toMutableList()
-        routingContext.useDynamicDistance = true
+        routingContext.global.useDynamicDistance = true
         val searchRadius =
             (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
         var direction =
@@ -284,7 +273,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             )
         }
 
-        routingContext.waypointCatchingRange = 250.0
+        routingContext.global.waypointCatchingRange = 250.0
 
         return doRouting(waypoints)
     }
@@ -319,10 +308,10 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         var preferredRandomType: Int
         val consider_elevation =
-            routingContext.expctxWay!!.getVariableValue("consider_elevation", 0f) == 1f
+            routingContext.way.getVariableValue("consider_elevation", 0f) == 1f
         val consider_forest =
-            routingContext.expctxWay!!.getVariableValue("consider_forest", 0f) == 1f
-        val consider_river = routingContext.expctxWay!!.getVariableValue("consider_river", 0f) == 1f
+            routingContext.way.getVariableValue("consider_forest", 0f) == 1f
+        val consider_river = routingContext.way.getVariableValue("consider_river", 0f) == 1f
         preferredRandomType = if (consider_elevation) {
             AreaInfo.Companion.RESULT_TYPE_ELEV50
         } else if (consider_forest) {
@@ -379,12 +368,12 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 //            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
 
             re = RoutingEngine(rc)
-            rc.useDynamicDistance = true
+            rc.global.useDynamicDistance = true
             re.matchWaypointsToNodes(listStart)
             re.resetCache(true)
 
-            val numForest = rc.expctxWay!!.getLookupKey("estimated_forest_class")
-            val numRiver = rc.expctxWay!!.getLookupKey("estimated_river_class")
+            val numForest = rc.way.getLookupKey("estimated_forest_class")
+            val numRiver = rc.way.getLookupKey("estimated_river_class")
 
             val start1 = re.nodesCache!!.getStartNode(listStart[0].node1!!.idFromPos)
 
@@ -430,7 +419,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                 rc,
                 wp,
                 maxscale,
-                rc.expctxWay!!,
+                rc.way,
                 searchRect,
                 ais
             )
@@ -586,12 +575,6 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         findTrack("seededSearch", seedPoint, null, null, null, false)
 
-
-        ProfileCache.Companion.releaseProfile(routingContext)
-        if (nodesCache != null) {
-            nodesCache!!.close()
-            nodesCache = null
-        }
         openSet.clear()
     }
 
@@ -604,7 +587,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             try {
                 return tryFindTrack(waypoints, refTracks, lastTracks)
             } catch (rie: RoutingIslandException) {
-                if (routingContext.useDynamicDistance) {
+                if (routingContext.global.useDynamicDistance) {
                     for (mwp in matchedWaypoints) {
                         if (mwp.name!!.contains("_add")) {
                             val n1 = mwp.node1!!.idFromPos
@@ -707,12 +690,12 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints)
 
             // detect target islands: restricted search in inverse direction
-            routingContext.inverseDirection = !routingContext.inverseRouting
+            routingContext.inverseDirection = !routingContext.global.inverseRouting
             airDistanceCostFactor = 0.0
             for (i in 0..<matchedWaypoints.size - 1) {
                 nodeLimit = MAXNODES_ISLAND_CHECK
                 if (matchedWaypoints[i].direct) continue
-                if (routingContext.inverseRouting) {
+                if (routingContext.global.inverseRouting) {
                     val seg = findTrack(
                         "start-island-check",
                         matchedWaypoints[i],
@@ -750,7 +733,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
         }
 
 
-        routingContext.hasDirectRouting = hasDirectRouting
+        routingContext.global.hasDirectRouting = hasDirectRouting
 
         OsmPath.Companion.seg = 1 // set segment counter
         for (i in 0..<matchedWaypoints.size - 1) {
@@ -761,7 +744,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
             val seg: OsmTrack?
             val wptIndex: Int
-            if (routingContext.inverseRouting) {
+            if (routingContext.global.inverseRouting) {
                 routingContext.inverseDirection = true
                 seg = searchTrack(
                     matchedWaypoints[i + 1],
@@ -779,7 +762,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                     refTracks[i]
                 )
                 wptIndex = i
-                if (routingContext.continueStraight) {
+                if (routingContext.global.continueStraight) {
                     if (i < matchedWaypoints.size - 2) {
                         val lastPoint =
                             if (seg!!.containsNode(matchedWaypoints[i + 1].node1!!)) matchedWaypoints[i + 1].node1 else matchedWaypoints[i + 1].node2
@@ -797,11 +780,11 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             if (routingContext.ai != null) return null
 
             var changed = false
-            if (routingContext.correctMisplacedViaPoints && !matchedWaypoints[i].direct && !routingContext.allowSamewayback) {
+            if (routingContext.global.correctMisplacedViaPoints && !matchedWaypoints[i].direct && !routingContext.allowSamewayback) {
                 changed = snapPathConnection(
                     totaltrack,
                     seg,
-                    if (routingContext.inverseRouting) matchedWaypoints[i + 1] else matchedWaypoints[i]
+                    if (routingContext.global.inverseRouting) matchedWaypoints[i + 1] else matchedWaypoints[i]
                 )
             }
             if (wptIndex > 0) matchedWaypoints[wptIndex].indexInTrack =
@@ -820,7 +803,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
         totaltrack.processVoiceHints(routingContext)
         totaltrack.prepareSpeedProfile(routingContext)
 
-        totaltrack.showTime = routingContext.showTime
+        totaltrack.showTime = routingContext.global.showTime
         totaltrack.params = routingContext.keyValues
 
         if (routingContext.poipoints.isNotEmpty()) totaltrack.pois = routingContext.poipoints
@@ -850,8 +833,8 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         var mid: OsmTrack?
 
-        val corr = routingContext.correctMisplacedViaPoints
-        routingContext.correctMisplacedViaPoints = false
+        val corr = routingContext.global.correctMisplacedViaPoints
+        routingContext.global.correctMisplacedViaPoints = false
 
         guideTrack = OsmTrack()
         guideTrack!!.addNode(start)
@@ -860,7 +843,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
         mid = findTrack("getinfo", mwp1, mwp2, null, null, false)
 
         guideTrack = null
-        routingContext.correctMisplacedViaPoints = corr
+        routingContext.global.correctMisplacedViaPoints = corr
 
         return mid
     }
@@ -1040,7 +1023,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                 val lat2 = node.iLat
                 routingContext.anglemeter.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2)
                 val dist = node.calcDistance(startWp.crosspoint!!)
-                if (dist < routingContext.waypointCatchingRange) return false
+                if (dist < routingContext.global.waypointCatchingRange) return false
             }
             val removeBackList: MutableList<OsmPathElement?> = ArrayList()
             val removeForeList: MutableList<OsmPathElement?> = ArrayList()
@@ -1169,8 +1152,8 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                     }
                     indexback--
                     indexfore++
-                    if (routingContext.correctMisplacedViaPointsDistance > 0 &&
-                        wayDistance > routingContext.correctMisplacedViaPointsDistance
+                    if (routingContext.global.correctMisplacedViaPointsDistance > 0 &&
+                        wayDistance > routingContext.global.correctMisplacedViaPointsDistance
                     ) {
                         removeVoiceHintList.clear()
                         removeBackList.clear()
@@ -1251,7 +1234,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         var ele_start = Short.Companion.MIN_VALUE
         var ele_end = Short.Companion.MIN_VALUE
-        val eleFactor = if (routingContext.inverseRouting) 0.25 else -0.25
+        val eleFactor = if (routingContext.global.inverseRouting) 0.25 else -0.25
 
         for (i in 0..<ourSize) {
             val n = t.nodes[i]
@@ -1333,9 +1316,9 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                 val incline =
                     (if (t.nodes[key - 1].sElev == Short.Companion.MIN_VALUE || t.nodes[key].sElev == Short.Companion.MIN_VALUE) 0.0 else (t.nodes[key - 1].elev - t.nodes[key].elev) / value)
                 val f_roll =
-                    routingContext.totalMass * GRAVITY * (routingContext.defaultC_r + incline)
+                    routingContext.global.totalMass * GRAVITY * (routingContext.global.defaultC_r + incline)
                 val spd = speed_min / 3.6
-                addEnergy = value * (routingContext.S_C_x * spd * spd + f_roll)
+                addEnergy = value * (routingContext.global.S_C_x * spd * spd + f_roll)
             }
             for (j in key..<ourSize) {
                 val n = t.nodes[j]
@@ -1366,9 +1349,9 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
     // geometric position matching finding the nearest routable way-section
     private fun matchWaypointsToNodes(unmatchedWaypoints: MutableList<MatchedWaypoint>) {
         resetCache(false)
-        val useDynamicDistance = routingContext.useDynamicDistance
-        val bAddBeeline = routingContext.buildBeelineOnRange
-        var range = routingContext.waypointCatchingRange
+        val useDynamicDistance = routingContext.global.useDynamicDistance
+        val bAddBeeline = routingContext.global.buildBeelineOnRange
+        var range = routingContext.global.waypointCatchingRange
         var ok = nodesCache!!.matchWaypointsToNodes(unmatchedWaypoints, range, islandNodePairs)
         if (!ok && useDynamicDistance) {
             logger.info("second check for way points")
@@ -1376,7 +1359,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             range = -MAX_DYNAMIC_RANGE.toDouble()
             val tmp: MutableList<MatchedWaypoint> = ArrayList()
             for (mwp in unmatchedWaypoints) {
-                if (mwp.crosspoint == null || mwp.radius >= routingContext.waypointCatchingRange) tmp.add(
+                if (mwp.crosspoint == null || mwp.radius >= routingContext.global.waypointCatchingRange) tmp.add(
                     mwp
                 )
             }
@@ -1392,7 +1375,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             val waypoints: MutableList<MatchedWaypoint> = ArrayList()
             for (i in unmatchedWaypoints.indices) {
                 val wp = unmatchedWaypoints[i]
-                if (wp.waypoint!!.calcDistance(wp.crosspoint!!) > routingContext.waypointCatchingRange) {
+                if (wp.waypoint!!.calcDistance(wp.crosspoint!!) > routingContext.global.waypointCatchingRange) {
                     val nmw = MatchedWaypoint()
                     if (i == 0) {
                         var onn = OsmNodeNamed(wp.waypoint!!)
@@ -1478,8 +1461,8 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
     ): OsmTrack? {
         var track: OsmTrack? = null
         val airDistanceCostFactors = doubleArrayOf(
-            routingContext.pass1coefficient,
-            routingContext.pass2coefficient
+            routingContext.global.pass1coefficient,
+            routingContext.global.pass2coefficient
         )
         var isDirty = false
         var dirtyMessage: IllegalArgumentException? = null
@@ -1569,8 +1552,8 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         nodesCache = NodesCache(
             routingContext.segmentDir,
-            routingContext.expctxWay!!,
-            routingContext.forceSecondaryData,
+            routingContext.way,
+            routingContext.global.forceSecondaryData,
             maxmem,
             nodesCache,
             detailed
@@ -1669,7 +1652,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
             val detailed = guideTrack != null
             resetCache(detailed)
             nodesCache!!.nodesMap.cleanupMode =
-                if (detailed) 0 else (if (routingContext.considerTurnRestrictions) 2 else 1)
+                if (detailed) 0 else (if (routingContext.global.considerTurnRestrictions) 2 else 1)
             return _findTrack(
                 operationName,
                 startWp!!,
@@ -1894,8 +1877,8 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                         // track found, compile
                         logger.info("found track at cost " + path.cost + " nodesVisited = " + nodesVisited)
                         val t = compileTrack(path, verbose)
-                        t.showspeed = routingContext.showspeed
-                        t.showSpeedProfile = routingContext.showSpeedProfile
+                        t.showspeed = routingContext.global.showspeed
+                        t.showSpeedProfile = routingContext.global.showSpeedProfile
                         return t
                     }
 
@@ -1940,7 +1923,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                     sourceNode.unlinkLink(currentLink)
 
                     // if the counterlink is alive and does not yet have a path, remove it
-                    if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null && !routingContext.considerTurnRestrictions) {
+                    if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null && !routingContext.global.considerTurnRestrictions) {
                         currentNode.unlinkLink(currentLink)
                     }
                 }
@@ -2008,11 +1991,11 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                             continue
                         }
                         val guideNode =
-                            guideTrack!!.nodes[if (routingContext.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx]
+                            guideTrack!!.nodes[if (routingContext.global.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx]
                         val nextId = nextNode.idFromPos
                         if (nextId != guideNode.idFromPos) {
                             // not along the guide-track, discard, but register for voice-hint processing
-                            if (routingContext.turnInstructionMode > 0) {
+                            if (routingContext.global.turnInstructionMode > 0) {
                                 val detour = routingContext.createPath(path, link, refTrack, true)
                                 if (detour.cost >= 0.0 && nextId != startNodeId1 && nextId != startNodeId2) {
                                     guideTrack!!.registerDetourForId(
@@ -2123,7 +2106,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
 
         var distance = 0
 
-        if (routingContext.inverseRouting) -0.25 else 0.25
+        if (routingContext.global.inverseRouting) -0.25 else 0.25
         while (element != null) {
             if (guideTrack != null && element.message == null) {
                 element.message = MessageData()
@@ -2134,7 +2117,7 @@ class RoutingEngine(rc: RoutingContext) : Thread() {
                 element = nextElement
                 continue
             }
-            if (routingContext.inverseRouting) {
+            if (routingContext.global.inverseRouting) {
                 element.time = totalTime - element.time
                 element.energy = totalEnergy - element.energy
                 track.nodes.add(element)

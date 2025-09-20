@@ -7,13 +7,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-abstract class Formatter {
-    var rc: RoutingContext? = null
-
-    internal constructor(rc: RoutingContext) {
-        this.rc = rc
-    }
-
+abstract class Formatter(val rc: RoutingContext) {
     /**
      * writes the track in gpx-format to a file
      *

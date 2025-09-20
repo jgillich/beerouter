@@ -369,10 +369,10 @@ class OsmTrack {
 
     fun processVoiceHints(rc: RoutingContext) {
         voiceHints = VoiceHintList()
-        voiceHints.setTransportMode(rc.carMode, rc.bikeMode)
-        voiceHints.turnInstructionMode = rc.turnInstructionMode
+        voiceHints.setTransportMode(rc.global.carMode, rc.global.bikeMode)
+        voiceHints.turnInstructionMode = rc.global.turnInstructionMode
 
-        if (detourMap == null && !rc.hasDirectRouting) {
+        if (detourMap == null && !rc.global.hasDirectRouting) {
             // only when no direct way points
             return
         }
@@ -409,7 +409,7 @@ class OsmTrack {
                 input.goodWay = node.message
                 input.oldWay =
                     if (node.origin!!.message == null) node.message else node.origin!!.message
-                if (rc.turnInstructionMode == 8 || rc.turnInstructionMode == 4 || rc.turnInstructionMode == 2 || rc.turnInstructionMode == 9) {
+                if (rc.global.turnInstructionMode == 8 || rc.global.turnInstructionMode == 4 || rc.global.turnInstructionMode == 2 || rc.global.turnInstructionMode == 9) {
                     val mwpt = getMatchedWaypoint(nodeNr)
                     if (mwpt != null && mwpt.direct) {
                         input.command = VoiceHint.Companion.BL
@@ -440,14 +440,15 @@ class OsmTrack {
 
         val transportMode = voiceHints.transportMode()
         val vproc = VoiceHintProcessor(
-            rc.turnInstructionCatchingRange,
-            rc.turnInstructionRoundabouts,
+            rc.global.turnInstructionCatchingRange,
+            rc.global.turnInstructionRoundabouts,
             transportMode
         )
         val results = vproc.process(inputs)
 
         val minDistance = this.minDistance.toDouble()
-        val resultsLast = vproc.postProcess(results, rc.turnInstructionCatchingRange, minDistance)
+        val resultsLast =
+            vproc.postProcess(results, rc.global.turnInstructionCatchingRange, minDistance)
         for (hint in resultsLast) {
             voiceHints.list.add(hint)
         }

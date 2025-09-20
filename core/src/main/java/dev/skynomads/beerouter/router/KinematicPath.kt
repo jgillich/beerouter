@@ -80,7 +80,7 @@ internal class KinematicPath : OsmPath() {
             if (nsection == 0) { // process slowdown by crossing geometry
                 var junctionspeed = 999.0 // just high
 
-                val classifiermask = rc.expctxWay!!.classifierMask.toInt()
+                val classifiermask = rc.way.classifierMask.toInt()
 
                 // penalty for equal priority crossing
                 var hasLeftWay = false
@@ -242,8 +242,8 @@ internal class KinematicPath : OsmPath() {
 
         // finally add node-costs for target node
         if (targetNode!!.nodeDescription != null) {
-            rc.expctxNode!!.evaluate(false, targetNode!!.nodeDescription!!)
-            val initialcost = rc.expctxNode!!.initialcost
+            rc.node.evaluate(false, targetNode!!.nodeDescription!!)
+            val initialcost = rc.node.initialcost
             if (initialcost >= 1000000.0) {
                 return -1.0
             }
@@ -252,7 +252,7 @@ internal class KinematicPath : OsmPath() {
             if (message != null) {
                 message!!.linknodecost += initialcost.toInt()
                 message!!.nodeKeyValues =
-                    rc.expctxNode!!.getKeyValueDescription(false, targetNode!!.nodeDescription!!)
+                    rc.node.getKeyValueDescription(false, targetNode!!.nodeDescription!!)
 
                 message!!.vnode1 = (km.nodeMaxspeed * 3.6 + 0.5).toInt()
             }

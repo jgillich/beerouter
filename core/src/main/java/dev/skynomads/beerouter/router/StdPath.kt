@@ -58,23 +58,23 @@ internal class StdPath : OsmPath() {
         lastpriorityclassifier: Int
     ): Double {
         // calculate the costfactor inputs
-        val turncostbase = rc.expctxWay!!.turncost
-        val uphillcutoff = rc.expctxWay!!.uphillcutoff * 10000
-        val downhillcutoff = rc.expctxWay!!.downhillcutoff * 10000
-        val uphillmaxslope = rc.expctxWay!!.uphillmaxslope * 10000
-        val downhillmaxslope = rc.expctxWay!!.downhillmaxslope * 10000
-        var cfup = rc.expctxWay!!.uphillCostfactor
-        var cfdown = rc.expctxWay!!.downhillCostfactor
-        val cf = rc.expctxWay!!.costfactor
+        val turncostbase = rc.way.turncost
+        val uphillcutoff = rc.way.uphillcutoff * 10000
+        val downhillcutoff = rc.way.downhillcutoff * 10000
+        val uphillmaxslope = rc.way.uphillmaxslope * 10000
+        val downhillmaxslope = rc.way.downhillmaxslope * 10000
+        var cfup = rc.way.uphillCostfactor
+        var cfdown = rc.way.downhillCostfactor
+        val cf = rc.way.costfactor
         cfup = if (cfup == 0f) cf else cfup
         cfdown = if (cfdown == 0f) cf else cfdown
 
-        downhillcostdiv = rc.expctxWay!!.downhillcost.toInt()
+        downhillcostdiv = rc.way.downhillcost.toInt()
         if (downhillcostdiv > 0) {
             downhillcostdiv = 1000000 / downhillcostdiv
         }
 
-        var downhillmaxslopecostdiv = rc.expctxWay!!.downhillmaxslopecost.toInt()
+        var downhillmaxslopecostdiv = rc.way.downhillmaxslopecost.toInt()
         downhillmaxslopecostdiv = if (downhillmaxslopecostdiv > 0) {
             1000000 / downhillmaxslopecostdiv
         } else {
@@ -82,12 +82,12 @@ internal class StdPath : OsmPath() {
             downhillcostdiv
         }
 
-        uphillcostdiv = rc.expctxWay!!.uphillcost.toInt()
+        uphillcostdiv = rc.way.uphillcost.toInt()
         if (uphillcostdiv > 0) {
             uphillcostdiv = 1000000 / uphillcostdiv
         }
 
-        var uphillmaxslopecostdiv = rc.expctxWay!!.uphillmaxslopecost.toInt()
+        var uphillmaxslopecostdiv = rc.way.uphillmaxslopecost.toInt()
         uphillmaxslopecostdiv = if (uphillmaxslopecostdiv > 0) {
             1000000 / uphillmaxslopecostdiv
         } else {
@@ -115,16 +115,16 @@ internal class StdPath : OsmPath() {
         ehbu = (ehbu + (delta_h_micros - dist * uphillcutoff)).toInt()
 
         var downweight = 0f
-        if (ehbd > rc.elevationpenaltybuffer) {
+        if (ehbd > rc.global.elevationpenaltybuffer) {
             downweight = 1f
 
-            var excess = ehbd - rc.elevationpenaltybuffer
-            var reduce = dist * rc.elevationbufferreduce
+            var excess = ehbd - rc.global.elevationpenaltybuffer
+            var reduce = dist * rc.global.elevationbufferreduce
             if (reduce > excess) {
                 downweight = (excess.toFloat()) / reduce
                 reduce = excess
             }
-            excess = ehbd - rc.elevationmaxbuffer
+            excess = ehbd - rc.global.elevationmaxbuffer
             if (reduce < excess) {
                 reduce = excess
             }
@@ -148,16 +148,16 @@ internal class StdPath : OsmPath() {
         }
 
         var upweight = 0f
-        if (ehbu > rc.elevationpenaltybuffer) {
+        if (ehbu > rc.global.elevationpenaltybuffer) {
             upweight = 1f
 
-            var excess = ehbu - rc.elevationpenaltybuffer
-            var reduce = dist * rc.elevationbufferreduce
+            var excess = ehbu - rc.global.elevationpenaltybuffer
+            var reduce = dist * rc.global.elevationbufferreduce
             if (reduce > excess) {
                 upweight = (excess.toFloat()) / reduce
                 reduce = excess
             }
-            excess = ehbu - rc.elevationmaxbuffer
+            excess = ehbu - rc.global.elevationmaxbuffer
             if (reduce < excess) {
                 reduce = excess
             }
@@ -195,15 +195,15 @@ internal class StdPath : OsmPath() {
     override fun processTargetNode(rc: RoutingContext): Double {
         // finally add node-costs for target node
         if (targetNode!!.nodeDescription != null) {
-            val nodeAccessGranted = rc.expctxWay!!.nodeAccessGranted.toDouble() != 0.0
-            rc.expctxNode!!.evaluate(nodeAccessGranted, targetNode!!.nodeDescription!!)
-            val initialcost = rc.expctxNode!!.initialcost
+            val nodeAccessGranted = rc.way.nodeAccessGranted.toDouble() != 0.0
+            rc.node.evaluate(nodeAccessGranted, targetNode!!.nodeDescription!!)
+            val initialcost = rc.node.initialcost
             if (initialcost >= 1000000.0) {
                 return -1.0
             }
             if (message != null) {
                 message!!.linknodecost += initialcost.toInt()
-                message!!.nodeKeyValues = rc.expctxNode!!.getKeyValueDescription(
+                message!!.nodeKeyValues = rc.node.getKeyValueDescription(
                     nodeAccessGranted,
                     targetNode!!.nodeDescription!!
                 )
@@ -265,26 +265,26 @@ internal class StdPath : OsmPath() {
         elevation_buffer += delta_h.toFloat()
         val incline = calcIncline(dist)
 
-        var maxSpeed = rc.maxSpeed
-        val speedLimit = (rc.expctxWay!!.maxspeed / 3.6f).toDouble()
+        var maxSpeed = rc.global.maxSpeed
+        val speedLimit = (rc.way.maxspeed / 3.6f).toDouble()
         if (speedLimit > 0) {
             maxSpeed = min(maxSpeed, speedLimit)
         }
 
         var speed = maxSpeed // Travel speed
-        val f_roll: Double = rc.totalMass * GRAVITY * (rc.defaultC_r + incline)
-        if (rc.footMode) {
+        val f_roll: Double = rc.global.totalMass * GRAVITY * (rc.global.defaultC_r + incline)
+        if (rc.global.footMode) {
             // Use Tobler's hiking function for walking sections
-            speed = rc.maxSpeed * exp(-3.5 * abs(incline + 0.05))
-        } else if (rc.bikeMode) {
-            speed = solveCubic(rc.S_C_x, f_roll, rc.bikerPower)
+            speed = rc.global.maxSpeed * exp(-3.5 * abs(incline + 0.05))
+        } else if (rc.global.bikeMode) {
+            speed = solveCubic(rc.global.S_C_x, f_roll, rc.global.bikerPower)
             speed = min(speed, maxSpeed)
         }
         val dt = (dist / speed).toFloat()
         totalTime += dt
         // Calc energy assuming biking (no good model yet for hiking)
         // (Count only positive, negative would mean breaking to enforce maxspeed)
-        val energy = dist * (rc.S_C_x * speed * speed + f_roll)
+        val energy = dist * (rc.global.S_C_x * speed * speed + f_roll)
         if (energy > 0.0) {
             totalEnergy += energy.toFloat()
         }

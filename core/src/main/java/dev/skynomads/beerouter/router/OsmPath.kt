@@ -146,22 +146,22 @@ abstract class OsmPath : OsmLinkHolder {
         val isReverse = link.isReverse(sourceNode)
 
         // evaluate the way tags
-        rc.expctxWay!!.evaluate(rc.inverseDirection xor isReverse, description)
+        rc.way.evaluate(rc.inverseDirection xor isReverse, description)
 
         // and check if is useful
         if (rc.ai != null && rc.ai!!.polygon!!.isWithin(lon1.toLong(), lat1.toLong())) {
-            rc.ai!!.checkAreaInfo(rc.expctxWay!!, ele1 / 4.0, description)
+            rc.ai!!.checkAreaInfo(rc.way, ele1 / 4.0, description)
         }
 
         // calculate the costfactor inputs
-        val costfactor = rc.expctxWay!!.costfactor
-        val isTrafficBackbone = cost == 0 && rc.expctxWay!!.isTrafficBackbone > 0f
+        val costfactor = rc.way.costfactor
+        val isTrafficBackbone = cost == 0 && rc.way.isTrafficBackbone > 0f
         val lastpriorityclassifier = priorityclassifier
-        priorityclassifier = rc.expctxWay!!.priorityClassifier.toInt()
+        priorityclassifier = rc.way.priorityClassifier.toInt()
 
         // *** add initial cost if the classifier changed
-        val newClassifier = rc.expctxWay!!.initialClassifier
-        val newInitialCost = rc.expctxWay!!.initialcost
+        val newClassifier = rc.way.initialClassifier
+        val newInitialCost = rc.way.initialcost
         val classifierDiff = newClassifier - lastClassifier
         if (newClassifier.toDouble() != 0.0 && lastClassifier.toDouble() != 0.0 && (classifierDiff > 0.0005 || classifierDiff < -0.0005)) {
             val initialcost = if (rc.inverseDirection) lastInitialCost else newInitialCost
@@ -180,7 +180,7 @@ abstract class OsmPath : OsmLinkHolder {
         lastInitialCost = newInitialCost
 
         // *** destination logic: no destination access in between
-        val classifiermask = rc.expctxWay!!.classifierMask.toInt()
+        val classifiermask = rc.way.classifierMask.toInt()
         val newDestination = (classifiermask and 64) != 0
         val oldDestination = getBit(IS_ON_DESTINATION_BIT)
         if (getBit(PATH_START_BIT)) {
@@ -229,7 +229,7 @@ abstract class OsmPath : OsmLinkHolder {
             var isStartpoint = lon0 == -1 && lat0 == -1
 
             // check turn restrictions (n detail mode (=final pass) no TR to not mess up voice hints)
-            if (nsection == 0 && rc.considerTurnRestrictions && !detailMode && !isStartpoint) {
+            if (nsection == 0 && rc.global.considerTurnRestrictions && !detailMode && !isStartpoint) {
                 if (if (rc.inverseDirection)
                         isTurnForbidden(
                             sourceNode!!.firstRestriction,
@@ -237,8 +237,8 @@ abstract class OsmPath : OsmLinkHolder {
                             lat2,
                             lon0,
                             lat0,
-                            rc.bikeMode || rc.footMode,
-                            rc.carMode
+                            rc.global.bikeMode || rc.global.footMode,
+                            rc.global.carMode
                         )
                     else
                         isTurnForbidden(
@@ -247,8 +247,8 @@ abstract class OsmPath : OsmLinkHolder {
                             lat0,
                             lon2,
                             lat2,
-                            rc.bikeMode || rc.footMode,
-                            rc.carMode
+                            rc.global.bikeMode || rc.global.footMode,
+                            rc.global.carMode
                         )
                 ) {
                     cost = -1
@@ -369,7 +369,7 @@ abstract class OsmPath : OsmLinkHolder {
                 message!!.lat = lat2
                 message!!.ele = originEle2
                 message!!.wayKeyValues =
-                    rc.expctxWay!!.getKeyValueDescription(isReverse, description)
+                    rc.way.getKeyValueDescription(isReverse, description)
             }
 
             if (stopAtEndpoint) {

@@ -2,11 +2,11 @@ package dev.skynomads.beerouter.router
 
 import be.yellowduck.gpx.GPX
 import kotlinx.coroutines.runBlocking
-import java.net.URL
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 

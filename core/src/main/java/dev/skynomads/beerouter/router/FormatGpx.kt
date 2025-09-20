@@ -3,7 +3,6 @@
 package dev.skynomads.beerouter.router
 
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
-import dev.skynomads.beerouter.util.StringUtils
 import dev.skynomads.beerouter.util.StringUtils.escapeXml10
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -30,7 +29,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
     @Throws(IOException::class)
     fun formatAsGpx(sb: BufferedWriter, t: OsmTrack): String? {
         val turnInstructionMode =
-            if (t.voiceHints != null) t.voiceHints.turnInstructionMode else 0
+            t.voiceHints.turnInstructionMode
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 //        if (turnInstructionMode != 9) {
@@ -534,9 +533,9 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         if (n.name != null) {
             sb.append("<name>").append(escapeXml10(n.name!!)).append("</name>")
         }
-        if (n.nodeDescription != null && rc != null) {
+        if (n.nodeDescription != null) {
             sb.append("<desc>")
-                .append(rc!!.expctxWay!!.getKeyValueDescription(false, n.nodeDescription!!))
+                .append(rc.way.getKeyValueDescription(false, n.nodeDescription!!))
                 .append("</desc>")
         }
         if (type != null) {

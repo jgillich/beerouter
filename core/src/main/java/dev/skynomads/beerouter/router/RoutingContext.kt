@@ -8,6 +8,7 @@ package dev.skynomads.beerouter.router
 import dev.skynomads.beerouter.expressions.BExpressionContext
 import dev.skynomads.beerouter.expressions.BExpressionContextNode
 import dev.skynomads.beerouter.expressions.BExpressionContextWay
+import dev.skynomads.beerouter.expressions.BExpressionMetaData
 import dev.skynomads.beerouter.mapaccess.GeometryDecoder
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.OsmLink
@@ -25,6 +26,134 @@ class RoutingContext(
     val segmentDir: File,
     val lookupFile: File = File(profile.parentFile, "lookups.dat")
 ) {
+    class Global(ctx: BExpressionContext) {
+        val carMode: Boolean
+        val bikeMode: Boolean
+        val footMode: Boolean
+        val considerTurnRestrictions: Boolean
+        val processUnusedTags: Boolean
+        val forceSecondaryData: Boolean
+        val pass1coefficient: Double
+        val pass2coefficient: Double
+        val elevationpenaltybuffer: Int
+        val elevationmaxbuffer: Int
+        val elevationbufferreduce: Int
+
+        val cost1speed: Double
+        val additionalcostfactor: Double
+        val changetime: Double
+        val buffertime: Double
+        val waittimeadjustment: Double
+        val inittimeadjustment: Double
+        val starttimeoffset: Double
+        val transitonly: Boolean
+
+        var waypointCatchingRange: Double
+        var correctMisplacedViaPoints: Boolean
+        val correctMisplacedViaPointsDistance: Double
+        val continueStraight: Boolean
+        var useDynamicDistance: Boolean
+        val buildBeelineOnRange: Boolean
+
+        val turnInstructionMode: Int   // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
+        val turnInstructionCatchingRange: Double
+        val turnInstructionRoundabouts: Boolean
+
+        // Speed computation model (for bikes)
+        val totalMass: Double
+        val maxSpeed: Double
+        val S_C_x: Double
+        val defaultC_r: Double
+        val bikerPower: Double
+
+        val showspeed: Boolean
+        val showSpeedProfile: Boolean
+        val inverseRouting: Boolean
+        val showTime: Boolean
+        var hasDirectRouting: Boolean = false
+
+        init {
+            carMode = 0f != ctx.getVariableValue("validForCars", 0f)
+            bikeMode = 0f != ctx.getVariableValue("validForBikes", 0f)
+            footMode = 0f != ctx.getVariableValue("validForFoot", 0f)
+
+            waypointCatchingRange = ctx.getVariableValue("waypointCatchingRange", 250f).toDouble()
+
+            // turn-restrictions not used per default for foot profiles
+            considerTurnRestrictions = 0f != ctx.getVariableValue(
+                "considerTurnRestrictions",
+                if (footMode) 0f else 1f
+            )
+
+            correctMisplacedViaPoints =
+                0f != ctx.getVariableValue("correctMisplacedViaPoints", 1f)
+            correctMisplacedViaPointsDistance =
+                ctx.getVariableValue("correctMisplacedViaPointsDistance", 0f)
+                    .toDouble() // 0 == don't use distance
+
+            continueStraight = 0f != ctx.getVariableValue("continueStraight", 0f)
+
+            // process tags not used in the profile (to have them in the data-tab)
+            processUnusedTags = 0f != ctx.getVariableValue("processUnusedTags", 0f)
+
+            forceSecondaryData = 0f != ctx.getVariableValue("forceSecondaryData", 0f)
+            pass1coefficient = ctx.getVariableValue("pass1coefficient", 1.5f).toDouble()
+            pass2coefficient = ctx.getVariableValue("pass2coefficient", 0f).toDouble()
+            elevationpenaltybuffer =
+                (ctx.getVariableValue("elevationpenaltybuffer", 5f) * 1000000).toInt()
+            elevationmaxbuffer =
+                (ctx.getVariableValue("elevationmaxbuffer", 10f) * 1000000).toInt()
+            elevationbufferreduce =
+                (ctx.getVariableValue("elevationbufferreduce", 0f) * 10000).toInt()
+
+            cost1speed = ctx.getVariableValue("cost1speed", 22f).toDouble()
+            additionalcostfactor =
+                ctx.getVariableValue("additionalcostfactor", 1.5f).toDouble()
+            changetime = ctx.getVariableValue("changetime", 180f).toDouble()
+            buffertime = ctx.getVariableValue("buffertime", 120f).toDouble()
+            waittimeadjustment =
+                ctx.getVariableValue("waittimeadjustment", 0.9f).toDouble()
+            inittimeadjustment =
+                ctx.getVariableValue("inittimeadjustment", 0.2f).toDouble()
+            starttimeoffset = ctx.getVariableValue("starttimeoffset", 0f).toDouble()
+            transitonly = ctx.getVariableValue("transitonly", 0f) != 0f
+
+            showspeed = 0f != ctx.getVariableValue("showspeed", 0f)
+            showSpeedProfile = 0f != ctx.getVariableValue("showSpeedProfile", 0f)
+            inverseRouting = 0f != ctx.getVariableValue("inverseRouting", 0f)
+            showTime = 0f != ctx.getVariableValue("showtime", 0f)
+
+            turnInstructionMode = ctx.getVariableValue("turnInstructionMode", 0f).toInt()
+
+            turnInstructionCatchingRange =
+                ctx.getVariableValue("turnInstructionCatchingRange", 40f).toDouble()
+            turnInstructionRoundabouts =
+                ctx.getVariableValue("turnInstructionRoundabouts", 1f) != 0f
+
+            // Speed computation model (for bikes)
+            // Total mass (biker + bike + luggages or hiker), in kg
+            totalMass = ctx.getVariableValue("totalMass", 90f).toDouble()
+            // Max speed (before braking), in km/h in profile and m/s in code
+            maxSpeed = if (footMode) {
+                ctx.getVariableValue("maxSpeed", 6f) / 3.6
+            } else {
+                ctx.getVariableValue("maxSpeed", 45f) / 3.6
+            }
+            // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
+            S_C_x = ctx.getVariableValue("S_C_x", 0.5f * 0.45f).toDouble()
+            // Default resistance of the road, F = - m * g * C_r (for good quality road)
+            defaultC_r = ctx.getVariableValue("C_r", 0.01f).toDouble()
+            // Constant power of the biker (in W)
+            bikerPower = ctx.getVariableValue("bikerPower", 100f).toDouble()
+
+            useDynamicDistance = ctx.getVariableValue("use_dynamic_range", 1f) == 1f
+            buildBeelineOnRange = ctx.getVariableValue("add_beeline", 0f) == 1f
+
+            val test = ctx.getVariableValue("check_start_way", 1f) == 1f
+            if (!test) ctx.freeNoWays()
+        }
+    }
+
     var alternativeIdx: Int = 0
 
     var profileTimestamp: Long = 0
@@ -35,158 +164,41 @@ class RoutingContext(
     var rawTrackPath: String? = null
     var rawAreaPath: String? = null
 
-    var expctxWay: BExpressionContextWay? = null
-    var expctxNode: BExpressionContextNode? = null
+    val global: Global
+    val way: BExpressionContextWay
+    val node: BExpressionContextNode
 
     var geometryDecoder: GeometryDecoder = GeometryDecoder()
 
     var memoryclass: Int = 64
 
-    var carMode: Boolean = false
-    var bikeMode: Boolean = false
-    var footMode: Boolean = false
-    var considerTurnRestrictions: Boolean = false
-    var processUnusedTags: Boolean = false
-    var forceSecondaryData: Boolean = false
-    var pass1coefficient: Double = 0.0
-    var pass2coefficient: Double = 0.0
-    var elevationpenaltybuffer: Int = 0
-    var elevationmaxbuffer: Int = 0
-    var elevationbufferreduce: Int = 0
-
-    var cost1speed: Double = 0.0
-    var additionalcostfactor: Double = 0.0
-    var changetime: Double = 0.0
-    var buffertime: Double = 0.0
-    var waittimeadjustment: Double = 0.0
-    var inittimeadjustment: Double = 0.0
-    var starttimeoffset: Double = 0.0
-    var transitonly: Boolean = false
-
-    var waypointCatchingRange: Double = 0.0
-    var correctMisplacedViaPoints: Boolean = false
-    var correctMisplacedViaPointsDistance: Double = 0.0
-    var continueStraight: Boolean = false
-    var useDynamicDistance: Boolean = false
-    var buildBeelineOnRange: Boolean = false
 
     var ai: AreaInfo? = null
-
     var pm: OsmPathModel? = null
 
-    private fun setModel(className: String?) {
-        if (className == null) {
-            pm = StdModel()
-        } else {
-            try {
-                val clazz = Class.forName(className)
-                pm = clazz.getDeclaredConstructor().newInstance() as OsmPathModel
-            } catch (e: Exception) {
-                throw RuntimeException("Cannot create path-model: $e")
-            }
+
+    init {
+        val meta = BExpressionMetaData()
+
+        node = BExpressionContextNode(0, meta)
+        way = BExpressionContextWay(memoryclass * 512, meta)
+        node.setForeignContext(way)
+
+        meta.readMetaData(lookupFile)
+
+        way.parseFile(profile, "global", keyValues)
+        node.parseFile(profile, "global", keyValues)
+
+        setModel(way._modelClass)
+        global = Global(way)
+
+        if (global.processUnusedTags) {
+            way.setAllTagsUsed()
         }
-        pm!!.init(expctxWay, expctxNode, keyValues ?: mutableMapOf())
-    }
-
-
-    val keyValueChecksum: Long
-        get() {
-            var s = 0L
-            if (keyValues != null) {
-                for (e in keyValues!!.entries) {
-                    s += (e.key.hashCode() + e.value.hashCode()).toLong()
-                }
-            }
-            return s
-        }
-
-    fun readGlobalConfig() {
-        val expctxGlobal: BExpressionContext = expctxWay!! // just one of them...
-        setModel(expctxGlobal._modelClass)
-
-        carMode = 0f != expctxGlobal.getVariableValue("validForCars", 0f)
-        bikeMode = 0f != expctxGlobal.getVariableValue("validForBikes", 0f)
-        footMode = 0f != expctxGlobal.getVariableValue("validForFoot", 0f)
-
-        waypointCatchingRange =
-            expctxGlobal.getVariableValue("waypointCatchingRange", 250f).toDouble()
-
-        // turn-restrictions not used per default for foot profiles
-        considerTurnRestrictions = 0f != expctxGlobal.getVariableValue(
-            "considerTurnRestrictions",
-            if (footMode) 0f else 1f
-        )
-
-        correctMisplacedViaPoints =
-            0f != expctxGlobal.getVariableValue("correctMisplacedViaPoints", 1f)
-        correctMisplacedViaPointsDistance =
-            expctxGlobal.getVariableValue("correctMisplacedViaPointsDistance", 0f)
-                .toDouble() // 0 == don't use distance
-
-        continueStraight = 0f != expctxGlobal.getVariableValue("continueStraight", 0f)
-
-        // process tags not used in the profile (to have them in the data-tab)
-        processUnusedTags = 0f != expctxGlobal.getVariableValue("processUnusedTags", 0f)
-
-        forceSecondaryData = 0f != expctxGlobal.getVariableValue("forceSecondaryData", 0f)
-        pass1coefficient = expctxGlobal.getVariableValue("pass1coefficient", 1.5f).toDouble()
-        pass2coefficient = expctxGlobal.getVariableValue("pass2coefficient", 0f).toDouble()
-        elevationpenaltybuffer =
-            (expctxGlobal.getVariableValue("elevationpenaltybuffer", 5f) * 1000000).toInt()
-        elevationmaxbuffer =
-            (expctxGlobal.getVariableValue("elevationmaxbuffer", 10f) * 1000000).toInt()
-        elevationbufferreduce =
-            (expctxGlobal.getVariableValue("elevationbufferreduce", 0f) * 10000).toInt()
-
-        cost1speed = expctxGlobal.getVariableValue("cost1speed", 22f).toDouble()
-        additionalcostfactor =
-            expctxGlobal.getVariableValue("additionalcostfactor", 1.5f).toDouble()
-        changetime = expctxGlobal.getVariableValue("changetime", 180f).toDouble()
-        buffertime = expctxGlobal.getVariableValue("buffertime", 120f).toDouble()
-        waittimeadjustment = expctxGlobal.getVariableValue("waittimeadjustment", 0.9f).toDouble()
-        inittimeadjustment = expctxGlobal.getVariableValue("inittimeadjustment", 0.2f).toDouble()
-        starttimeoffset = expctxGlobal.getVariableValue("starttimeoffset", 0f).toDouble()
-        transitonly = expctxGlobal.getVariableValue("transitonly", 0f) != 0f
-
-        showspeed = 0f != expctxGlobal.getVariableValue("showspeed", 0f)
-        showSpeedProfile = 0f != expctxGlobal.getVariableValue("showSpeedProfile", 0f)
-        inverseRouting = 0f != expctxGlobal.getVariableValue("inverseRouting", 0f)
-        showTime = 0f != expctxGlobal.getVariableValue("showtime", 0f)
-
-        val tiMode = expctxGlobal.getVariableValue("turnInstructionMode", 0f).toInt()
-        if (tiMode != 1) { // automatic selection from coordinate source
-            turnInstructionMode = tiMode
-        }
-        turnInstructionCatchingRange =
-            expctxGlobal.getVariableValue("turnInstructionCatchingRange", 40f).toDouble()
-        turnInstructionRoundabouts =
-            expctxGlobal.getVariableValue("turnInstructionRoundabouts", 1f) != 0f
-
-        // Speed computation model (for bikes)
-        // Total mass (biker + bike + luggages or hiker), in kg
-        totalMass = expctxGlobal.getVariableValue("totalMass", 90f).toDouble()
-        // Max speed (before braking), in km/h in profile and m/s in code
-        maxSpeed = if (footMode) {
-            expctxGlobal.getVariableValue("maxSpeed", 6f) / 3.6
-        } else {
-            expctxGlobal.getVariableValue("maxSpeed", 45f) / 3.6
-        }
-        // Equivalent surface for wind, S * C_x, F = -1/2 * S * C_x * v^2 = - S_C_x * v^2
-        S_C_x = expctxGlobal.getVariableValue("S_C_x", 0.5f * 0.45f).toDouble()
-        // Default resistance of the road, F = - m * g * C_r (for good quality road)
-        defaultC_r = expctxGlobal.getVariableValue("C_r", 0.01f).toDouble()
-        // Constant power of the biker (in W)
-        bikerPower = expctxGlobal.getVariableValue("bikerPower", 100f).toDouble()
-
-        useDynamicDistance = expctxGlobal.getVariableValue("use_dynamic_range", 1f) == 1f
-        buildBeelineOnRange = expctxGlobal.getVariableValue("add_beeline", 0f) == 1f
-
-        val test = expctxGlobal.getVariableValue("check_start_way", 1f) == 1f
-        if (!test) freeNoWays()
     }
 
     fun freeNoWays() {
-        val expctxGlobal: BExpressionContext? = expctxWay
+        val expctxGlobal: BExpressionContext? = way
         expctxGlobal?.freeNoWays()
     }
 
@@ -218,30 +230,12 @@ class RoutingContext(
 
     var inverseDirection: Boolean = false
 
-    var showspeed: Boolean = false
-    var showSpeedProfile: Boolean = false
-    var inverseRouting: Boolean = false
-    var showTime: Boolean = false
-    var hasDirectRouting: Boolean = false
 
-    var outputFormat: String = "gpx"
     var exportWaypoints: Boolean = false
     var exportCorrectedWaypoints: Boolean = false
 
     var firstPrePath: OsmPrePath? = null
 
-    @JvmField
-    var turnInstructionMode: Int =
-        0 // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
-    var turnInstructionCatchingRange: Double = 0.0
-    var turnInstructionRoundabouts: Boolean = false
-
-    // Speed computation model (for bikes)
-    var totalMass: Double = 0.0
-    var maxSpeed: Double = 0.0
-    var S_C_x: Double = 0.0
-    var defaultC_r: Double = 0.0
-    var bikerPower: Double = 0.0
 
     /**
      * restore the full nogolist previously saved by cleanNogoList
@@ -373,6 +367,20 @@ class RoutingContext(
         if (keepnogopoints.isNotEmpty()) nogopoints.addAll(keepnogopoints)
         isEndpoint = endpoint
         this.pendingEndpoint = pendingEndpoint
+    }
+
+    private fun setModel(className: String?) {
+        if (className == null) {
+            pm = StdModel()
+        } else {
+            try {
+                val clazz = Class.forName(className)
+                pm = clazz.getDeclaredConstructor().newInstance() as OsmPathModel
+            } catch (e: Exception) {
+                throw RuntimeException("Cannot create path-model: $e")
+            }
+        }
+        pm!!.init(way, node, keyValues ?: mutableMapOf())
     }
 
     fun checkPendingEndpoint(): Boolean {

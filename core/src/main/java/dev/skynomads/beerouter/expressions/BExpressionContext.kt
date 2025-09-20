@@ -18,7 +18,6 @@ import java.util.NavigableMap
 import java.util.Random
 import java.util.StringTokenizer
 import java.util.TreeMap
-import kotlin.compareTo
 import kotlin.math.abs
 
 abstract class BExpressionContext protected constructor(
