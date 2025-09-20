@@ -19,23 +19,18 @@ import java.io.File
 import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
-import kotlin.concurrent.Volatile
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
-class RoutingEngine(
-    waypoints: MutableList<OsmNodeNamed>,
-    rc: RoutingContext
-) : Thread() {
+class RoutingEngine(rc: RoutingContext) : Thread() {
     private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
     private var nodesCache: NodesCache? = null
     private val openSet = SortedHeap<OsmPath?>()
 
-    protected var waypoints: MutableList<OsmNodeNamed> = mutableListOf()
     var extraWaypoints: MutableList<OsmNodeNamed> = mutableListOf()
     protected var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
     var linksProcessed: Int = 0
@@ -69,14 +64,14 @@ class RoutingEngine(
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
 
     init {
-        this.waypoints = waypoints
         this.routingContext = rc
 
         val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
         logger.info("parsed profile path={} cached={}", rc.profile.path, cachedProfile)
     }
 
-    suspend fun doRouting(): OsmTrack? {
+    suspend fun doRouting(waypoints: List<OsmNodeNamed>): OsmTrack? {
+        val waypoints = waypoints.toMutableList()
         try {
             if (routingContext.allowSamewayback) {
                 if (waypoints.size == 2) {
@@ -107,7 +102,7 @@ class RoutingEngine(
             val messageList: MutableList<String?> = ArrayList()
             var i = 0
             while (true) {
-                track = findTrack(refTracks, lastTracks)!!
+                track = findTrack(waypoints, refTracks, lastTracks)!!
 
                 // we are only looking for info
                 if (routingContext.ai != null) return null
@@ -159,7 +154,7 @@ class RoutingEngine(
         }
     }
 
-    suspend fun doGetInfo(): OsmTrack? {
+    suspend fun doGetInfo(waypoints: List<OsmNodeNamed>): OsmTrack? {
         routingContext.freeNoWays()
 
         val wpt1 = MatchedWaypoint()
@@ -255,7 +250,8 @@ class RoutingEngine(
         return t
     }
 
-    suspend fun doRoundTrip() {
+    suspend fun doRoundTrip(waypoints: List<OsmNodeNamed>): OsmTrack? {
+        val waypoints = waypoints.toMutableList()
         routingContext.useDynamicDistance = true
         val searchRadius =
             (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
@@ -290,7 +286,7 @@ class RoutingEngine(
 
         routingContext.waypointCatchingRange = 250.0
 
-        doRouting()
+        return doRouting(waypoints)
     }
 
     fun buildPointsFromCircle(
@@ -382,10 +378,7 @@ class RoutingEngine(
 //            val idx = name!!.lastIndexOf(File.separator)
 //            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
 
-            re = RoutingEngine(
-                wpliststart,
-                rc
-            )
+            re = RoutingEngine(rc)
             rc.useDynamicDistance = true
             re.matchWaypointsToNodes(listStart)
             re.resetCache(true)
@@ -584,7 +577,7 @@ class RoutingEngine(
         }
     }
 
-    suspend fun doSearch() {
+    suspend fun doSearch(waypoints: List<OsmNodeNamed>) {
         val seedPoint = MatchedWaypoint()
         seedPoint.waypoint = waypoints[0]
         val listOne: MutableList<MatchedWaypoint> = ArrayList()
@@ -603,12 +596,13 @@ class RoutingEngine(
     }
 
     private suspend fun findTrack(
+        waypoints: MutableList<OsmNodeNamed>,
         refTracks: Array<OsmTrack?>,
         lastTracks: Array<OsmTrack?>
     ): OsmTrack? {
         while (true) {
             try {
-                return tryFindTrack(refTracks, lastTracks)
+                return tryFindTrack(waypoints, refTracks, lastTracks)
             } catch (rie: RoutingIslandException) {
                 if (routingContext.useDynamicDistance) {
                     for (mwp in matchedWaypoints) {
@@ -627,6 +621,7 @@ class RoutingEngine(
     }
 
     private suspend fun tryFindTrack(
+        waypoints: MutableList<OsmNodeNamed>,
         refTracks: Array<OsmTrack?>,
         lastTracks: Array<OsmTrack?>
     ): OsmTrack? {

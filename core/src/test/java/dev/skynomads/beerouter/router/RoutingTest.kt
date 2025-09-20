@@ -48,23 +48,25 @@ class RoutingTest {
         )
 
         val engine = RoutingEngine(
-
-            waypoints = mutableListOf(
-                createWaypoint(
-                    "Tübingen",
-                    48.5203263,
-                    9.053596
-                ),
-                createWaypoint(
-                    "Rottenburg",
-                    48.47696,
-                    8.9336788
-                )
-            ),
             ctx,
         )
 
-        val track = runBlocking { engine.doRouting() }
+        val track = runBlocking {
+            engine.doRouting(
+                waypoints = mutableListOf(
+                    createWaypoint(
+                        "Tübingen",
+                        48.5203263,
+                        9.053596
+                    ),
+                    createWaypoint(
+                        "Rottenburg",
+                        48.47696,
+                        8.9336788
+                    )
+                ),
+            )
+        }
         Assert.assertNotNull(track)
         val expected = GPX.parse(javaClass.getResource("/Tübingen-Rottenburg-Trekking.gpx")!!)
         val actual = GPX.parse(FormatGpx(ctx).format(track!!)!!.trim().byteInputStream())
