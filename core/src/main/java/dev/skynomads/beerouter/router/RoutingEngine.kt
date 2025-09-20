@@ -26,8 +26,7 @@ import kotlin.math.min
 
 class RoutingEngine @JvmOverloads constructor(
     waypoints: MutableList<OsmNodeNamed>,
-    rc: RoutingContext,
-    engineMode: Int = 0
+    rc: RoutingContext
 ) : Thread() {
     private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
@@ -44,8 +43,6 @@ class RoutingEngine @JvmOverloads constructor(
     private val MAXNODES_ISLAND_CHECK = 500
     private val islandNodePairs = OsmNodePairSet(MAXNODES_ISLAND_CHECK)
     private val useNodePoints = false // use the start/end nodes  instead of crosspoint
-
-    private var engineMode = 0
 
     private val MAX_STEPS_CHECK = 500
 
@@ -78,38 +75,10 @@ class RoutingEngine @JvmOverloads constructor(
     init {
         this.waypoints = waypoints
         this.routingContext = rc
-        this.engineMode = engineMode
 
         val cachedProfile: Boolean = ProfileCache.Companion.parseProfile(rc)
         logger.info("parsed profile path={} cached={}", rc.profile.path, cachedProfile)
     }
-
-    override fun run() {
-        doRun(0)
-    }
-
-    fun doRun(maxRunningTime: Long) {
-        when (engineMode) {
-            BROUTER_ENGINEMODE_ROUTING -> {
-                require(waypoints.size >= 2) { "we need two lat/lon points at least!" }
-                doRouting(maxRunningTime)
-            }
-
-            BROUTER_ENGINEMODE_SEED -> throw IllegalArgumentException("not a valid engine mode")
-            BROUTER_ENGINEMODE_GETELEV, BROUTER_ENGINEMODE_GETINFO -> {
-                require(waypoints.isNotEmpty()) { "we need one lat/lon point at least!" }
-                doGetInfo()
-            }
-
-            BROUTER_ENGINEMODE_ROUNDTRIP -> {
-                require(waypoints.isNotEmpty()) { "we need one lat/lon point at least!" }
-                doRoundTrip()
-            }
-
-            else -> throw IllegalArgumentException("not a valid engine mode")
-        }
-    }
-
 
     fun doRouting(maxRunningTime: Long): OsmTrack? {
         try {
@@ -200,7 +169,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    fun doGetInfo() {
+    fun doGetInfo(): OsmTrack? {
         startTime = System.currentTimeMillis()
 
         routingContext.freeNoWays()
@@ -249,55 +218,56 @@ class RoutingEngine @JvmOverloads constructor(
         matchedWaypoints.add(wp2)
 
         val t = findTrack("getinfo", wp1, wp2, null, null, false)
-        if (t != null) {
-            t.messageList = ArrayList()
-            t.matchedWaypoints = matchedWaypoints
-            t.name = "getinfo"
-
-            // find nearest point
-            var mindist = 99999
-            var minIdx = -1
-            for (i in t.nodes.indices) {
-                val ope = t.nodes[i]
-                val dist = ope.calcDistance(listOne[0].crosspoint!!)
-                if (mindist > dist) {
-                    mindist = dist
-                    minIdx = i
-                }
-            }
-            var otherIdx: Int
-            otherIdx = if (minIdx == t.nodes.size - 1) {
-                minIdx - 1
-            } else {
-                minIdx + 1
-            }
-            val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
-            val minSElev = t.nodes[minIdx].sElev.toInt()
-            val otherSElev = t.nodes[otherIdx].sElev.toInt()
-            var diffSElev: Int
-            diffSElev = otherSElev - minSElev
-            val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
-
-
-            val n = OsmNodeNamed(listOne[0].crosspoint!!)
-            n.name = wpt1.name
-            n.sElev =
-                if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
-            if (engineMode == BROUTER_ENGINEMODE_GETINFO) {
-                n.nodeDescription =
-                    (if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null)
-                t.pois.add(n)
-                //t.message = "get_info";
-                //t.messageList.add(t.message);
-                t.matchedWaypoints = listOne
-                t.exportWaypoints = routingContext.exportWaypoints
-            }
-
-        } else {
-            throw Error("no track found")
+        if (t == null) {
+            return null
         }
+
+        t.messageList = ArrayList()
+        t.matchedWaypoints = matchedWaypoints
+        t.name = "getinfo"
+
+        // find nearest point
+        var mindist = 99999
+        var minIdx = -1
+        for (i in t.nodes.indices) {
+            val ope = t.nodes[i]
+            val dist = ope.calcDistance(listOne[0].crosspoint!!)
+            if (mindist > dist) {
+                mindist = dist
+                minIdx = i
+            }
+        }
+        var otherIdx: Int
+        otherIdx = if (minIdx == t.nodes.size - 1) {
+            minIdx - 1
+        } else {
+            minIdx + 1
+        }
+        val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
+        val minSElev = t.nodes[minIdx].sElev.toInt()
+        val otherSElev = t.nodes[otherIdx].sElev.toInt()
+        var diffSElev: Int
+        diffSElev = otherSElev - minSElev
+        val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
+
+
+        val n = OsmNodeNamed(listOne[0].crosspoint!!)
+        n.name = wpt1.name
+        n.sElev =
+            if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
+
+        n.nodeDescription =
+            (if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null)
+        t.pois.add(n)
+        //t.message = "get_info";
+        //t.messageList.add(t.message);
+        t.matchedWaypoints = listOne
+        t.exportWaypoints = routingContext.exportWaypoints
+
         val endTime = System.currentTimeMillis()
         logger.info("execution time=" + (endTime - startTime) / 1000.0 + " seconds")
+
+        return t
     }
 
     fun doRoundTrip() {
@@ -438,8 +408,7 @@ class RoutingEngine @JvmOverloads constructor(
 
             re = RoutingEngine(
                 wpliststart,
-                rc,
-                BROUTER_ENGINEMODE_ROUNDTRIP
+                rc
             )
             rc.useDynamicDistance = true
             re.matchWaypointsToNodes(listStart)
@@ -2296,13 +2265,5 @@ class RoutingEngine @JvmOverloads constructor(
 
     fun terminate() {
         this.isTerminated = true
-    }
-
-    companion object {
-        const val BROUTER_ENGINEMODE_ROUTING: Int = 0
-        const val BROUTER_ENGINEMODE_SEED: Int = 1
-        const val BROUTER_ENGINEMODE_GETELEV: Int = 2
-        const val BROUTER_ENGINEMODE_GETINFO: Int = 3
-        const val BROUTER_ENGINEMODE_ROUNDTRIP: Int = 4
     }
 }
