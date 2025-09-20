@@ -23,8 +23,10 @@ import kotlin.concurrent.Volatile
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
-class RoutingEngine @JvmOverloads constructor(
+class RoutingEngine(
     waypoints: MutableList<OsmNodeNamed>,
     rc: RoutingContext
 ) : Thread() {
@@ -50,10 +52,6 @@ class RoutingEngine @JvmOverloads constructor(
 
     private val MAX_DYNAMIC_RANGE = 60000
 
-    @Volatile
-    var isTerminated: Boolean = false
-        private set
-
     private var stackSampler: StackSampler? = null
     protected var routingContext: RoutingContext
 
@@ -64,8 +62,6 @@ class RoutingEngine @JvmOverloads constructor(
 
     private var matchPath: OsmPathElement? = null
 
-    private var startTime: Long = 0
-    private var maxRunningTime: Long = 0
     var boundary: SearchBoundary? = null
 
     private var extract: Array<Any?>? = null
@@ -80,12 +76,8 @@ class RoutingEngine @JvmOverloads constructor(
         logger.info("parsed profile path={} cached={}", rc.profile.path, cachedProfile)
     }
 
-    fun doRouting(maxRunningTime: Long): OsmTrack? {
+    suspend fun doRouting(): OsmTrack? {
         try {
-            startTime = System.currentTimeMillis()
-            val startTime0 = startTime
-            this.maxRunningTime = maxRunningTime
-
             if (routingContext.allowSamewayback) {
                 if (waypoints.size == 2) {
                     val onn =
@@ -142,8 +134,6 @@ class RoutingEngine @JvmOverloads constructor(
                 }
                 break
             }
-            val endTime = System.currentTimeMillis()
-            logger.info("execution time={} seconds", (endTime - startTime0) / 1000.0)
             return track
         } finally {
             if (routingContext.expctxWay != null) {
@@ -169,9 +159,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    fun doGetInfo(): OsmTrack? {
-        startTime = System.currentTimeMillis()
-
+    suspend fun doGetInfo(): OsmTrack? {
         routingContext.freeNoWays()
 
         val wpt1 = MatchedWaypoint()
@@ -264,57 +252,45 @@ class RoutingEngine @JvmOverloads constructor(
         t.matchedWaypoints = listOne
         t.exportWaypoints = routingContext.exportWaypoints
 
-        val endTime = System.currentTimeMillis()
-        logger.info("execution time=" + (endTime - startTime) / 1000.0 + " seconds")
-
         return t
     }
 
-    fun doRoundTrip() {
-        try {
-            val startTime = System.currentTimeMillis()
+    suspend fun doRoundTrip() {
+        routingContext.useDynamicDistance = true
+        val searchRadius =
+            (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
+        var direction =
+            (if (routingContext.startDirection == null) -1 else routingContext.startDirection)!!.toDouble()
+        (if (routingContext.roundTripDirectionAdd == null) ROUNDTRIP_DEFAULT_DIRECTIONADD else routingContext.roundTripDirectionAdd)!!.toDouble()
+        if (direction == -1.0) direction =
+            getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
 
-            routingContext.useDynamicDistance = true
-            val searchRadius =
-                (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
-            var direction =
-                (if (routingContext.startDirection == null) -1 else routingContext.startDirection)!!.toDouble()
-            (if (routingContext.roundTripDirectionAdd == null) ROUNDTRIP_DEFAULT_DIRECTIONADD else routingContext.roundTripDirectionAdd)!!.toDouble()
-            if (direction == -1.0) direction =
-                getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
+        if (routingContext.allowSamewayback) {
+            val pos = destination(
+                waypoints[0].iLon,
+                waypoints[0].iLat,
+                searchRadius,
+                direction
+            )
+            val wpt2 = MatchedWaypoint()
+            wpt2.waypoint = OsmNode(pos[0], pos[1])
+            wpt2.name = "rt1_$direction"
 
-            if (routingContext.allowSamewayback) {
-                val pos = destination(
-                    waypoints[0].iLon,
-                    waypoints[0].iLat,
-                    searchRadius,
-                    direction
-                )
-                val wpt2 = MatchedWaypoint()
-                wpt2.waypoint = OsmNode(pos[0], pos[1])
-                wpt2.name = "rt1_$direction"
-
-                val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-                onn.name = "rt1"
-                waypoints.add(onn)
-            } else {
-                buildPointsFromCircle(
-                    waypoints,
-                    direction,
-                    searchRadius,
-                    routingContext.roundTripPoints ?: 5
-                )
-            }
-
-            routingContext.waypointCatchingRange = 250.0
-
-            doRouting(0)
-
-            val endTime = System.currentTimeMillis()
-            logger.info("round trip execution time={} seconds", (endTime - startTime) / 1000.0)
-        } catch (e: Exception) {
-            logger.error(e.message, e)
+            val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
+            onn.name = "rt1"
+            waypoints.add(onn)
+        } else {
+            buildPointsFromCircle(
+                waypoints,
+                direction,
+                searchRadius,
+                routingContext.roundTripPoints ?: 5
+            )
         }
+
+        routingContext.waypointCatchingRange = 250.0
+
+        doRouting()
     }
 
     fun buildPointsFromCircle(
@@ -608,7 +584,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    fun doSearch() {
+    suspend fun doSearch() {
         val seedPoint = MatchedWaypoint()
         seedPoint.waypoint = waypoints[0]
         val listOne: MutableList<MatchedWaypoint> = ArrayList()
@@ -626,7 +602,10 @@ class RoutingEngine @JvmOverloads constructor(
         openSet.clear()
     }
 
-    private fun findTrack(refTracks: Array<OsmTrack?>, lastTracks: Array<OsmTrack?>): OsmTrack? {
+    private suspend fun findTrack(
+        refTracks: Array<OsmTrack?>,
+        lastTracks: Array<OsmTrack?>
+    ): OsmTrack? {
         while (true) {
             try {
                 return tryFindTrack(refTracks, lastTracks)
@@ -647,7 +626,10 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    private fun tryFindTrack(refTracks: Array<OsmTrack?>, lastTracks: Array<OsmTrack?>): OsmTrack? {
+    private suspend fun tryFindTrack(
+        refTracks: Array<OsmTrack?>,
+        lastTracks: Array<OsmTrack?>
+    ): OsmTrack? {
         var refTracks = refTracks
         var lastTracks = lastTracks
         val totaltrack = OsmTrack()
@@ -851,7 +833,7 @@ class RoutingEngine @JvmOverloads constructor(
         return totaltrack
     }
 
-    fun getExtraSegment(start: OsmPathElement, end: OsmPathElement): OsmTrack? {
+    suspend fun getExtraSegment(start: OsmPathElement, end: OsmPathElement): OsmTrack? {
         val wptlist: MutableList<MatchedWaypoint?> = ArrayList()
         val wpt1 = MatchedWaypoint()
         wpt1.waypoint = OsmNode(start.iLon, start.iLat)
@@ -888,7 +870,7 @@ class RoutingEngine @JvmOverloads constructor(
         return mid
     }
 
-    private fun snapRoundaboutConnection(
+    private suspend fun snapRoundaboutConnection(
         tt: OsmTrack,
         t: OsmTrack,
         indexStart: Int,
@@ -1044,7 +1026,7 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
     // check for way back on way point
-    private fun snapPathConnection(
+    private suspend fun snapPathConnection(
         tt: OsmTrack,
         t: OsmTrack,
         startWp: MatchedWaypoint
@@ -1467,7 +1449,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    private fun searchTrack(
+    private suspend fun searchTrack(
         startWp: MatchedWaypoint,
         endWp: MatchedWaypoint,
         nearbyTrack: OsmTrack?,
@@ -1493,7 +1475,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    private fun searchRoutedTrack(
+    private suspend fun searchRoutedTrack(
         startWp: MatchedWaypoint?,
         endWp: MatchedWaypoint?,
         nearbyTrack: OsmTrack?,
@@ -1512,8 +1494,6 @@ class RoutingEngine @JvmOverloads constructor(
             try {
                 track = findTrack("re-routing", startWp, endWp, nearbyTrack, refTrack, true)
             } catch (iae: IllegalArgumentException) {
-                if (this.isTerminated) throw iae
-
                 // fast partial recalcs: if that timed out, but we had a match,
                 // build the concatenation from the partial and the nearby track
                 if (matchPath != null) {
@@ -1521,9 +1501,6 @@ class RoutingEngine @JvmOverloads constructor(
                     isDirty = true
                     dirtyMessage = iae
                     logger.info("using fast partial recalc")
-                }
-                if (maxRunningTime > 0) {
-                    maxRunningTime += System.currentTimeMillis() - startTime // reset timeout...
                 }
             }
         }
@@ -1579,7 +1556,6 @@ class RoutingEngine @JvmOverloads constructor(
         airDistanceCostFactor = 0.0
         lastAirDistanceCostFactor = 0.0
         guideTrack = track
-        startTime = System.currentTimeMillis() // reset timeout...
         try {
             val tt = findTrack("re-tracking", startWp, endWp, null, refTrack, false)
             requireNotNull(tt) { "error re-tracking track" }
@@ -1681,7 +1657,7 @@ class RoutingEngine @JvmOverloads constructor(
         }
     }
 
-    private fun findTrack(
+    private suspend fun findTrack(
         operationName: String?,
         startWp: MatchedWaypoint?,
         endWp: MatchedWaypoint?,
@@ -1714,7 +1690,7 @@ class RoutingEngine @JvmOverloads constructor(
     }
 
 
-    private fun _findTrack(
+    private suspend fun _findTrack(
         operationName: String?,
         startWp: MatchedWaypoint,
         endWp: MatchedWaypoint?,
@@ -1812,13 +1788,7 @@ class RoutingEngine @JvmOverloads constructor(
         var needNonPanicProcessing = false
 
         while (true) {
-            require(!this.isTerminated) { "operation killed by thread-priority-watchdog after " + (System.currentTimeMillis() - startTime) / 1000 + " seconds" }
-
-            if (maxRunningTime > 0) {
-                val timeout =
-                    if (matchPath == null && fastPartialRecalc) maxRunningTime / 3 else maxRunningTime
-                require(System.currentTimeMillis() - startTime <= timeout) { operationName + " timeout after " + (timeout / 1000) + " seconds" }
-            }
+            coroutineContext.ensureActive()
 
             synchronized(openSet) {
                 val path: OsmPath? = openSet.popLowestKeyValue()
@@ -1885,13 +1855,13 @@ class RoutingEngine @JvmOverloads constructor(
                     )
 
                     // use an early exit, unless there's a realistc chance to complete within the timeout
-                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
-                        logger.info("early exit supressed, running for completion, resetting timeout")
-                        startTime = System.currentTimeMillis()
-                        fastPartialRecalc = false
-                    } else {
-                        throw IllegalArgumentException("early exit for a close recalc")
-                    }
+//                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
+                    logger.info("early exit supressed, running for completion, resetting timeout")
+//                    startTime = System.currentTimeMillis()
+                    fastPartialRecalc = false
+//                    } else {
+//                        throw IllegalArgumentException("early exit for a close recalc")
+//                    }
                 }
 
                 if (nodeLimit > 0) { // check node-limit for target island search
@@ -2261,9 +2231,5 @@ class RoutingEngine @JvmOverloads constructor(
             }
             return res
         }
-    }
-
-    fun terminate() {
-        this.isTerminated = true
     }
 }

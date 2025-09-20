@@ -1,6 +1,7 @@
 package dev.skynomads.beerouter.router
 
 import be.yellowduck.gpx.GPX
+import kotlinx.coroutines.runBlocking
 import java.net.URL
 import org.junit.Assert
 import org.junit.Before
@@ -63,7 +64,7 @@ class RoutingTest {
             ctx,
         )
 
-        val track = engine.doRouting(0)
+        val track = runBlocking { engine.doRouting() }
         Assert.assertNotNull(track)
         val expected = GPX.parse(javaClass.getResource("/Tübingen-Rottenburg-Trekking.gpx")!!)
         val actual = GPX.parse(FormatGpx(ctx).format(track!!)!!.trim().byteInputStream())
