@@ -91,7 +91,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             val refTracks = arrayOfNulls<OsmTrack>(nsections) // used ways for alternatives
             val lastTracks = arrayOfNulls<OsmTrack>(nsections)
             var track: OsmTrack?
-            val messageList: MutableList<String?> = ArrayList()
             var i = 0
             while (true) {
                 track = findTrack(waypoints, refTracks, lastTracks)!!
@@ -176,7 +175,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         wp2.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
         matchedWaypoints.add(wp2)
 
-        val t = findTrack("getinfo", wp1, wp2, null, null, false)
+        val t = findTrack(wp1, wp2, null, null, false)
         if (t == null) {
             return null
         }
@@ -347,13 +346,8 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                 }
             }
 
-            var re: RoutingEngine?
             val rc = RoutingContext(routingContext.profile, routingContext.segmentDir)
-//            val name = routingContext.localFunction
-//            val idx = name!!.lastIndexOf(File.separator)
-//            rc.localFunction = if (idx == -1) "dummy" else name.substring(0, idx + 1) + "dummy.brf"
-
-            re = RoutingEngine(rc)
+            val re = RoutingEngine(rc)
             rc.global.useDynamicDistance = true
             re.matchWaypointsToNodes(listStart)
             re.resetCache(true)
@@ -559,7 +553,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         listOne.add(seedPoint)
         matchWaypointsToNodes(listOne)
 
-        findTrack("seededSearch", seedPoint, null, null, null, false)
+        findTrack(seedPoint, null, null, null, false)
 
         openSet.clear()
     }
@@ -683,7 +677,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                 if (matchedWaypoints[i].direct) continue
                 if (routingContext.global.inverseRouting) {
                     val seg = findTrack(
-                        "start-island-check",
                         matchedWaypoints[i],
                         matchedWaypoints[i + 1],
                         null,
@@ -693,7 +686,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                     require(!(seg == null && nodeLimit > 0)) { "start island detected for section $i" }
                 } else {
                     val seg = findTrack(
-                        "target-island-check",
                         matchedWaypoints[i + 1],
                         matchedWaypoints[i],
                         null,
@@ -826,7 +818,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         guideTrack!!.addNode(start)
         guideTrack!!.addNode(end)
 
-        mid = findTrack("getinfo", mwp1, mwp2, null, null, false)
+        mid = findTrack(mwp1, mwp2, null, null, false)
 
         guideTrack = null
         routingContext.global.correctMisplacedViaPoints = corr
@@ -1456,7 +1448,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         if (nearbyTrack != null) {
             airDistanceCostFactor = 0.0
             try {
-                track = findTrack("re-routing", startWp, endWp, nearbyTrack, refTrack, true)
+                track = findTrack(startWp, endWp, nearbyTrack, refTrack, true)
             } catch (iae: IllegalArgumentException) {
                 // fast partial recalcs: if that timed out, but we had a match,
                 // build the concatenation from the partial and the nearby track
@@ -1480,7 +1472,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
 
                 var t: OsmTrack?
                 t = findTrack(
-                    if (cfi == 0) "pass0" else "pass1",
                     startWp,
                     endWp,
                     track,
@@ -1521,7 +1512,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         lastAirDistanceCostFactor = 0.0
         guideTrack = track
         try {
-            val tt = findTrack("re-tracking", startWp, endWp, null, refTrack, false)
+            val tt = findTrack(startWp, endWp, null, refTrack, false)
             requireNotNull(tt) { "error re-tracking track" }
             return tt
         } finally {
@@ -1622,7 +1613,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
     }
 
     private suspend fun findTrack(
-        operationName: String?,
         startWp: MatchedWaypoint?,
         endWp: MatchedWaypoint?,
         costCuttingTrack: OsmTrack?,
@@ -1640,7 +1630,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             nodesCache!!.nodesMap.cleanupMode =
                 if (detailed) 0 else (if (routingContext.global.considerTurnRestrictions) 2 else 1)
             return _findTrack(
-                operationName,
                 startWp!!,
                 endWp,
                 costCuttingTrack,
@@ -1655,7 +1644,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
 
 
     private suspend fun _findTrack(
-        operationName: String?,
         startWp: MatchedWaypoint,
         endWp: MatchedWaypoint?,
         costCuttingTrack: OsmTrack?,
