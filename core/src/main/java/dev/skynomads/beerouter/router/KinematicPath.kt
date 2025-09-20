@@ -168,7 +168,7 @@ internal class KinematicPath : OsmPath() {
         if (emax <= 0.0) {
             return -1.0
         }
-        val vb = km.getBreakingSpeed(effectiveSpeedLimit)
+        val vb = km.getBrakingSpeed(effectiveSpeedLimit)
         val elow = 0.5 * km.totalweight * vb * vb
 
         var elapsedTime = 0.0

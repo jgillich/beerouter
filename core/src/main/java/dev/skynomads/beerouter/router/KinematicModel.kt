@@ -46,12 +46,12 @@ internal class KinematicModel : OsmPathModel() {
     private var initDone = false
 
     private var lastEffectiveLimit = 0.0
-    private var lastBreakingSpeed = 0.0
+    private var lastBrakingSpeed = 0.0
 
     override fun init(
         expctxWay: BExpressionContextWay?,
         expctxNode: BExpressionContextNode?,
-        extraParams: MutableMap<String, String>
+        keyValues: MutableMap<String, String>
     ) {
         if (!initDone) {
             ctxWay = expctxWay
@@ -63,7 +63,7 @@ internal class KinematicModel : OsmPathModel() {
             initDone = true
         }
 
-        params = extraParams
+        params = keyValues
 
         turnAngleDecayTime = getParam("turnAngleDecayTime", 5f).toDouble()
         f_roll = getParam("f_roll", 232f).toDouble()
@@ -118,11 +118,11 @@ internal class KinematicModel : OsmPathModel() {
         }
 
     /**
-     * get the breaking speed for current balance-power (pw) and effective speed limit (vl)
+     * get the braking speed for current balance-power (pw) and effective speed limit (vl)
      */
-    fun getBreakingSpeed(vl: Double): Double {
+    fun getBrakingSpeed(vl: Double): Double {
         if (vl == lastEffectiveLimit) {
-            return lastBreakingSpeed
+            return lastBrakingSpeed
         }
 
         var v = vl * 0.8
@@ -136,7 +136,7 @@ internal class KinematicModel : OsmPathModel() {
             v -= x / dx
         }
         lastEffectiveLimit = vl
-        lastBreakingSpeed = v
+        lastBrakingSpeed = v
 
         return v
     }
