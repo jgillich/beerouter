@@ -30,7 +30,7 @@ class OsmTrack {
     var showSpeedProfile: Boolean = false
     var showTime: Boolean = false
 
-    var params: MutableMap<String?, String?>? = null
+    var params: MutableMap<String, String>? = null
 
     var pois: MutableList<OsmNodeNamed> = ArrayList()
 

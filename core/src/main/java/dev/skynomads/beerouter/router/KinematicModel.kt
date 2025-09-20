@@ -41,7 +41,7 @@ internal class KinematicModel : OsmPathModel() {
 
     protected var ctxWay: BExpressionContextWay? = null
     protected var ctxNode: BExpressionContextNode? = null
-    protected var params: MutableMap<String?, String?>? = null
+    protected var params: MutableMap<String, String>? = null
 
     private var initDone = false
 
@@ -51,7 +51,7 @@ internal class KinematicModel : OsmPathModel() {
     override fun init(
         expctxWay: BExpressionContextWay?,
         expctxNode: BExpressionContextNode?,
-        extraParams: MutableMap<String?, String?>
+        extraParams: MutableMap<String, String>
     ) {
         if (!initDone) {
             ctxWay = expctxWay
@@ -81,7 +81,7 @@ internal class KinematicModel : OsmPathModel() {
         cost0 = (pw + p_standby) / vmax + f_roll + f_air * vmax * vmax
     }
 
-    protected fun getParam(name: String?, defaultValue: Float): Float {
+    protected fun getParam(name: String, defaultValue: Float): Float {
         val sval = if (params == null) null else params!![name]
         if (sval != null) {
             return sval.toFloat()

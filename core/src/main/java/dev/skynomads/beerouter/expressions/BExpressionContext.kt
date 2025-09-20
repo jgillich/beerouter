@@ -787,7 +787,7 @@ abstract class BExpressionContext protected constructor(
     fun parseFile(
         file: File,
         readOnlyContext: String?,
-        keyValues: MutableMap<String?, String?>? = null
+        keyValues: MutableMap<String, String>? = null
     ) {
         require(file.exists()) { "profile " + file.getName() + " does not exist" }
         try {
@@ -832,7 +832,7 @@ abstract class BExpressionContext protected constructor(
     @Throws(Exception::class)
     private fun _parseFile(
         file: File,
-        keyValues: MutableMap<String?, String?>?
+        keyValues: MutableMap<String, String>?
     ): MutableList<BExpression?> {
         _br = BufferedReader(FileReader(file))
         _readerDone = false

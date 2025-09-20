@@ -16,6 +16,6 @@ abstract class OsmPathModel {
     abstract fun init(
         expctxWay: BExpressionContextWay?,
         expctxNode: BExpressionContextNode?,
-        keyValues: MutableMap<String?, String?>
+        keyValues: MutableMap<String, String>
     )
 }

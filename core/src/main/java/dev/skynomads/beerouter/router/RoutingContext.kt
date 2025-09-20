@@ -30,7 +30,7 @@ class RoutingContext(
     var profileTimestamp: Long = 0
 
     @JvmField
-    var keyValues: MutableMap<String?, String?>? = null
+    var keyValues: MutableMap<String, String>? = null
 
     var rawTrackPath: String? = null
     var rawAreaPath: String? = null

@@ -25,7 +25,7 @@ internal class StdModel : OsmPathModel() {
     override fun init(
         expctxWay: BExpressionContextWay?,
         expctxNode: BExpressionContextNode?,
-        keyValues: MutableMap<String?, String?>
+        keyValues: MutableMap<String, String>
     ) {
         ctxWay = expctxWay
         ctxNode = expctxNode
