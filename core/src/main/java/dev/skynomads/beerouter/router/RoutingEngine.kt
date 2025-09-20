@@ -24,6 +24,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class RoutingEngine(val routingContext: RoutingContext) : Thread() {
     private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
@@ -98,19 +99,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                 // we are only looking for info
                 if (routingContext.ai != null) return null
 
-                track.message =
-                    ("track-length = " + track.distance + " filtered ascend = " + track.ascend
-                            + " plain-ascend = " + track.plainAscend + " cost=" + track.cost)
-                if (track.energy != 0) {
-                    track.message += " energy=" + Formatter.Companion.getFormattedEnergy(track.energy) + " time=" + Formatter.Companion.getFormattedTime2(
-                        track.totalSeconds
-                    )
-                }
                 track.name = "brouter_" + routingContext.profile.name + "_" + i
-
-                messageList.add(track.message)
-                track.messageList = messageList
-
 
                 if (i == min(3, max(0, routingContext.alternativeIdx))) {
                     logger.debug("gpx={}", FormatGpx(routingContext).format(track))
@@ -122,9 +111,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             }
             return track
         } finally {
-            if (routingContext.way != null) {
-                logger.info("expression cache stats={}", routingContext.way.cacheStats())
-            }
+            logger.info("expression cache stats={}", routingContext.way.cacheStats())
 
             if (nodesCache != null) {
                 logger.info("NodesCache status before close={}", nodesCache!!.formatStatus())
@@ -194,7 +181,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             return null
         }
 
-        t.messageList = ArrayList()
         t.matchedWaypoints = matchedWaypoints
         t.name = "getinfo"
 
@@ -412,7 +398,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             }
 
             var maxscale = abs(searchRect.points[2].x - searchRect.points[0].x)
-            maxscale = max(1, Math.round(maxscale / 31250f / 2) + 1)
+            maxscale = max(1, (maxscale / 31250f / 2).roundToInt() + 1)
 
             areareader.getDirectAllData(
                 rc.segmentDir,

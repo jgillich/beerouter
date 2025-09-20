@@ -47,9 +47,6 @@ class OsmTrack {
 
     var voiceHints: VoiceHintList = VoiceHintList()
 
-    var message: String? = null
-    var messageList: MutableList<String?>? = null
-
     var name: String = "unset"
 
     var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()

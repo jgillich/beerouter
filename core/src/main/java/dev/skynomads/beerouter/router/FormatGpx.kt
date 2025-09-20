@@ -32,15 +32,6 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             t.voiceHints.turnInstructionMode
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-//        if (turnInstructionMode != 9) {
-//            for (i in t.messageList!!.indices.reversed()) {
-//                var message = t.messageList!![i]
-//                if (i < t.messageList!!.size - 1) message =
-//                    "(alt-index $i: $message )"
-//                if (message != null) sb.append("<!-- ").append(message).append(" -->\n")
-//            }
-//        }
-//
 //        if (turnInstructionMode == 4) { // comment style
 //            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
 //                .append("$ -->\n")
@@ -81,7 +72,6 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             sb.append(" <metadata>\n")
             sb.append("  <name>").append(t.name).append("</name>\n")
             sb.append("  <extensions>\n")
-            sb.append("   <brouter:info>").append(t.messageList!![0]).append("</brouter:info>\n")
             if (t.params != null && t.params!!.isNotEmpty()) {
                 sb.append("   <brouter:params><![CDATA[")
                 var i = 0
