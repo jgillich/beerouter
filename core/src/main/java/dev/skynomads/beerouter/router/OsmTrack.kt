@@ -435,7 +435,7 @@ class OsmTrack {
             node = node.origin!!
         }
 
-        val transportMode = voiceHints.transportMode()
+        val transportMode = voiceHints.transportMode
         val vproc = VoiceHintProcessor(
             rc.global.turnInstructionCatchingRange,
             rc.global.turnInstructionRoundabouts,
@@ -454,7 +454,7 @@ class OsmTrack {
     val minDistance: Int
         get() {
             if (voiceHints != null) {
-                return when (voiceHints.transportMode()) {
+                return when (voiceHints.transportMode) {
                     VoiceHintList.Companion.TRANS_MODE_CAR -> 20
                     VoiceHintList.Companion.TRANS_MODE_FOOT -> 3
                     VoiceHintList.Companion.TRANS_MODE_BIKE -> 5
@@ -503,10 +503,6 @@ class OsmTrack {
     companion object {
         const val version: String = "1.7.8"
         const val versionDate: String = "12072025"
-
-        // csv-header-line
-        private const val MESSAGES_HEADER =
-            "Longitude\tLatitude\tElevation\tDistance\tCostPerKm\tElevCost\tTurnCost\tNodeCost\tInitialCost\tWayTags\tNodeTags\tTime\tEnergy"
 
         fun readBinary(
             filename: String?,

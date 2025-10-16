@@ -7,7 +7,7 @@ package dev.skynomads.beerouter.router
 
 import dev.skynomads.beerouter.mapaccess.OsmNode
 
-class SearchBoundary(n: OsmNode, private val radius: Int, var direction: Int) {
+internal class SearchBoundary(n: OsmNode, private val radius: Int, var direction: Int) {
     private val minlon0: Int
     private val minlat0: Int
     private val maxlon0: Int

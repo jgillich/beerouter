@@ -1,3 +1,3 @@
 package dev.skynomads.beerouter.router
 
-class RoutingIslandException : RuntimeException()
+public class RoutingIslandException : RuntimeException()

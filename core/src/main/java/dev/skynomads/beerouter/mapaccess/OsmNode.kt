@@ -34,10 +34,8 @@ open class OsmNode : OsmLink, OsmPos {
     /**
      * The node-tags, if any
      */
-    @JvmField
     var nodeDescription: ByteArray? = null
 
-    @JvmField
     var firstRestriction: TurnRestriction? = null
 
     var visitID: Int = 0
@@ -50,7 +48,6 @@ open class OsmNode : OsmLink, OsmPos {
     /**
      * The links to other nodes
      */
-    @JvmField
     var firstlink: OsmLink? = null
 
     constructor()

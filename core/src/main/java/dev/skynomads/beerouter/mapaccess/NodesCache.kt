@@ -23,8 +23,6 @@ class NodesCache(
     private val MAX_DYNAMIC_CATCHES = 20 // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
 
 
-    private var secondarySegmentsDir: File? = null
-
     @JvmField
     var nodesMap: OsmNodesMap
     private val expCtxWay: BExpressionContextWay?
@@ -82,7 +80,6 @@ class NodesCache(
         if (oldCache != null) {
             fileCache = oldCache.fileCache
             dataBuffers = oldCache.dataBuffers
-            secondarySegmentsDir = oldCache.secondarySegmentsDir
 
             // re-use old, virgin caches (if same detail-mode)
             if (oldCache.detailed == detailed) {
@@ -100,7 +97,6 @@ class NodesCache(
             fileCache = HashMap<String?, PhysicalFile?>(4)
             fileRows = arrayOfNulls<Array<OsmFile?>>(180)
             dataBuffers = DataBuffers()
-            secondarySegmentsDir = StorageConfigHelper.getSecondarySegmentDir(segmentDir)
         }
         ghostSum = cacheSum
     }
@@ -383,12 +379,6 @@ class NodesCache(
                 val primary = File(segmentDir, "$filenameBase.rd5")
                 if (primary.exists()) {
                     f = primary
-                }
-            }
-            if (f == null) {
-                val secondary = File(secondarySegmentsDir, "$filenameBase.rd5")
-                if (secondary.exists()) {
-                    f = secondary
                 }
             }
             if (f != null) {

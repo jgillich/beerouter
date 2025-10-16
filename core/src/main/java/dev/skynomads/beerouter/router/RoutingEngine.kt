@@ -26,15 +26,15 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class RoutingEngine(val routingContext: RoutingContext) : Thread() {
+public class RoutingEngine(private val routingContext: RoutingContext) : Thread() {
     private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
     private var nodesCache: NodesCache? = null
     private val openSet = SortedHeap<OsmPath?>()
 
-    var extraWaypoints: MutableList<OsmNodeNamed> = mutableListOf()
+    private var extraWaypoints: MutableList<OsmNodeNamed> = mutableListOf()
     protected var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
-    var linksProcessed: Int = 0
+    private var linksProcessed: Int = 0
         private set
 
     private var nodeLimit = 0 // used for target island search
@@ -49,20 +49,20 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
     private val MAX_DYNAMIC_RANGE = 60000
 
     private var stackSampler: StackSampler? = null
-    var airDistanceCostFactor: Double = 0.0
-    var lastAirDistanceCostFactor: Double = 0.0
+    private var airDistanceCostFactor: Double = 0.0
+    private var lastAirDistanceCostFactor: Double = 0.0
 
     private var guideTrack: OsmTrack? = null
 
     private var matchPath: OsmPathElement? = null
 
-    var boundary: SearchBoundary? = null
+    private var boundary: SearchBoundary? = null
 
     private var extract: Array<Any?>? = null
 
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
 
-    suspend fun doRouting(waypoints: List<OsmNodeNamed>): OsmTrack? {
+    public suspend fun doRouting(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val waypoints = waypoints.toMutableList()
         try {
             if (routingContext.allowSamewayback) {
@@ -129,7 +129,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         }
     }
 
-    suspend fun doGetInfo(waypoints: List<OsmNodeNamed>): OsmTrack? {
+    public suspend fun doGetInfo(waypoints: List<OsmNodeNamed>): OsmTrack? {
         routingContext.freeNoWays()
 
         val wpt1 = MatchedWaypoint()
@@ -194,8 +194,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                 minIdx = i
             }
         }
-        var otherIdx: Int
-        otherIdx = if (minIdx == t.nodes.size - 1) {
+        val otherIdx: Int = if (minIdx == t.nodes.size - 1) {
             minIdx - 1
         } else {
             minIdx + 1
@@ -210,21 +209,18 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
 
         val n = OsmNodeNamed(listOne[0].crosspoint!!)
         n.name = wpt1.name
-        n.sElev =
-            if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.Companion.MIN_VALUE
+        n.sElev = if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE
 
         n.nodeDescription =
-            (if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null)
+            if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null
         t.pois.add(n)
-        //t.message = "get_info";
-        //t.messageList.add(t.message);
         t.matchedWaypoints = listOne
         t.exportWaypoints = routingContext.exportWaypoints
 
         return t
     }
 
-    suspend fun doRoundTrip(waypoints: List<OsmNodeNamed>): OsmTrack? {
+    public suspend fun doRoundTrip(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val waypoints = waypoints.toMutableList()
         routingContext.global.useDynamicDistance = true
         val searchRadius =
@@ -263,7 +259,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         return doRouting(waypoints)
     }
 
-    fun buildPointsFromCircle(
+    private fun buildPointsFromCircle(
         waypoints: MutableList<OsmNodeNamed>,
         startAngle: Double,
         searchRadius: Double,
@@ -288,7 +284,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         waypoints.add(onn)
     }
 
-    fun getRandomDirectionFromData(wp: OsmNodeNamed, searchRadius: Double): Int {
+    private fun getRandomDirectionFromData(wp: OsmNodeNamed, searchRadius: Double): Int {
         val start = System.currentTimeMillis()
 
         var preferredRandomType: Int
@@ -546,7 +542,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         }
     }
 
-    suspend fun doSearch(waypoints: List<OsmNodeNamed>) {
+    private suspend fun doSearch(waypoints: List<OsmNodeNamed>) {
         val seedPoint = MatchedWaypoint()
         seedPoint.waypoint = waypoints[0]
         val listOne: MutableList<MatchedWaypoint> = ArrayList()
@@ -789,7 +785,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         return totaltrack
     }
 
-    suspend fun getExtraSegment(start: OsmPathElement, end: OsmPathElement): OsmTrack? {
+    private suspend fun getExtraSegment(start: OsmPathElement, end: OsmPathElement): OsmTrack? {
         val wptlist: MutableList<MatchedWaypoint?> = ArrayList()
         val wpt1 = MatchedWaypoint()
         wpt1.waypoint = OsmNode(start.iLon, start.iLat)
@@ -1316,7 +1312,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
      * @param n the point
      * @return the filter value for 1sec / 3sec elevation source
      */
-    fun elevationFilter(n: OsmPos): Double {
+    private fun elevationFilter(n: OsmPos): Double {
         if (nodesCache != null) {
             val r = nodesCache!!.getElevationType(n.iLon, n.iLat)
             if (r == 1) return -5.0
@@ -1807,13 +1803,13 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
                     )
 
                     // use an early exit, unless there's a realistc chance to complete within the timeout
-//                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
+                    //                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
                     logger.info("early exit supressed, running for completion, resetting timeout")
-//                    startTime = System.currentTimeMillis()
+                    //                    startTime = System.currentTimeMillis()
                     fastPartialRecalc = false
-//                    } else {
-//                        throw IllegalArgumentException("early exit for a close recalc")
-//                    }
+                    //                    } else {
+                    //                        throw IllegalArgumentException("early exit for a close recalc")
+                    //                    }
                 }
 
                 if (nodeLimit > 0) { // check node-limit for target island search
@@ -2127,7 +2123,7 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
         }
         var lastId: Long = 0
         val id1 = match.idFromPos
-        val id0 = if (match.origin == null) 0 else match.origin!!.idFromPos
+        val id0 = match.origin?.idFromPos ?: 0
         var appending = false
         for (n in oldTrack.nodes) {
             if (appending) {
@@ -2140,7 +2136,6 @@ class RoutingEngine(val routingContext: RoutingContext) : Thread() {
             }
             lastId = id
         }
-
 
         track.buildMap()
         return track

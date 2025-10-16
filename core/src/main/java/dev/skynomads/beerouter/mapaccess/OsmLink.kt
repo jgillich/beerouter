@@ -10,13 +10,11 @@ open class OsmLink {
     /**
      * The description bitmap contains the waytags (valid for both directions)
      */
-    @JvmField
     var descriptionBitmap: ByteArray? = null
 
     /**
      * The geometry contains intermediate nodes, null for none (valid for both directions)
      */
-    @JvmField
     var geometry: ByteArray? = null
 
     // a link logically knows only its target, but for the reverse link, source and target are swapped

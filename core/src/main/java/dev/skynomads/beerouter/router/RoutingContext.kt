@@ -21,7 +21,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-class RoutingContext(
+public class RoutingContext(
     val profile: File,
     val segmentDir: File,
     val lookupFile: File = File(profile.parentFile, "lookups.dat")

@@ -8,7 +8,7 @@ package dev.skynomads.beerouter.router
 
 import kotlin.math.abs
 
-class VoiceHint {
+public class VoiceHint {
     var ilon: Int = 0
     var ilat: Int = 0
     var selev: Short = 0

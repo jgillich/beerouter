@@ -2,7 +2,7 @@ package dev.skynomads.beerouter.router
 
 import kotlin.math.max
 
-class SuspectInfo {
+internal class SuspectInfo {
     var prio: Int = 0
     var triggers: Int = 0
 

@@ -9,7 +9,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class VoiceHintProcessor // this.catchingRange = catchingRange;
+internal class VoiceHintProcessor // this.catchingRange = catchingRange;
     (
     catchingRange: Double, // private double catchingRange; // range to catch angles and merge turns
     private val explicitRoundabouts: Boolean, private val transportMode: Int
