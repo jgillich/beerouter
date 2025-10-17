@@ -273,17 +273,13 @@ class OsmTrack {
             i++
         }
 
-        if (t.voiceHints != null) {
+        if (t.voiceHints.isNotEmpty()) {
             if (ourSize > 0) {
-                for (hint in t.voiceHints.list) {
+                for (hint in t.voiceHints) {
                     hint.indexInTrack = hint.indexInTrack + ourSize - 1
                 }
             }
-            if (voiceHints == null) {
-                voiceHints = t.voiceHints
-            } else {
-                voiceHints.list.addAll(t.voiceHints.list)
-            }
+            voiceHints.addAll(t.voiceHints)
         } else {
             if (detourMap == null) {
                 //copyDetours( t );
@@ -311,8 +307,7 @@ class OsmTrack {
     var iternity: MutableList<String?>? = null
 
     fun getVoiceHint(i: Int): VoiceHint? {
-        if (voiceHints == null) return null
-        for (hint in voiceHints.list) {
+        for (hint in voiceHints) {
             if (hint.indexInTrack == i) {
                 return hint
             }
@@ -321,7 +316,6 @@ class OsmTrack {
     }
 
     fun getMatchedWaypoint(idx: Int): MatchedWaypoint? {
-        if (matchedWaypoints == null) return null
         for (wp in matchedWaypoints) {
             if (idx == wp.indexInTrack) {
                 return wp
@@ -374,18 +368,16 @@ class OsmTrack {
             return
         }
         var nodeNr = nodes.size - 1
-        var i = nodeNr
-        var node = nodes[nodeNr]
+        var node = nodes.getOrNull(nodeNr)
         while (node != null) {
-            node = node.origin!!
+            node = node.origin
         }
-
-        i = 0
 
         node = nodes[nodeNr]
         val inputs: MutableList<VoiceHint> = ArrayList()
         while (node != null) {
-            if (node.origin != null) {
+            val origin = node.origin
+            if (origin != null) {
                 if (nodeNr == nodes.size - 1) {
                     val input = VoiceHint()
                     inputs.add(0, input)
@@ -399,29 +391,29 @@ class OsmTrack {
                 }
                 val input = VoiceHint()
                 inputs.add(input)
-                input.ilat = node.origin!!.iLat
-                input.ilon = node.origin!!.iLon
-                input.selev = node.origin!!.sElev
+                input.ilat = origin.iLat
+                input.ilon = origin.iLon
+                input.selev = origin.sElev
                 input.indexInTrack = --nodeNr
                 input.goodWay = node.message
-                input.oldWay =
-                    if (node.origin!!.message == null) node.message else node.origin!!.message
+                input.oldWay = if (origin.message == null) node.message else origin.message
+
                 if (rc.global.turnInstructionMode == 8 || rc.global.turnInstructionMode == 4 || rc.global.turnInstructionMode == 2 || rc.global.turnInstructionMode == 9) {
                     val mwpt = getMatchedWaypoint(nodeNr)
                     if (mwpt != null && mwpt.direct) {
                         input.command = VoiceHint.Companion.BL
                         input.angle =
-                            (if (nodeNr == 0) node.origin!!.message!!.turnangle else node.message!!.turnangle)
-                        input.distanceToNext = node.calcDistance(node.origin!!).toDouble()
+                            (if (nodeNr == 0) origin.message!!.turnangle else node.message!!.turnangle)
+                        input.distanceToNext = node.calcDistance(origin).toDouble()
                     }
                 }
                 if (detourMap != null) {
-                    val detours = detourMap!!.get(node.origin!!.idFromPos)
+                    val detours = detourMap!!.get(origin.idFromPos)
                     if (nodeNr >= 0 && detours != null) {
                         var h: OsmPathElementHolder? = detours
                         while (h != null) {
                             val e = h.node
-                            input.addBadWay(startSection(e, node.origin!!))
+                            input.addBadWay(startSection(e, origin))
                             h = h.nextHolder
                         }
                     }
@@ -432,7 +424,7 @@ class OsmTrack {
           input.addBadWay(startSection(e, e));
         } */
             }
-            node = node.origin!!
+            node = node.origin
         }
 
         val transportMode = voiceHints.transportMode
@@ -453,7 +445,7 @@ class OsmTrack {
 
     val minDistance: Int
         get() {
-            if (voiceHints != null) {
+            if (voiceHints.isNotEmpty()) {
                 return when (voiceHints.transportMode) {
                     VoiceHintList.Companion.TRANS_MODE_CAR -> 20
                     VoiceHintList.Companion.TRANS_MODE_FOOT -> 3
@@ -477,14 +469,13 @@ class OsmTrack {
         return nodes[nodes.size - 1].time
     }
 
-    fun removeVoiceHint(i: Int) {
-        if (voiceHints != null) {
-            var remove: VoiceHint? = null
-            for (vh in voiceHints.list) {
-                if (vh.indexInTrack == i) remove = vh
+    fun removeVoiceHint(i: Int): Boolean {
+        for (vh in voiceHints) {
+            if (vh.indexInTrack == i) {
+                return voiceHints.remove(vh)
             }
-            if (remove != null) voiceHints.list.remove(remove)
         }
+        return false
     }
 
     private fun startSection(element: OsmPathElement?, root: OsmPathElement): MessageData? {
@@ -501,9 +492,6 @@ class OsmTrack {
     }
 
     companion object {
-        const val version: String = "1.7.8"
-        const val versionDate: String = "12072025"
-
         fun readBinary(
             filename: String?,
             newEp: OsmNodeNamed,

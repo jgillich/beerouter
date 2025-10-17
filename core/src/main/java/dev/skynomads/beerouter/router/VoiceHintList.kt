@@ -6,12 +6,13 @@
  */
 package dev.skynomads.beerouter.router
 
-public class VoiceHintList {
+public class VoiceHintList(
+    val list: MutableList<VoiceHint> = ArrayList()
+) : MutableList<VoiceHint> by list {
     var transportMode: Int = TRANS_MODE_BIKE
         private set
 
     var turnInstructionMode: Int = 0
-    var list: MutableList<VoiceHint> = ArrayList()
 
     fun setTransportMode(isCar: Boolean, isBike: Boolean) {
         transportMode =

@@ -9,6 +9,9 @@ import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.seconds
 
 class RoutingTest {
     val root = File(System.getProperty("user.dir"))
@@ -38,38 +41,41 @@ class RoutingTest {
     fun routeEqualsBrouter() {
         //brouter.de/brouter-web/#map=13/48.5010/8.9417/standard&lonlats=9.053596,48.520326;8.933679,48.47696
 
-        val profile = File(root, "../misc/profiles2/trekking.brf")
-
-        Assert.assertTrue("profile exists ${segmentFile.path}", profile.exists())
-
-        val ctx = RoutingContext(
-            profile,
-            segmentFile.getParentFile()
-        )
-
-        val engine = RoutingEngine(
-            ctx,
-        )
-
-        val track = runBlocking {
-            engine.doRouting(
-                waypoints = mutableListOf(
-                    createWaypoint(
-                        "Tübingen",
-                        48.5203263,
-                        9.053596
-                    ),
-                    createWaypoint(
-                        "Rottenburg",
-                        48.47696,
-                        8.9336788
-                    )
-                ),
+        val waypoints = listOf(
+            createWaypoint(
+                "Tübingen",
+                48.5203263,
+                9.053596
+            ),
+            createWaypoint(
+                "Rottenburg",
+                48.47696,
+                8.9336788
             )
+        )
+
+        val btrack = routeBrouter(waypoints)
+
+        val beetrack = runBlocking {
+            routeBeerouter(waypoints)
         }
-        Assert.assertNotNull(track)
+
+        assertNotNull(btrack)
+        assertNotNull(beetrack)
+
+        btrack.nodes.forEachIndexed { idx, node ->
+            assertEquals(node.iLon, beetrack.nodes[idx].iLon)
+            assertEquals(node.iLat, beetrack.nodes[idx].iLat)
+
+            val hint = btrack.getVoiceHint(idx)
+            if (hint != null) {
+                assertNotNull(beetrack.getVoiceHint(idx))
+            }
+        }
+
+
         val expected = GPX.parse(javaClass.getResource("/Tübingen-Rottenburg-Trekking.gpx")!!)
-        val actual = GPX.parse(FormatGpx(ctx).format(track!!)!!.trim().byteInputStream())
+        val actual = GPX.parse(FormatGpx().format(beetrack)!!.trim().byteInputStream())
         Assert.assertEquals("distance", expected.distance, actual.distance)
 
         expected.tracks.forEachIndexed { idx, expected ->
@@ -88,7 +94,53 @@ class RoutingTest {
                     Assert.assertEquals("point", expected.ele, actual.ele, 0.0)
                 }
             }
-
         }
+    }
+
+    fun routeBrouter(waypoints: List<OsmNodeNamed>): btools.router.OsmTrack {
+        val profile = File(root, "../misc/profiles2/trekking.brf")
+        Assert.assertTrue("profile exists ${segmentFile.path}", profile.exists())
+
+        val rc = btools.router.RoutingContext().apply {
+            turnInstructionMode = 2
+            localFunction = profile.path
+        }
+
+        val cr = btools.router.RoutingEngine(
+            null,
+            null,
+            segmentFile.parentFile,
+            waypoints.map {
+                btools.router.OsmNodeNamed().apply {
+                    name = it.name
+                    ilon = it.iLon
+                    ilat = it.iLat
+                }
+            },
+            rc
+        )
+
+        cr.doRouting(60.seconds.inWholeMilliseconds)
+
+        return cr.foundTrack
+    }
+
+    suspend fun routeBeerouter(waypoints: List<OsmNodeNamed>): OsmTrack? {
+        val profile = File(root, "../misc/profiles2/trekking.brf")
+        Assert.assertTrue("profile exists ${segmentFile.path}", profile.exists())
+
+
+        val ctx = RoutingContext(
+            profile,
+            segmentFile.getParentFile()
+        ).apply {
+            global.turnInstructionMode = 2
+        }
+
+        val engine = RoutingEngine(
+            ctx,
+        )
+
+        return engine.doRouting(waypoints)
     }
 }
