@@ -5,5 +5,7 @@ support Kotlin Multiplatform.
 
 ## License
 
-Beerouter is licensed under the [MPL 2.0](LICENSE). Its code is derived from the brouter project,
+Beerouter is licensed under the [Mozilla Public License Version 2.0](LICENSE). Its code is derived
+from
+the brouter project,
 see [attribution](ATTRIBUTION).

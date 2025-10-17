@@ -101,7 +101,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 track.name = "brouter_" + routingContext.profile.name + "_" + i
 
                 if (i == min(3, max(0, routingContext.alternativeIdx))) {
-                    logger.debug("gpx={}", FormatGpx(routingContext).format(track))
+                    logger.debug("gpx={}", FormatGpx().format(track))
                 } else {
                     i++
                     continue

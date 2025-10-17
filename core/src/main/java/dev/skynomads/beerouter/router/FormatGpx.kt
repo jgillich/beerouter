@@ -13,7 +13,7 @@ import java.io.InputStreamReader
 import java.io.StringWriter
 import java.util.Locale
 
-class FormatGpx(rc: RoutingContext) : Formatter(rc) {
+class FormatGpx() : Formatter() {
     override fun format(t: OsmTrack): String? {
         try {
             val sw = StringWriter(8192)
@@ -32,26 +32,26 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
             t.voiceHints.turnInstructionMode
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-//        if (turnInstructionMode == 4) { // comment style
-//            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
-//                .append("$ -->\n")
-//            sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n")
-//            sb.append("<!-- \$turn-instruction-start$\n")
-//            for (hint in t.voiceHints.list) {
-//                sb.append(
-//                    String.format(
-//                        "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
-//                        hint.getCommandString(turnInstructionMode),
-//                        hint.indexInTrack,
-//                        formatILon(hint.ilon),
-//                        formatILat(hint.ilat),
-//                        (hint.distanceToNext).toInt(),
-//                        hint.formatGeometry()
-//                    )
-//                )
-//            }
-//            sb.append("    \$turn-instruction-end$ -->\n")
-//        }
+        //        if (turnInstructionMode == 4) { // comment style
+        //            sb.append("<!-- \$transport-mode$").append(t.voiceHints.getTransportMode())
+        //                .append("$ -->\n")
+        //            sb.append("<!--          cmd    idx        lon        lat d2next  geometry -->\n")
+        //            sb.append("<!-- \$turn-instruction-start$\n")
+        //            for (hint in t.voiceHints.list) {
+        //                sb.append(
+        //                    String.format(
+        //                        "     \$turn$%6s;%6d;%10s;%10s;%6d;%s$\n",
+        //                        hint.getCommandString(turnInstructionMode),
+        //                        hint.indexInTrack,
+        //                        formatILon(hint.ilon),
+        //                        formatILat(hint.ilat),
+        //                        (hint.distanceToNext).toInt(),
+        //                        hint.formatGeometry()
+        //                    )
+        //                )
+        //            }
+        //            sb.append("    \$turn-instruction-end$ -->\n")
+        //        }
         sb.append("<gpx \n")
         sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n")
         sb.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n")
@@ -66,7 +66,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         if (turnInstructionMode == 3) {
             sb.append(" creator=\"OsmAndRouter\" version=\"1.1\">\n")
         } else {
-            sb.append(" creator=\"BRouter-" + OsmTrack.Companion.version + "\" version=\"1.1\">\n")
+            sb.append(" creator=\"BRouter\" version=\"1.1\">\n")
         }
         if (turnInstructionMode == 9) {
             sb.append(" <metadata>\n")
@@ -505,7 +505,7 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         sb.append(" xmlns=\"http://www.topografix.com/GPX/1/1\" \n")
         sb.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n")
         sb.append(" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" \n")
-        sb.append(" creator=\"BRouter-" + OsmTrack.Companion.version + "\" version=\"1.1\">\n")
+        sb.append(" creator=\"BRouter\" version=\"1.1\">\n")
     }
 
     @Throws(IOException::class)
@@ -523,11 +523,11 @@ class FormatGpx(rc: RoutingContext) : Formatter(rc) {
         if (n.name != null) {
             sb.append("<name>").append(escapeXml10(n.name!!)).append("</name>")
         }
-        if (n.nodeDescription != null) {
-            sb.append("<desc>")
-                .append(rc.way.getKeyValueDescription(false, n.nodeDescription!!))
-                .append("</desc>")
-        }
+        //if (n.nodeDescription != null) {
+        //    sb.append("<desc>")
+        //        .append(rc.way.getKeyValueDescription(false, n.nodeDescription!!))
+        //        .append("</desc>")
+        //}
         if (type != null) {
             sb.append("<type>").append(type).append("</type>")
         }

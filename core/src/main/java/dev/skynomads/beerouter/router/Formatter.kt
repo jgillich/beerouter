@@ -7,7 +7,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-abstract class Formatter(val rc: RoutingContext) {
+abstract class Formatter {
     /**
      * writes the track in gpx-format to a file
      *
