@@ -21,7 +21,7 @@ class OsmPathElement protected constructor() : OsmPos {
         private set
     override var sElev: Short = 0 // longitude
 
-    internal var message: MessageData? = null // description
+    public var message: MessageData? = null // description
 
     var cost: Int = 0
 
