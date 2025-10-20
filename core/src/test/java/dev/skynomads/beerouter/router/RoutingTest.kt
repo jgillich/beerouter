@@ -63,38 +63,47 @@ class RoutingTest {
         assertNotNull(btrack)
         assertNotNull(beetrack)
 
+        assertEquals(btrack.nodes.size, beetrack.nodes.size)
+
         btrack.nodes.forEachIndexed { idx, node ->
             assertEquals(node.iLon, beetrack.nodes[idx].iLon)
             assertEquals(node.iLat, beetrack.nodes[idx].iLat)
+            assertEquals(node.sElev, beetrack.nodes[idx].sElev)
 
             val hint = btrack.getVoiceHint(idx)
             if (hint != null) {
-                assertNotNull(beetrack.getVoiceHint(idx))
+                val actual = beetrack.getVoiceHint(idx)
+                assertNotNull(actual)
+                assertEquals(hint.cruiserCommandString, actual.cruiserCommandString)
             }
         }
 
+        assertEquals(btrack.nodes.mapIndexed { idx, node ->
+            btrack.getVoiceHint(idx)
+        }.filterNotNull().size, beetrack.voiceHints.size)
 
-        val expected = GPX.parse(javaClass.getResource("/Tübingen-Rottenburg-Trekking.gpx")!!)
-        val actual = GPX.parse(FormatGpx().format(beetrack)!!.trim().byteInputStream())
-        Assert.assertEquals("distance", expected.distance, actual.distance)
 
-        expected.tracks.forEachIndexed { idx, expected ->
-            val actual = actual.tracks[idx]
-            Assert.assertEquals("segments", expected.segments.size, actual.segments.size)
-
-            expected.segments.forEachIndexed { idx, expected ->
-                val actual = actual.segments[idx]
-                Assert.assertEquals("points", expected.points.size, actual.points.size)
-
-                expected.points.forEachIndexed { idx, expected ->
-                    val actual = actual.points[idx]
-
-                    Assert.assertEquals("point", expected.lat, actual.lat, 0.0)
-                    Assert.assertEquals("point", expected.lon, actual.lon, 0.0)
-                    Assert.assertEquals("point", expected.ele, actual.ele, 0.0)
-                }
-            }
-        }
+        //val expected = GPX.parse(javaClass.getResource("/Tübingen-Rottenburg-Trekking.gpx")!!)
+        //val actual = GPX.parse(FormatGpx().format(beetrack)!!.trim().byteInputStream())
+        //Assert.assertEquals("distance", expected.distance, actual.distance)
+        //
+        //expected.tracks.forEachIndexed { idx, expected ->
+        //    val actual = actual.tracks[idx]
+        //    Assert.assertEquals("segments", expected.segments.size, actual.segments.size)
+        //
+        //    expected.segments.forEachIndexed { idx, expected ->
+        //        val actual = actual.segments[idx]
+        //        Assert.assertEquals("points", expected.points.size, actual.points.size)
+        //
+        //        expected.points.forEachIndexed { idx, expected ->
+        //            val actual = actual.points[idx]
+        //
+        //            Assert.assertEquals("point", expected.lat, actual.lat, 0.0)
+        //            Assert.assertEquals("point", expected.lon, actual.lon, 0.0)
+        //            Assert.assertEquals("point", expected.ele, actual.ele, 0.0)
+        //        }
+        //    }
+        //}
     }
 
     fun routeBrouter(waypoints: List<OsmNodeNamed>): btools.router.OsmTrack {

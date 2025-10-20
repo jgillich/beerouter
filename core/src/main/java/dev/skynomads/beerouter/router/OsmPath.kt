@@ -121,7 +121,7 @@ abstract class OsmPath : OsmLinkHolder {
                 message!!.lat = targetNode!!.iLat
                 message!!.ele = Short.Companion.MIN_VALUE
                 message!!.linkdist = sourceNode!!.calcDistance(targetNode!!)
-                message!!.wayKeyValues = "direct_segment=$seg"
+                message!!.wayTags = mapOf("direct_segment" to "$seg")
                 seg++
             }
             return
@@ -257,7 +257,7 @@ abstract class OsmPath : OsmLinkHolder {
             }
 
             // if recording, new MessageData for each section (needed for turn-instructions)
-            if (message != null && message!!.wayKeyValues != null) {
+            if (message != null && message!!.wayTags != null) {
                 originElement!!.message = message
                 message = MessageData()
             }
@@ -368,8 +368,7 @@ abstract class OsmPath : OsmLinkHolder {
                 message!!.lon = lon2
                 message!!.lat = lat2
                 message!!.ele = originEle2
-                message!!.wayKeyValues =
-                    rc.way.getKeyValueDescription(isReverse, description)
+                message!!.wayTags = rc.way.getMap(isReverse, description)
             }
 
             if (stopAtEndpoint) {

@@ -155,50 +155,6 @@ class OsmTrack {
         nodesMap = FrozenLongMap<OsmPathElementHolder?>(nodesMap!!)
     }
 
-    fun aggregateMessages(): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList()
-        var current: MessageData? = null
-        for (n in nodes) {
-            if (n.message != null && n.message!!.wayKeyValues != null) {
-                val md = n.message!!.copy()
-                if (current != null) {
-                    if (current.nodeKeyValues != null || current.wayKeyValues != md!!.wayKeyValues) {
-                        res.add(current.toMessage())
-                    } else {
-                        md.add(current)
-                    }
-                }
-                current = md
-            }
-        }
-        if (current != null) {
-            res.add(current.toMessage())
-        }
-        return res
-    }
-
-    fun aggregateSpeedProfile(): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList()
-        var vmax = -1
-        var vmaxe = -1
-        var vmin = -1
-        var extraTime = 0
-        for (i in nodes.size - 1 downTo 1) {
-            val n = nodes[i]
-            val m = n.message
-            val vnode = getVNode(i)
-            if (m != null && (vmax != m.vmax || vmin != m.vmin || vmaxe != m.vmaxExplicit || vnode < m.vmax || extraTime != m.extraTime)) {
-                vmax = m.vmax
-                vmin = m.vmin
-                vmaxe = m.vmaxExplicit
-                extraTime = m.extraTime
-                res.add("$i,$vmaxe,$vmax,$vmin,$vnode,$extraTime")
-            }
-        }
-        return res
-    }
-
-
     /**
      * writes the track in binary-format to a file
      *

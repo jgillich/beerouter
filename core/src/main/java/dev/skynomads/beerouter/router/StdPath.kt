@@ -203,7 +203,7 @@ internal class StdPath : OsmPath() {
             }
             if (message != null) {
                 message!!.linknodecost += initialcost.toInt()
-                message!!.nodeKeyValues = rc.node.getKeyValueDescription(
+                message!!.nodeTags = rc.node.getMap(
                     nodeAccessGranted,
                     targetNode!!.nodeDescription!!
                 )

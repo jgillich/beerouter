@@ -213,8 +213,8 @@ abstract class BExpressionContext protected constructor(
         return sb.toString()
     }
 
-    fun getKeyValueList(inverseDirection: Boolean, ab: ByteArray): MutableList<String?> {
-        val res: MutableList<String?> = ArrayList()
+    fun getMap(inverseDirection: Boolean, ab: ByteArray): Map<String, String> {
+        val res: MutableMap<String, String> = mutableMapOf()
         decode(lookupData, inverseDirection, ab)
         for (inum in lookupValues.indices) { // loop over lookup names
             val va = lookupValues[inum]!!
@@ -223,8 +223,7 @@ abstract class BExpressionContext protected constructor(
             val value: String? =
                 if (`val` >= 1000) ((`val` - 1000) / 100f).toString() else va[`val`].toString()
             if (value != null && value.isNotEmpty()) {
-                res.add(lookupNames[inum])
-                res.add(value)
+                res.put(lookupNames[inum]!!, value)
             }
         }
         return res
@@ -1053,7 +1052,7 @@ abstract class BExpressionContext protected constructor(
 
         if (meta != null) meta.registerListener(context, this)
 
-//        if (Boolean.getBoolean("disableExpressionCache")) hashSize = 1
+        //        if (Boolean.getBoolean("disableExpressionCache")) hashSize = 1
 
         // create the expression cache
         if (hashSize > 0) {

@@ -17,8 +17,8 @@ class MessageData : Cloneable {
     var priorityclassifier: Int = 0
     var classifiermask: Int = 0
     var turnangle: Float = 0f
-    var wayKeyValues: String? = null
-    var nodeKeyValues: String? = null
+    var wayTags: Map<String, String>? = null
+    var nodeTags: Map<String, String>? = null
 
     var lon: Int = 0
     var lat: Int = 0
@@ -34,27 +34,6 @@ class MessageData : Cloneable {
     var vnode0: Int = 999
     var vnode1: Int = 999
     var extraTime: Int = 0
-
-    fun toMessage(): String? {
-        if (wayKeyValues == null) {
-            return null
-        }
-
-        val iCost = (costfactor * 1000 + 0.5f).toInt()
-        return ((lon - 180000000).toString() + "\t"
-                + (lat - 90000000) + "\t"
-                + ele / 4 + "\t"
-                + linkdist + "\t"
-                + iCost + "\t"
-                + linkelevationcost
-                + "\t" + linkturncost
-                + "\t" + linknodecost
-                + "\t" + linkinitcost
-                + "\t" + wayKeyValues
-                + "\t" + (if (nodeKeyValues == null) "" else nodeKeyValues)
-                + "\t" + (time.toInt())
-                + "\t" + (energy.toInt()))
-    }
 
     fun add(d: MessageData) {
         linkdist += d.linkdist

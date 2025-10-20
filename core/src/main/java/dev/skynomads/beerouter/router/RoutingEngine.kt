@@ -100,9 +100,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
                 track.name = "brouter_" + routingContext.profile.name + "_" + i
 
-                if (i == min(3, max(0, routingContext.alternativeIdx))) {
-                    logger.debug("gpx={}", FormatGpx().format(track))
-                } else {
+                if (i != min(3, max(0, routingContext.alternativeIdx))) {
                     i++
                     continue
                 }
@@ -470,7 +468,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 dist += n.calcDistance(lastPt!!)
                 var distRest = dist
                 var incline = diffElev / (dist / 100.0)
-                var lastMsg = ""
                 var tmpincline = 0.0
                 var startincline = 0.0
                 var selev = track.nodes[startIdx - 2].sElev.toDouble()
@@ -479,40 +476,32 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                     val tmp = track.nodes[i]
                     if (tmp.message != null) {
                         val md = tmp.message!!.copy()
-                        val msg = md!!.wayKeyValues
-                        if (msg != lastMsg) {
-                            val revers = msg!!.contains("reversedirection=yes")
-                            var pos = msg.indexOf("incline=")
-                            if (pos != -1) {
-                                hasInclineTags = true
-                                var s = msg.substring(pos + 8)
-                                pos = s.indexOf(" ")
-                                if (pos != -1) s = s.substring(0, pos)
+                        val msg = md!!.wayTags
 
-                                if (!s.isEmpty()) {
-                                    try {
-                                        var ind = s.indexOf("%")
-                                        if (ind != -1) s = s.substring(0, ind)
-                                        ind = s.indexOf("°")
-                                        if (ind != -1) s = s.substring(0, ind)
-                                        tmpincline = s.trim { it <= ' ' }.toDouble()
-                                        if (revers) tmpincline *= -1.0
-                                    } catch (e: NumberFormatException) {
-                                        tmpincline = 0.0
-                                    }
-                                }
-                            } else {
+                        val reverse = msg?.get("reversedirection") == "yes"
+
+                        if (msg?.contains("incline") == true) {
+                            hasInclineTags = true
+                            try {
+                                tmpincline = msg["incline"]!!
+                                    .replace("%", "")
+                                    .replace("°", "")
+                                    .toDouble()
+                                if (reverse) tmpincline *= -1.0
+                            } catch (e: NumberFormatException) {
                                 tmpincline = 0.0
                             }
-                            if (startincline == 0.0) {
-                                startincline = tmpincline
-                            } else if (startincline < 0 && tmpincline > 0) {
-                                // for the way up find the exit point
-                                val diff = endElev - selev
-                                tmpincline = diff / (distRest / 100.0)
-                            }
+                        } else {
+                            tmpincline = 0.0
                         }
-                        lastMsg = msg
+                        if (startincline == 0.0) {
+                            startincline = tmpincline
+                        } else if (startincline < 0 && tmpincline > 0) {
+                            // for the way up find the exit point
+                            val diff = endElev - selev
+                            tmpincline = diff / (distRest / 100.0)
+                        }
+
                     }
                     val tmpdist = tmp.calcDistance(tmpPt)
                     distRest -= tmpdist

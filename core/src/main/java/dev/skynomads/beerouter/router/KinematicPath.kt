@@ -251,8 +251,8 @@ internal class KinematicPath : OsmPath() {
 
             if (message != null) {
                 message!!.linknodecost += initialcost.toInt()
-                message!!.nodeKeyValues =
-                    rc.node.getKeyValueDescription(false, targetNode!!.nodeDescription!!)
+                message!!.nodeTags =
+                    rc.node.getMap(false, targetNode!!.nodeDescription!!)
 
                 message!!.vnode1 = (km.nodeMaxspeed * 3.6 + 0.5).toInt()
             }
