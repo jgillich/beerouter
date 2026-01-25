@@ -106,8 +106,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             }
             return track
         } finally {
-            logger.info("expression cache stats={}", routingContext.way.cacheStats())
-
             if (nodesCache != null) {
                 logger.info("NodesCache status before close={}", nodesCache!!.formatStatus())
                 nodesCache!!.close()

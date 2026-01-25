@@ -5,19 +5,17 @@
 // - the lookup-input variables
 package dev.skynomads.beerouter.expressions
 
+import androidx.collection.LruCache
 import dev.skynomads.beerouter.util.BitCoderContext
 import dev.skynomads.beerouter.util.Crc32.crc
 import dev.skynomads.beerouter.util.IByteArrayUnifier
-import dev.skynomads.beerouter.util.LruMap
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.util.Arrays
 import java.util.Locale
-import java.util.NavigableMap
 import java.util.Random
 import java.util.StringTokenizer
-import java.util.TreeMap
 import kotlin.math.abs
 
 abstract class BExpressionContext protected constructor(
@@ -60,14 +58,11 @@ abstract class BExpressionContext protected constructor(
 
     private var variableData: FloatArray? = null
 
-
-    // hash-cache for function results
-    private val probeCacheNode = CacheNode()
-    private var cache: LruMap? = null
+    private var cache: LruCache<Int, CacheNode>? = null
 
     private val probeVarSet = VarWrapper()
-    private var resultVarCache: LruMap? = null
 
+    private var resultVarCache: LruCache<Int, VarWrapper>? = null
     private var expressionList: MutableList<BExpression?>? = null
 
     var minWriteIdx: Int = 0
@@ -223,7 +218,7 @@ abstract class BExpressionContext protected constructor(
             val value: String? =
                 if (`val` >= 1000) ((`val` - 1000) / 100f).toString() else va[`val`].toString()
             if (value != null && value.isNotEmpty()) {
-                res.put(lookupNames[inum]!!, value)
+                res[lookupNames[inum]!!] = value
             }
         }
         return res
@@ -264,7 +259,7 @@ abstract class BExpressionContext protected constructor(
         var name = tk.nextToken()
         val value = tk.nextToken()
         val idx = name.indexOf(';')
-        if (idx >= 0) name = name.substring(0, idx)
+        if (idx >= 0) name = name.take(idx)
 
         if (!fixTagsWritten) {
             fixTagsWritten = true
@@ -302,32 +297,25 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    private var requests: Long = 0
-    private var requests2: Long = 0
-    private var cachemisses: Long = 0
-
-    fun cacheStats(): String {
-        return "requests=$requests requests2=$requests2 cachemisses=$cachemisses"
-    }
-
     private var lastCacheNode: CacheNode? = CacheNode()
 
-    // @Override
     override fun unify(ab: ByteArray, offset: Int, len: Int): ByteArray? {
-        probeCacheNode.ab = null // crc based cache lookup only
-        probeCacheNode.hash = crc(ab!!, offset, len)
+        val hash = crc(ab, offset, len)
 
-        var cn = cache!!.get(probeCacheNode) as CacheNode?
+        val cn = cache!![hash]
+
         if (cn != null) {
             val cab = cn.ab
+            // Verify content to handle potential hash collisions
             if (cab!!.size == len) {
+                var match = true
                 for (i in 0..<len) {
                     if (cab[i] != ab[i + offset]) {
-                        cn = null
+                        match = false
                         break
                     }
                 }
-                if (cn != null) {
+                if (match) {
                     lastCacheNode = cn
                     return cn.ab
                 }
@@ -338,9 +326,7 @@ abstract class BExpressionContext protected constructor(
         return nab
     }
 
-
     fun evaluate(inverseDirection: Boolean, ab: ByteArray) {
-        requests++
         lookupDataValid = false // this is an assertion for a nasty pifall
 
         if (cache == null) {
@@ -354,59 +340,54 @@ abstract class BExpressionContext protected constructor(
         }
 
         var cn: CacheNode?
+
         if (lastCacheNode!!.ab.contentEquals(ab)) {
             cn = lastCacheNode
         } else {
-            probeCacheNode.ab = ab
-            probeCacheNode.hash = crc(ab, 0, ab.size)
-            cn = cache!!.get(probeCacheNode) as CacheNode?
-        }
+            val hash = crc(ab, 0, ab.size)
+            cn = cache!![hash]
 
-        if (cn == null) {
-            cachemisses++
+            // Check for hash collision: if content differs, treat as miss
+            if (cn != null && !cn.ab.contentEquals(ab)) {
+                cn = null
+            }
 
-            cn = cache!!.removeLru() as CacheNode?
+            // If still null, it's a real miss (or collision treated as miss)
             if (cn == null) {
                 cn = CacheNode()
-            }
-            cn.hash = probeCacheNode.hash
-            cn.ab = ab
-            cache!!.put(cn)
+                cn.hash = hash
+                cn.ab = ab
+                cache!!.put(hash, cn)
 
-            if (probeVarSet.vars == null) {
-                probeVarSet.vars = FloatArray(2 * nBuildInVars)
-            }
-
-            // forward direction
-            decode(lookupData, false, ab)
-            evaluateInto(probeVarSet.vars!!, 0)
-
-            // inverse direction
-            lookupData[0] = 2 // inverse shortcut: reuse decoding
-            evaluateInto(probeVarSet.vars!!, nBuildInVars)
-
-            probeVarSet.hash = probeVarSet.vars.contentHashCode()
-
-            // unify the result variable set
-            var vw = resultVarCache!!.get(probeVarSet) as VarWrapper?
-            if (vw == null) {
-                vw = resultVarCache!!.removeLru() as VarWrapper?
-                if (vw == null) {
-                    vw = VarWrapper()
+                if (probeVarSet.vars == null) {
+                    probeVarSet.vars = FloatArray(2 * nBuildInVars)
                 }
-                vw.hash = probeVarSet.hash
-                vw.vars = probeVarSet.vars
-                probeVarSet.vars = null
-                resultVarCache!!.put(vw)
-            }
-            cn.vars = vw.vars
-        } else {
-            if (ab.contentEquals(cn.ab)) requests2++
 
-            cache!!.touch(cn)
+                // forward direction
+                decode(lookupData, false, ab)
+                evaluateInto(probeVarSet.vars!!, 0)
+
+                // inverse direction
+                lookupData[0] = 2 // inverse shortcut: reuse decoding
+                evaluateInto(probeVarSet.vars!!, nBuildInVars)
+
+                probeVarSet.hash = probeVarSet.vars.contentHashCode()
+
+                var vw = resultVarCache!![probeVarSet.hash]
+
+                if (vw == null) {
+                    // Create new wrapper and transfer ownership of the float array
+                    vw = VarWrapper()
+                    vw.hash = probeVarSet.hash
+                    vw.vars = probeVarSet.vars
+                    probeVarSet.vars = null // Clear probe to force allocation next time
+                    resultVarCache!!.put(vw.hash, vw)
+                }
+                cn.vars = vw.vars
+            }
         }
 
-        currentVars = cn.vars
+        currentVars = cn!!.vars
         currentVarOffset = if (inverseDirection) nBuildInVars else 0
     }
 
@@ -415,42 +396,6 @@ abstract class BExpressionContext protected constructor(
         for (vi in 0..<nBuildInVars) {
             val idx = buildInVariableIdx[vi]
             vars[vi + offset] = if (idx == -1) 0f else variableData!![idx]
-        }
-    }
-
-
-    fun dumpStatistics() {
-        val counts: NavigableMap<String?, String?> = TreeMap<String?, String?>()
-        // first count
-        for (name in lookupNumbers.keys) {
-            var cnt = 0
-            val inum: Int = lookupNumbers[name]!!
-            val histo = lookupHistograms[inum]
-            //    if ( histo.length == 500 ) continue;
-            for (i in 2..<histo.size) {
-                cnt += histo[i]
-            }
-            counts.put("" + (1000000000 + cnt) + "_" + name, name)
-        }
-
-        while (counts.isNotEmpty()) {
-            val key = counts.lastEntry().key
-            val name = counts[key]
-            counts.remove(key)
-            val inum: Int = lookupNumbers[name]!!
-            val values = lookupValues[inum]!!
-            val histo = lookupHistograms[inum]
-            if (values.size == 1000) continue
-            val svalues = arrayOfNulls<String>(values.size)
-            for (i in values.indices) {
-                var scnt = "0000000000" + histo[i]
-                scnt = scnt.substring(scnt.length - 10)
-                svalues[i] = scnt + " " + values[i].toString()
-            }
-            Arrays.sort(svalues)
-            for (i in svalues.indices.reversed()) {
-                println(name + ";" + svalues[i])
-            }
         }
     }
 
@@ -528,7 +473,7 @@ abstract class BExpressionContext protected constructor(
 
             // unknown name, create
             num = lookupValues.size
-            lookupNumbers.put(name, num)
+            lookupNumbers[name] = num
             lookupNames.add(name)
             lookupValues.add(
                 arrayOf(
@@ -561,7 +506,7 @@ abstract class BExpressionContext protected constructor(
                 if (bFoundAsterix) {
                     // found value for lookup *
                     //System.out.println( "add unknown " + name + "  " + value );
-                    val org: String? = value
+                    val org: String = value
                     try {
                         // remove some unused characters
                         value = value.replace(",".toRegex(), ".")
@@ -593,7 +538,7 @@ abstract class BExpressionContext protected constructor(
                             if (sa.size == 2) {
                                 value = sa[1]
                                 if (value.indexOf("in") > 0) value =
-                                    value.substring(0, value.indexOf("in"))
+                                    value.substringBefore("in")
                                 inch = value.toInt()
                                 feet += inch / 12f
                             }
@@ -607,28 +552,27 @@ abstract class BExpressionContext protected constructor(
                             if (sa.size == 2) {
                                 value = sa[1]
                                 if (value.indexOf("''") > 0) value =
-                                    value.substring(0, value.indexOf("''"))
+                                    value.substringBefore("''")
                                 if (value.indexOf("\"") > 0) value =
-                                    value.substring(0, value.indexOf("\""))
+                                    value.substringBefore("\"")
                                 inch = value.toInt()
                                 feet += inch / 12f
                             }
                             value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
                         } else if (value.contains("in") || value.contains("\"")) {
-                            var inch: Float
                             if (value.indexOf("in") > 0) value =
-                                value.substring(0, value.indexOf("in"))
+                                value.substringBefore("in")
                             if (value.indexOf("\"") > 0) value =
-                                value.substring(0, value.indexOf("\""))
-                            inch = value.toFloat()
+                                value.substringBefore("\"")
+                            val inch: Float = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", inch * 0.0254f)
                         } else if (value.contains("feet") || value.contains("foot")) {
                             var feet: Float
-                            val s = value.substring(0, value.indexOf("f"))
+                            val s = value.substringBefore("f")
                             feet = s.toFloat()
                             value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
                         } else if (value.contains("fathom") || value.contains("fm")) {
-                            val s = value.substring(0, value.indexOf("f"))
+                            val s = value.substringBefore("f")
                             val fathom = s.toFloat()
                             value = String.format(Locale.US, "%3.1f", fathom * 1.8288f)
                         } else if (value.contains("cm")) {
@@ -638,7 +582,7 @@ abstract class BExpressionContext protected constructor(
                             val cm = value.toFloat()
                             value = String.format(Locale.US, "%3.1f", cm / 100f)
                         } else if (value.contains("meter")) {
-                            value = value.substring(0, value.indexOf("m"))
+                            value = value.substringBefore("m")
                         } else if (value.contains("mph")) {
                             val sa = value.split("mph".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
@@ -659,9 +603,9 @@ abstract class BExpressionContext protected constructor(
                                 .toTypedArray()
                             if (sa.size > 1) value = sa[0]
                         } else if (value.contains("m")) {
-                            value = value.substring(0, value.indexOf("m"))
+                            value = value.substringBefore("m")
                         } else if (value.contains("(")) {
-                            value = value.substring(0, value.indexOf("("))
+                            value = value.substringBefore("(")
                         }
                         // found negative maxdraft values
                         // no negative values
@@ -673,14 +617,11 @@ abstract class BExpressionContext protected constructor(
                         lookupData2[num] = 0
                     }
                 }
-                return newValue
+                return null
             }
 
-            if (i == 499) {
-                // System.out.println( "value limit reached for: " + name );
-            }
             if (i == 500) {
-                return newValue
+                return null
             }
             // unknown value, create
             val nvalues: Array<BExpressionLookupValue?> = arrayOfNulls(values.size + 1)
@@ -708,14 +649,11 @@ abstract class BExpressionContext protected constructor(
      * value-index means 0=unknown, 1=other, 2=value-x, ...
      */
     fun addLookupValue(name: String?, valueIndex: Int) {
-        val num = lookupNumbers[name]
-        if (num == null) {
-            return
-        }
+        val num = lookupNumbers[name] ?: return
 
         // look for that value
         val nvalues = lookupValues[num]!!.size
-        require(!(valueIndex < 0 || valueIndex >= nvalues)) { "value index out of range for name $name: $valueIndex" }
+        require(valueIndex in 0..<nvalues) { "value index out of range for name $name: $valueIndex" }
         lookupData[num] = valueIndex
     }
 
@@ -728,15 +666,12 @@ abstract class BExpressionContext protected constructor(
      */
     fun addSmallestLookupValue(name: String?, valueIndex: Int) {
         var valueIndex = valueIndex
-        val num = lookupNumbers[name]
-        if (num == null) {
-            return
-        }
+        val num = lookupNumbers[name] ?: return
 
         // look for that value
         val nvalues = lookupValues[num]!!.size
         val oldValueIndex = lookupData[num]
-        if (oldValueIndex > 1 && oldValueIndex < valueIndex) {
+        if (oldValueIndex in 2..<valueIndex) {
             return
         }
         if (valueIndex >= nvalues) {
@@ -851,8 +786,7 @@ abstract class BExpressionContext protected constructor(
         }
 
         while (true) {
-            val exp: BExpression? = BExpression.parse(this, 0)
-            if (exp == null) break
+            val exp: BExpression = BExpression.parse(this, 0) ?: break
             result.add(exp)
         }
         _br!!.close()
@@ -865,7 +799,7 @@ abstract class BExpressionContext protected constructor(
         if (num != null) {
             variableData!![num] = value
         } else if (create) {
-            num = getVariableIdx(name, create)
+            num = getVariableIdx(name, true)
             val readOnlyData = variableData
             val minWriteIdx = readOnlyData!!.size
             variableData = FloatArray(variableNumbers.size)
@@ -998,8 +932,8 @@ abstract class BExpressionContext protected constructor(
                             for (s in sa) {
                                 val sa2 = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
                                     .toTypedArray()
-                                val name: String? = sa2[0]
-                                val value: String? = sa2[1]
+                                val name: String = sa2[0]
+                                val value: String = sa2[1]
                                 val nidx = getLookupNameIdx(name)
                                 if (nidx == -1) break
                                 val vidx = getLookupValueIdx(nidx, value)
@@ -1050,14 +984,12 @@ abstract class BExpressionContext protected constructor(
         this.context = context
         this.meta = meta
 
-        if (meta != null) meta.registerListener(context, this)
-
-        //        if (Boolean.getBoolean("disableExpressionCache")) hashSize = 1
+        meta.registerListener(context, this)
 
         // create the expression cache
         if (hashSize > 0) {
-            cache = LruMap(4 * hashSize, hashSize)
-            resultVarCache = LruMap(4096, 4096)
+            cache = LruCache(hashSize)
+            resultVarCache = LruCache(4096)
         }
     }
 

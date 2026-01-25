@@ -198,8 +198,7 @@ public class RoutingContext(
     }
 
     fun freeNoWays() {
-        val expctxGlobal: BExpressionContext? = way
-        expctxGlobal?.freeNoWays()
+        way.freeNoWays()
     }
 
     var poipoints: MutableList<OsmNodeNamed> = mutableListOf()

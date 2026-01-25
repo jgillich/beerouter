@@ -1,9 +1,10 @@
 package dev.skynomads.beerouter.expressions
 
-import dev.skynomads.beerouter.util.LruMapNode
-
-class VarWrapper : LruMapNode() {
+class VarWrapper {
     var vars: FloatArray? = null
+
+    @JvmField
+    var hash: Int = 0
 
     override fun hashCode(): Int {
         return hash
