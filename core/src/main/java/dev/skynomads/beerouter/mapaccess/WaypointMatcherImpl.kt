@@ -104,9 +104,9 @@ class WaypointMatcherImpl(
             if (!useAsStartWay && i == 0) continue
             val mwp = waypoints[i]
 
-            if (mwp.direct &&
+            if (mwp.type == MatchedWaypoint.Type.DIRECT &&
                 (i == 0 ||
-                        waypoints[i - 1].direct)
+                        waypoints[i - 1].type == MatchedWaypoint.Type.DIRECT)
             ) {
                 if (mwp.crosspoint == null) {
                     mwp.crosspoint = OsmNode()
@@ -152,8 +152,8 @@ class WaypointMatcherImpl(
                     val wayfraction = -s2 / (d * d)
                     val xm = x2 - wayfraction * dx
                     val ym = y2 - wayfraction * dy
-                    mwp.crosspoint!!.iLon = (xm / dlon2m + wp!!.iLon).toInt()
-                    mwp.crosspoint!!.iLat = (ym / dlat2m + wp!!.iLat).toInt()
+                    mwp.crosspoint!!.iLon = (xm / dlon2m + wp.iLon).toInt()
+                    mwp.crosspoint!!.iLat = (ym / dlat2m + wp.iLat).toInt()
                 } else if (s1 > s2) {
                     mwp.crosspoint!!.iLon = lon2
                     mwp.crosspoint!!.iLat = lat2

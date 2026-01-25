@@ -296,8 +296,8 @@ public class RoutingContext(
             if (isInsideNogo) {
                 var useAnyway = false
                 if (prevMwp == null) useAnyway = true
-                else if (mwp.direct) useAnyway = true
-                else if (prevMwp.direct) useAnyway = true
+                else if (mwp.type == MatchedWaypoint.Type.DIRECT) useAnyway = true
+                else if (prevMwp.type == MatchedWaypoint.Type.DIRECT) useAnyway = true
                 else if (prevMwpIsInside) useAnyway = true
                 else require(i != theSize - 1) { "last wpt in restricted area " }
                 if (useAnyway) {

@@ -22,7 +22,7 @@ public class VoiceHint {
     val time: Float
         get() = if (oldWay == null) 0f else oldWay!!.time
 
-    var angle: Float = Float.Companion.MAX_VALUE
+    var angle: Float = Float.MAX_VALUE
     var lowerBadWayAngle: Float = -181f
     var higherBadWayAngle: Float = 181f
 
@@ -467,7 +467,7 @@ public class VoiceHint {
         const val END: Int = 100 // end point
 
         fun is180DegAngle(angle: Float): Boolean {
-            return (abs(angle) <= 180f && abs(angle) >= 179f)
+            return (abs(angle) in 179f..180f)
         }
     }
 }

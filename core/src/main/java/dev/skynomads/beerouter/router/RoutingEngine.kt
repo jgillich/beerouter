@@ -582,14 +582,14 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         if (useNodePoints && extraWaypoints.isNotEmpty()) {
             // add extra waypoints from the last broken round
             for (wp in extraWaypoints) {
-                if (wp.direct) hasDirectRouting = true
+                if (wp.type == MatchedWaypoint.Type.DIRECT) hasDirectRouting = true
                 if (wp.name!!.startsWith("from")) {
                     waypoints.add(1, wp)
-                    waypoints[0].direct = true
+                    waypoints[0].type = MatchedWaypoint.Type.DIRECT
                     nUnmatched++
                 } else {
                     waypoints.add(waypoints.size - 1, wp)
-                    waypoints[waypoints.size - 2].direct = true
+                    waypoints[waypoints.size - 2].type = MatchedWaypoint.Type.DIRECT
                     nUnmatched++
                 }
             }
@@ -601,8 +601,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             hasDirectRouting = true
         }
         for (wp in waypoints) {
-            logger.info("wp={} {}", wp, if (wp.direct) "direct" else "")
-            if (wp.direct) hasDirectRouting = true
+            if (wp.type == MatchedWaypoint.Type.DIRECT) {
+                hasDirectRouting = true
+            }
         }
 
         // check for a track for that target
@@ -631,7 +632,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 val mwp = MatchedWaypoint()
                 mwp.waypoint = waypoints[i]
                 mwp.name = waypoints[i].name
-                mwp.direct = waypoints[i].direct
+                mwp.type = waypoints[i].type
                 matchedWaypoints.add(mwp)
             }
             val startSize = matchedWaypoints.size
@@ -643,15 +644,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 hasDirectRouting = true
             }
 
-            for (mwp in matchedWaypoints) {
-                if (matchedWaypoints.size != nUnmatched) logger.info(
-                    "new wp={} {}{}",
-                    mwp.waypoint,
-                    mwp.crosspoint,
-                    if (mwp.direct) " direct" else ""
-                )
-            }
-
             routingContext.checkMatchedWaypointAgainstNogos(matchedWaypoints)
 
             // detect target islands: restricted search in inverse direction
@@ -659,7 +651,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             airDistanceCostFactor = 0.0
             for (i in 0..<matchedWaypoints.size - 1) {
                 nodeLimit = MAXNODES_ISLAND_CHECK
-                if (matchedWaypoints[i].direct) continue
+                if (matchedWaypoints[i].type == MatchedWaypoint.Type.DIRECT) continue
                 if (routingContext.global.inverseRouting) {
                     val seg = findTrack(
                         matchedWaypoints[i],
@@ -743,7 +735,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             if (routingContext.ai != null) return null
 
             var changed = false
-            if (routingContext.global.correctMisplacedViaPoints && !matchedWaypoints[i].direct && !routingContext.allowSamewayback) {
+            if (routingContext.global.correctMisplacedViaPoints && matchedWaypoints[i].type != MatchedWaypoint.Type.DIRECT && !routingContext.allowSamewayback) {
                 changed = snapPathConnection(
                     totaltrack,
                     seg,
@@ -1346,12 +1338,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                         nmw.waypoint = onn
                         nmw.name = onn.name
                         nmw.crosspoint = OsmNode(wp.waypoint!!.iLon, wp.waypoint!!.iLat)
-                        nmw.direct = true
+                        nmw.type = MatchedWaypoint.Type.DIRECT
                         onn = OsmNodeNamed(wp.crosspoint!!)
                         onn.name = wp.name + "_add"
                         wp.waypoint = onn
                         waypoints.add(nmw)
-                        wp.name = wp.name + "_add"
+                        wp.name += "_add"
                         waypoints.add(wp)
                     } else {
                         val onn = OsmNodeNamed(wp.crosspoint!!)
@@ -1360,14 +1352,14 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                         nmw.crosspoint = OsmNode(wp.crosspoint!!.iLon, wp.crosspoint!!.iLat)
                         nmw.node1 = OsmNode(wp.node1!!.iLon, wp.node1!!.iLat)
                         nmw.node2 = OsmNode(wp.node2!!.iLon, wp.node2!!.iLat)
-                        nmw.direct = true
+                        nmw.type = MatchedWaypoint.Type.DIRECT
 
                         if (wp.name != null) nmw.name = wp.name
                         waypoints.add(nmw)
                         wp.name = wp.name + "_add"
                         waypoints.add(wp)
                         if (wp.name!!.startsWith("via")) {
-                            wp.direct = true
+                            wp.type = MatchedWaypoint.Type.DIRECT
                             val emw = MatchedWaypoint()
                             val onn2 = OsmNodeNamed(wp.crosspoint!!)
                             onn2.name = wp.name + "_2"
@@ -1376,7 +1368,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                             emw.crosspoint = OsmNode(nmw.crosspoint!!.iLon, nmw.crosspoint!!.iLat)
                             emw.node1 = OsmNode(nmw.node1!!.iLon, nmw.node1!!.iLat)
                             emw.node2 = OsmNode(nmw.node2!!.iLon, nmw.node2!!.iLat)
-                            emw.direct = false
+                            emw.type = MatchedWaypoint.Type.SHAPING
                             waypoints.add(emw)
                         }
                         wp.crosspoint = OsmNode(wp.waypoint!!.iLon, wp.waypoint!!.iLat)
@@ -1398,9 +1390,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     ): OsmTrack? {
         // remove nogos with waypoints inside
         try {
-            val calcBeeline = startWp.direct
-
-            if (!calcBeeline) return searchRoutedTrack(startWp, endWp, nearbyTrack, refTrack)
+            if (startWp.type != MatchedWaypoint.Type.DIRECT) {
+                return searchRoutedTrack(startWp, endWp, nearbyTrack, refTrack)
+            }
 
             // we want a beeline-segment
             var path = routingContext.createPath(OsmLink(null, startWp.crosspoint))

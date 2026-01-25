@@ -356,7 +356,7 @@ class OsmTrack {
 
                 if (rc.global.turnInstructionMode == 8 || rc.global.turnInstructionMode == 4 || rc.global.turnInstructionMode == 2 || rc.global.turnInstructionMode == 9) {
                     val mwpt = getMatchedWaypoint(nodeNr)
-                    if (mwpt != null && mwpt.direct) {
+                    if (mwpt != null && mwpt.type == MatchedWaypoint.Type.DIRECT) {
                         input.command = VoiceHint.Companion.BL
                         input.angle =
                             (if (nodeNr == 0) origin.message!!.turnangle else node.message!!.turnangle)

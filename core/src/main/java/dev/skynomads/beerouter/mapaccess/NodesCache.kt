@@ -318,19 +318,19 @@ class NodesCache(
         for (i in 0..<len) {
             val mwp = unmatchedWaypoints[i]
             if (mwp.crosspoint == null) {
-                if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].direct
+                if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].type == MatchedWaypoint.Type.DIRECT
                 ) {
                     mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
-                    mwp.direct = true
+                    mwp.type = MatchedWaypoint.Type.DIRECT
                 } else {
                     // do not break here throw new IllegalArgumentException(mwp.name + "-position not mapped in existing datafile");
                     return false
                 }
             }
-            if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].direct
+            if (unmatchedWaypoints.size > 1 && i == unmatchedWaypoints.size - 1 && unmatchedWaypoints[i - 1].type == MatchedWaypoint.Type.DIRECT
             ) {
                 mwp.crosspoint = OsmNode(mwp.waypoint!!.iLon, mwp.waypoint!!.iLat)
-                mwp.direct = true
+                mwp.type = MatchedWaypoint.Type.DIRECT
             }
         }
         return true

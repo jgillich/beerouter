@@ -10,6 +10,17 @@ import java.io.DataOutput
 import java.io.IOException
 
 class MatchedWaypoint {
+    enum class Type {
+        /** route next to this point */
+        SHAPING,
+
+        /** visit this point  */
+        MEETING,
+
+        /** from this point go direct to next = beeline routing  */
+        DIRECT
+    }
+
     @JvmField
     var node1: OsmNode? = null
 
@@ -32,7 +43,7 @@ class MatchedWaypoint {
     var radius: Double = 0.0 // distance in meter between waypoint and crosspoint
 
     @JvmField
-    var direct: Boolean = false // from this point go direct to next = beeline routing
+    var type: Type = Type.SHAPING
 
     @JvmField
     var indexInTrack: Int = 0

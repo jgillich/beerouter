@@ -5,6 +5,7 @@
  */
 package dev.skynomads.beerouter.router
 
+import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.OsmNode
 import dev.skynomads.beerouter.util.CheapRuler.distance
 import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
@@ -20,7 +21,7 @@ open class OsmNodeNamed : OsmNode {
     var isNogo: Boolean = false
 
     @JvmField
-    var direct: Boolean = false // mark direct routing
+    var type: MatchedWaypoint.Type = MatchedWaypoint.Type.SHAPING
 
     constructor()
 
@@ -92,7 +93,7 @@ open class OsmNodeNamed : OsmNode {
         fun decodeNogo(s: String): OsmNodeNamed {
             val n = OsmNodeNamed()
             val idx1 = s.indexOf(',')
-            n.iLon = s.substring(0, idx1).toInt()
+            n.iLon = s.take(idx1).toInt()
             val idx2 = s.indexOf(',', idx1 + 1)
             n.iLat = s.substring(idx1 + 1, idx2).toInt()
             val idx3 = s.indexOf(',', idx2 + 1)
