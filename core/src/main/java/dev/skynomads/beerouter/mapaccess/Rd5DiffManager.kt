@@ -62,7 +62,7 @@ object Rd5DiffManager {
             dummyDiffFile.createNewFile()
 
             // calc the new diff
-            Rd5DiffTool.Companion.diff2files(fo, fn, diffFile)
+            Rd5DiffTool.diff2files(fo, fn, diffFile)
 
             // ... and add that to old diff files
             val specificOldDiffs = File(oldDiffDir, basename)
@@ -78,7 +78,7 @@ object Rd5DiffManager {
 
                     val updatedDiff = File(specificNewDiffs, od.getName())
                     if (!updatedDiff.exists()) {
-                        Rd5DiffTool.Companion.addDeltas(od, diffFile, updatedDiff)
+                        Rd5DiffTool.addDeltas(od, diffFile, updatedDiff)
                         updatedDiff.setLastModified(od.lastModified())
                     }
                 }

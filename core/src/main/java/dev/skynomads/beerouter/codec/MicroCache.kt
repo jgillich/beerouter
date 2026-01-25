@@ -259,8 +259,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         var idx2 = 0
 
         while (idx1 < mc1.size || idx2 < mc2.size) {
-            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.Companion.MAX_VALUE
-            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.Companion.MAX_VALUE
+            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.MAX_VALUE
+            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.MAX_VALUE
             val id: Int
             if (id1 >= id2) {
                 id = id2
@@ -300,8 +300,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         var idx2 = 0
 
         while (idx1 < mc1.size || idx2 < mc2.size) {
-            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.Companion.MAX_VALUE
-            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.Companion.MAX_VALUE
+            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.MAX_VALUE
+            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.MAX_VALUE
             if (id1 >= id2) { // data from diff file wins
                 val start2 = if (idx2 > 0) mc2.fapos!![idx2 - 1] else 0
                 val len2 = mc2.fapos!![idx2++] - start2

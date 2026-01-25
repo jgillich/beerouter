@@ -82,7 +82,7 @@ abstract class OsmPath : OsmLinkHolder {
         rc: RoutingContext
     ) {
         if (origin.myElement == null) {
-            origin.myElement = OsmPathElement.Companion.create(origin)
+            origin.myElement = OsmPathElement.create(origin)
         }
         this.originElement = origin.myElement
         this.link = link
@@ -119,7 +119,7 @@ abstract class OsmPath : OsmLinkHolder {
                 message!!.classifiermask = 0
                 message!!.lon = targetNode!!.iLon
                 message!!.lat = targetNode!!.iLat
-                message!!.ele = Short.Companion.MIN_VALUE
+                message!!.ele = Short.MIN_VALUE
                 message!!.linkdist = sourceNode!!.calcDistance(targetNode!!)
                 message!!.wayTags = mapOf("direct_segment" to "$seg")
                 seg++
@@ -280,7 +280,7 @@ abstract class OsmPath : OsmLinkHolder {
                     if (recordTransferNodes) {
                         if (rc.wayfraction > 0.0) {
                             ele1 = interpolateEle(ele1, ele2, 1.0 - rc.wayfraction)
-                            originElement = OsmPathElement.Companion.create(
+                            originElement = OsmPathElement.create(
                                 rc.ilonshortest,
                                 rc.ilatshortest,
                                 ele1,
@@ -323,8 +323,8 @@ abstract class OsmPath : OsmLinkHolder {
 
             // *** elevation stuff
             var delta_h = 0.0
-            if (ele2 == Short.Companion.MIN_VALUE) ele2 = ele1
-            if (ele1 != Short.Companion.MIN_VALUE) {
+            if (ele2 == Short.MIN_VALUE) ele2 = ele1
+            if (ele1 != Short.MIN_VALUE) {
                 delta_h = (ele2 - ele1) / 4.0
                 if (rc.inverseDirection) {
                     delta_h = -delta_h
@@ -332,7 +332,7 @@ abstract class OsmPath : OsmLinkHolder {
             }
 
 
-            val elevation = if (ele2 == Short.Companion.MIN_VALUE) 100.0 else ele2 / 4.0
+            val elevation = if (ele2 == Short.MIN_VALUE) 100.0 else ele2 / 4.0
 
             var sectionCost = processWaySection(
                 rc,
@@ -373,7 +373,7 @@ abstract class OsmPath : OsmLinkHolder {
 
             if (stopAtEndpoint) {
                 if (recordTransferNodes) {
-                    originElement = OsmPathElement.Companion.create(
+                    originElement = OsmPathElement.create(
                         rc.ilonshortest,
                         rc.ilatshortest,
                         originEle2,
@@ -408,7 +408,7 @@ abstract class OsmPath : OsmLinkHolder {
 
             if (recordTransferNodes) {
                 originElement =
-                    OsmPathElement.Companion.create(lon2, lat2, originEle2, originElement)
+                    OsmPathElement.create(lon2, lat2, originEle2, originElement)
                 originElement!!.cost = cost
             }
             lon0 = lon1
@@ -438,8 +438,8 @@ abstract class OsmPath : OsmLinkHolder {
 
 
     fun interpolateEle(e1: Short, e2: Short, fraction: Double): Short {
-        if (e1 == Short.Companion.MIN_VALUE || e2 == Short.Companion.MIN_VALUE) {
-            return Short.Companion.MIN_VALUE
+        if (e1 == Short.MIN_VALUE || e2 == Short.MIN_VALUE) {
+            return Short.MIN_VALUE
         }
         return (e1 * (1.0 - fraction) + e2 * fraction).toInt().toShort()
     }

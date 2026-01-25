@@ -212,7 +212,7 @@ class OsmTrack {
         i = 0
         while (i < t.nodes.size) {
             val e = t.nodes[i]
-            if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.Companion.MIN_VALUE) nodes[ourSize - 1].sElev =
+            if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.MIN_VALUE) nodes[ourSize - 1].sElev =
                 e.sElev
             if (i > 0 || ourSize == 0) {
                 e.time = e.time + t0
@@ -343,7 +343,7 @@ class OsmTrack {
                     input.goodWay = node.message
                     input.oldWay = node.message
                     input.indexInTrack = nodes.size - 1
-                    input.command = VoiceHint.Companion.END
+                    input.command = VoiceHint.END
                 }
                 val input = VoiceHint()
                 inputs.add(input)
@@ -357,7 +357,7 @@ class OsmTrack {
                 if (rc.global.turnInstructionMode == 8 || rc.global.turnInstructionMode == 4 || rc.global.turnInstructionMode == 2 || rc.global.turnInstructionMode == 9) {
                     val mwpt = getMatchedWaypoint(nodeNr)
                     if (mwpt != null && mwpt.type == MatchedWaypoint.Type.DIRECT) {
-                        input.command = VoiceHint.Companion.BL
+                        input.command = VoiceHint.BL
                         input.angle =
                             (if (nodeNr == 0) origin.message!!.turnangle else node.message!!.turnangle)
                         input.distanceToNext = node.calcDistance(origin).toDouble()
@@ -403,9 +403,9 @@ class OsmTrack {
         get() {
             if (voiceHints.isNotEmpty()) {
                 return when (voiceHints.transportMode) {
-                    VoiceHintList.Companion.TRANS_MODE_CAR -> 20
-                    VoiceHintList.Companion.TRANS_MODE_FOOT -> 3
-                    VoiceHintList.Companion.TRANS_MODE_BIKE -> 5
+                    VoiceHintList.TRANS_MODE_CAR -> 20
+                    VoiceHintList.TRANS_MODE_FOOT -> 3
+                    VoiceHintList.TRANS_MODE_BIKE -> 5
                     else -> 5
                 }
             }
@@ -473,7 +473,7 @@ class OsmTrack {
                             var last_pe: OsmPathElement? = null
                             for (i in 0..<n) {
                                 val pe: OsmPathElement =
-                                    OsmPathElement.Companion.readFromStream(dis)
+                                    OsmPathElement.readFromStream(dis)
                                 pe.origin = last_pe
                                 last_pe = pe
                                 t.nodes.add(pe)

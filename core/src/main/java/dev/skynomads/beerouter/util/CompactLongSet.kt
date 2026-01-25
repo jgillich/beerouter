@@ -47,7 +47,7 @@ open class CompactLongSet {
     }
 
     private fun _add(id: Long) {
-        require(size != Int.Companion.MAX_VALUE) { "cannot grow beyond size Integer.MAX_VALUE" }
+        require(size != Int.MAX_VALUE) { "cannot grow beyond size Integer.MAX_VALUE" }
 
         // put the new entry in the first array
         al!![0]!![0] = id

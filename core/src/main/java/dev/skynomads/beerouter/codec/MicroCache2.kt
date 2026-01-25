@@ -59,7 +59,7 @@ class MicroCache2 : MicroCache {
         val alon = if (size > dataBuffers.alon.size) IntArray(size) else dataBuffers.alon
         val alat = if (size > dataBuffers.alat.size) IntArray(size) else dataBuffers.alat
 
-//        if (MicroCache.Companion.debug) println("*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx)
+        //        if (MicroCache.debug) println("*** decoding cache of size=" + size + " for lonIdx=" + lonIdx + " latIdx=" + latIdx)
 
         bc.decodeSortedArray(faid, 0, size, 29, 0)
 
@@ -126,7 +126,7 @@ class MicroCache2 : MicroCache {
             writeVarBytes(nodeTags?.data)
 
             val links = bc.decodeNoisyNumber(1)
-//            if (MicroCache.Companion.debug) println("***   decoding node " + ilon + "/" + ilat + " with links=" + links)
+            //            if (MicroCache.debug) println("***   decoding node " + ilon + "/" + ilat + " with links=" + links)
             for (li in 0..<links) {
                 var sizeoffset = 0
                 val nodeIdx = n + nodeIdxDiff.decodeSignedValue()
@@ -143,7 +143,7 @@ class MicroCache2 : MicroCache {
                     dlon_remaining = extLonDiff.decodeSignedValue()
                     dlat_remaining = extLatDiff.decodeSignedValue()
                 }
-//                if (MicroCache.Companion.debug) println("***     decoding link to " + (ilon + dlon_remaining) + "/" + (ilat + dlat_remaining) + " extern=" + (nodeIdx == n))
+                //                if (MicroCache.debug) println("***     decoding link to " + (ilon + dlon_remaining) + "/" + (ilat + dlat_remaining) + " extern=" + (nodeIdx == n))
 
                 val wayTags = wayTagCoder.decodeTagValueSet()
 
@@ -178,7 +178,7 @@ class MicroCache2 : MicroCache {
                     }
 
                     val transcount = bc.decodeVarBits()
-//                    if (MicroCache.Companion.debug) println("***       decoding geometry with count=" + transcount)
+                    //                    if (MicroCache.debug) println("***       decoding geometry with count=" + transcount)
                     var count = transcount + 1
                     for (i in 0..<transcount) {
                         val dlon = bc.decodePredictedValue(dlon_remaining / count)
@@ -235,11 +235,11 @@ class MicroCache2 : MicroCache {
             if ((validBits[n shr 5] and (1 shl n)) != 0) {
                 val len = endpos - startpos
                 System.arraycopy(abOld, startpos, ab, aboffset, len)
-//                if (MicroCache.Companion.debug) println("*** copied " + len + " bytes from " + aboffset + " for node " + n)
+                //                if (MicroCache.debug) println("*** copied " + len + " bytes from " + aboffset + " for node " + n)
                 aboffset += len
 
                 val cnt = reverseLinks.initList(n)
-//                if (MicroCache.Companion.debug) println("*** appending " + cnt + " reverse links for node " + n)
+                //                if (MicroCache.debug) println("*** appending " + cnt + " reverse links for node " + n)
 
                 for (ri in 0..<cnt) {
                     val nodeIdx = reverseLinks.dataElement
@@ -322,7 +322,7 @@ class MicroCache2 : MicroCache {
         while (true) {
             // 3 passes: counters, stat-collection, encoding
             val dostats = pass == 3
-            val dodebug = false // MicroCache.Companion.debug && pass == 3
+            val dodebug = false // MicroCache.debug && pass == 3
 
             if (pass < 3) netdatasize = fapos[size - 1]
 

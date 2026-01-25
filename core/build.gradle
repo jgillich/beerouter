@@ -23,8 +23,8 @@ dependencies {
     implementation "org.maplibre.spatialk:geojson:0.4.0"
     implementation "org.maplibre.spatialk:turf:0.4.0"
 
-    testImplementation "com.github.abrensch.brouter:brouter-core:d1e9830e49"
-    testImplementation "com.github.abrensch.brouter:brouter-mapaccess:d1e9830e49"
+    testImplementation "com.github.abrensch.brouter:brouter-core:c09ddffad9"
+    testImplementation "com.github.abrensch.brouter:brouter-mapaccess:c09ddffad9"
     testImplementation "com.github.pieterclaerhout:kotlin-yellowduck-gpx:34fb8865e5"
     testImplementation 'ch.qos.logback:logback-classic:1.5.18'
     testImplementation 'junit:junit:4.13.2'

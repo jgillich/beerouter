@@ -241,7 +241,7 @@ abstract class BExpressionContext protected constructor(
     fun getLookupValue(key: Int): Float {
         var res: Float
         val `val` = lookupData[key]
-        if (`val` == 0) return Float.Companion.NaN
+        if (`val` == 0) return Float.NaN
         res = (`val` - 1000) / 100f
         return res
     }
@@ -250,7 +250,7 @@ abstract class BExpressionContext protected constructor(
         var res: Float
         decode(lookupData, inverseDirection, ab)
         val `val` = lookupData[key]
-        if (`val` == 0) return Float.Companion.NaN
+        if (`val` == 0) return Float.NaN
         res = (`val` - 1000) / 100f
         return res
     }
@@ -841,7 +841,7 @@ abstract class BExpressionContext protected constructor(
             for (key in keyValues.keys) {
                 val value = keyValues[key]
                 result.add(
-                    BExpression.Companion.createAssignExpressionFromKeyValue(
+                    BExpression.createAssignExpressionFromKeyValue(
                         this,
                         key,
                         value!!
@@ -851,7 +851,7 @@ abstract class BExpressionContext protected constructor(
         }
 
         while (true) {
-            val exp: BExpression? = BExpression.Companion.parse(this, 0)
+            val exp: BExpression? = BExpression.parse(this, 0)
             if (exp == null) break
             result.add(exp)
         }

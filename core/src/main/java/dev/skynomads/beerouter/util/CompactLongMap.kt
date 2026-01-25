@@ -59,7 +59,7 @@ open class CompactLongMap<V> {
         vla = arrayOfNulls<Array<Any?>>(MAXLISTS)
         vla!![0] = arrayOfNulls<Any>(1)
 
-//        earlyDuplicateCheck = Boolean.getBoolean("earlyDuplicateCheck")
+        //        earlyDuplicateCheck = Boolean.getBoolean("earlyDuplicateCheck")
     }
 
 
@@ -123,7 +123,7 @@ open class CompactLongMap<V> {
 
 
     private fun _add(id: Long): Boolean {
-        require(size != Int.Companion.MAX_VALUE) { "cannot grow beyond size Integer.MAX_VALUE" }
+        require(size != Int.MAX_VALUE) { "cannot grow beyond size Integer.MAX_VALUE" }
 
         // put the new entry in the first array
         al!![0]!![0] = id

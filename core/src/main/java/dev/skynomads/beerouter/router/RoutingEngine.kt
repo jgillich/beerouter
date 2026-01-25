@@ -145,7 +145,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         guideTrack = OsmTrack()
         guideTrack!!.addNode(
-            OsmPathElement.Companion.create(
+            OsmPathElement.create(
                 wpt1.node2!!.iLon,
                 wpt1.node2!!.iLat,
                 0.toShort(),
@@ -153,7 +153,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             )
         )
         guideTrack!!.addNode(
-            OsmPathElement.Companion.create(
+            OsmPathElement.create(
                 wpt1.node1!!.iLon,
                 wpt1.node1!!.iLat,
                 0.toShort(),
@@ -292,11 +292,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             routingContext.way.getVariableValue("consider_forest", 0f) == 1f
         val consider_river = routingContext.way.getVariableValue("consider_river", 0f) == 1f
         preferredRandomType = if (consider_elevation) {
-            AreaInfo.Companion.RESULT_TYPE_ELEV50
+            AreaInfo.RESULT_TYPE_ELEV50
         } else if (consider_forest) {
-            AreaInfo.Companion.RESULT_TYPE_GREEN
+            AreaInfo.RESULT_TYPE_GREEN
         } else if (consider_river) {
-            AreaInfo.Companion.RESULT_TYPE_RIVER
+            AreaInfo.RESULT_TYPE_RIVER
         } else {
             return (Math.random() * 360).toInt()
         }
@@ -354,10 +354,10 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             val elev =
                 (start1?.elev ?: 0.0) // listOne.get(0).crosspoint.getElev();
 
-            var maxlon = Int.Companion.MIN_VALUE
-            var minlon = Int.Companion.MAX_VALUE
-            var maxlat = Int.Companion.MIN_VALUE
-            var minlat = Int.Companion.MAX_VALUE
+            var maxlon = Int.MIN_VALUE
+            var minlon = Int.MAX_VALUE
+            var maxlat = Int.MIN_VALUE
+            var minlat = Int.MAX_VALUE
             for (on in listOne) {
                 maxlon = max(on.iLon, maxlon)
                 minlon = min(on.iLon, minlon)
@@ -417,15 +417,15 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         //  System.out.println("\n" + ai.toString());
         //}
         when (preferredRandomType) {
-            AreaInfo.Companion.RESULT_TYPE_ELEV50 -> Collections.sort(
+            AreaInfo.RESULT_TYPE_ELEV50 -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.elev50Weight - o1.elev50Weight })
 
-            AreaInfo.Companion.RESULT_TYPE_GREEN -> Collections.sort(
+            AreaInfo.RESULT_TYPE_GREEN -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.green - o1.green })
 
-            AreaInfo.Companion.RESULT_TYPE_RIVER -> Collections.sort(
+            AreaInfo.RESULT_TYPE_RIVER -> Collections.sort(
                 ais,
                 Comparator<AreaInfo> { o1, o2 -> o2.river - o1.river })
 
@@ -440,27 +440,27 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     private fun postElevationCheck(track: OsmTrack) {
         var lastPt: OsmPathElement? = null
         var startPt: OsmPathElement? = null
-        var lastElev = Short.Companion.MIN_VALUE
-        var startElev = Short.Companion.MIN_VALUE
-        var endElev = Short.Companion.MIN_VALUE
+        var lastElev = Short.MIN_VALUE
+        var startElev = Short.MIN_VALUE
+        var endElev = Short.MIN_VALUE
         var startIdx = 0
         var endIdx: Int
         var dist = 0
         val ourSize = track.nodes.size
         for (idx in 0..<ourSize) {
             val n = track.nodes[idx]
-            if (n.sElev == Short.Companion.MIN_VALUE && lastElev != Short.Companion.MIN_VALUE && idx < ourSize - 1) {
+            if (n.sElev == Short.MIN_VALUE && lastElev != Short.MIN_VALUE && idx < ourSize - 1) {
                 // start one point before entry point to get better elevation results
                 if (idx > 1) startElev = track.nodes[idx - 2].sElev
-                if (startElev == Short.Companion.MIN_VALUE) startElev = lastElev
+                if (startElev == Short.MIN_VALUE) startElev = lastElev
                 startIdx = idx
                 startPt = lastPt
                 dist = 0
                 if (lastPt != null) dist += n.calcDistance(lastPt)
-            } else if (n.sElev != Short.Companion.MIN_VALUE && lastElev == Short.Companion.MIN_VALUE && startElev != Short.Companion.MIN_VALUE) {
+            } else if (n.sElev != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startElev != Short.MIN_VALUE) {
                 // end one point behind exit point to get better elevation results
                 if (idx + 1 < track.nodes.size) endElev = track.nodes[idx + 1].sElev
-                if (endElev == Short.Companion.MIN_VALUE) endElev = n.sElev
+                if (endElev == Short.MIN_VALUE) endElev = n.sElev
                 endIdx = idx
                 var tmpPt = track.nodes[if (startIdx > 1) startIdx - 2 else startIdx - 1]
                 val diffElev = endElev - startElev
@@ -512,18 +512,18 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                     tmpPt = tmp
                 }
                 dist = 0
-            } else if (n.sElev != Short.Companion.MIN_VALUE && lastElev == Short.Companion.MIN_VALUE && startIdx == 0) {
+            } else if (n.sElev != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startIdx == 0) {
                 // fill at start
                 for (i in 0..<idx) {
                     track.nodes[i].sElev = n.sElev
                 }
-            } else if (n.sElev == Short.Companion.MIN_VALUE && idx == track.nodes.size - 1) {
+            } else if (n.sElev == Short.MIN_VALUE && idx == track.nodes.size - 1) {
                 // fill at end
                 startIdx = idx
                 for (i in startIdx..<track.nodes.size) {
                     track.nodes[i].sElev = (lastElev)
                 }
-            } else if (n.sElev == Short.Companion.MIN_VALUE) {
+            } else if (n.sElev == Short.MIN_VALUE) {
                 if (lastPt != null) dist += n.calcDistance(lastPt)
             }
             lastElev = n.sElev
@@ -610,7 +610,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var nearbyTrack: OsmTrack? = null
         if (!hasDirectRouting && lastTracks[waypoints.size - 2] == null) {
             val debugInfo = if (logger.isInfoEnabled) StringBuilder() else null
-            nearbyTrack = OsmTrack.Companion.readBinary(
+            nearbyTrack = OsmTrack.readBinary(
                 routingContext.rawTrackPath,
                 waypoints[waypoints.size - 1],
                 routingContext.nogoChecksums,
@@ -690,7 +690,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         routingContext.global.hasDirectRouting = hasDirectRouting
 
-        OsmPath.Companion.seg = 1 // set segment counter
+        OsmPath.seg = 1 // set segment counter
         for (i in 0..<matchedWaypoints.size - 1) {
             if (lastTracks[i] != null) {
                 if (refTracks[i] == null) refTracks[i] = OsmTrack()
@@ -1187,8 +1187,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var ehb = 0.0
         val ourSize = t.nodes.size
 
-        var ele_start = Short.Companion.MIN_VALUE
-        var ele_end = Short.Companion.MIN_VALUE
+        var ele_start = Short.MIN_VALUE
+        var ele_end = Short.MIN_VALUE
         val eleFactor = if (routingContext.global.inverseRouting) 0.25 else -0.25
 
         for (i in 0..<ourSize) {
@@ -1236,12 +1236,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             lasttime = n.time
 
             val ele = n.sElev
-            if (ele != Short.Companion.MIN_VALUE) ele_end = ele
-            if (ele_start == Short.Companion.MIN_VALUE) ele_start = ele
+            if (ele != Short.MIN_VALUE) ele_end = ele
+            if (ele_start == Short.MIN_VALUE) ele_start = ele
 
             if (nLast != null) {
                 val ele_last = nLast.sElev
-                if (ele_last != Short.Companion.MIN_VALUE) {
+                if (ele_last != Short.MIN_VALUE) {
                     ehb = ehb + (ele_last - ele) * eleFactor
                 }
                 val filter = elevationFilter(n)
@@ -1269,7 +1269,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             if (key > 0) {
                 val GRAVITY = 9.81 // in meters per second^(-2)
                 val incline =
-                    (if (t.nodes[key - 1].sElev == Short.Companion.MIN_VALUE || t.nodes[key].sElev == Short.Companion.MIN_VALUE) 0.0 else (t.nodes[key - 1].elev - t.nodes[key].elev) / value)
+                    (if (t.nodes[key - 1].sElev == Short.MIN_VALUE || t.nodes[key].sElev == Short.MIN_VALUE) 0.0 else (t.nodes[key - 1].elev - t.nodes[key].elev) / value)
                 val f_roll =
                     routingContext.global.totalMass * GRAVITY * (routingContext.global.defaultC_r + incline)
                 val spd = speed_min / 3.6
@@ -1851,7 +1851,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                                     + path.elevationCorrection()
                                     + (costCuttingTrack.cost - pe.cost))
                             if (costEstimate <= maxTotalCost) {
-                                matchPath = OsmPathElement.Companion.create(path)
+                                matchPath = OsmPathElement.create(path)
                             }
                             if (costEstimate < maxTotalCost) {
                                 logger.info("maxcost $maxTotalCost -> $costEstimate")
@@ -1951,7 +1951,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                                 if (detour.cost >= 0.0 && nextId != startNodeId1 && nextId != startNodeId2) {
                                     guideTrack!!.registerDetourForId(
                                         currentNode.idFromPos,
-                                        OsmPathElement.Companion.create(detour)
+                                        OsmPathElement.create(detour)
                                     )
                                 }
                             }
@@ -2041,7 +2041,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     }
 
     private fun compileTrack(path: OsmPath, verbose: Boolean): OsmTrack {
-        var element: OsmPathElement? = OsmPathElement.Companion.create(path)
+        var element: OsmPathElement? = OsmPathElement.create(path)
 
         // for final track, cut endnode
         if (guideTrack != null && element!!.origin != null) {

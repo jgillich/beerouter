@@ -333,7 +333,7 @@ public class VoiceHint {
         //{
         //cmdAngle = goodWay.turnangle;
         //}
-        if (angle == Float.Companion.MAX_VALUE) {
+        if (angle == Float.MAX_VALUE) {
             cmdAngle = goodWay!!.turnangle
         }
         if (this.command == BL) return
@@ -442,6 +442,18 @@ public class VoiceHint {
     private fun appendTurnGeometry(sb: StringBuilder, msg: MessageData) {
         sb.append("(").append((msg.turnangle + 0.5).toInt()).append(")")
             .append((msg.priorityclassifier))
+    }
+
+    fun hasGiveWay(): Boolean {
+        val tags = oldWay?.wayTags
+        if (tags != null) {
+            return if (tags["reversedirection"] == "yes") {
+                (tags["highway"] == "give_way" || tags["highway"] == "stop") && tags["direction"] == "backward"
+            } else {
+                (tags["highway"] == "give_way" || tags["highway"] == "stop") && tags["direction"] != "backward"
+            }
+        }
+        return false
     }
 
     companion object {

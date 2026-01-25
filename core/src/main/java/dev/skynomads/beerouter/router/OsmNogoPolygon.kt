@@ -49,9 +49,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         var cxmax: Int
         var cymin: Int
         var cymax: Int
-        cymin = Int.Companion.MAX_VALUE
+        cymin = Int.MAX_VALUE
         cxmin = cymin
-        cymax = Int.Companion.MIN_VALUE
+        cymax = Int.MIN_VALUE
         cxmax = cymax
 
         // first calculate a starting center point as center of boundingbox

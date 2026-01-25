@@ -53,7 +53,7 @@ object Rd5DiffValidator {
             val fcmp = File(oldDir, name + "_tmp")
 
             // merge old file and diff
-            Rd5DiffTool.Companion.recoverFromDelta(fo, diffFile, fcmp, Rd5DiffTool())
+            Rd5DiffTool.recoverFromDelta(fo, diffFile, fcmp, Rd5DiffTool())
             val md5Cmp = Rd5DiffManager.getMD5(fcmp)
 
             if (md5Cmp != md5New) {

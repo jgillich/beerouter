@@ -99,7 +99,7 @@ open class OsmNodeNamed : OsmNode {
             val idx3 = s.indexOf(',', idx2 + 1)
             if (idx3 == -1) {
                 n.name = s.substring(idx2 + 1)
-                n.nogoWeight = Double.Companion.NaN
+                n.nogoWeight = Double.NaN
             } else {
                 n.name = s.substring(idx2 + 1, idx3)
                 n.nogoWeight = s.substring(idx3 + 1).toDouble()
