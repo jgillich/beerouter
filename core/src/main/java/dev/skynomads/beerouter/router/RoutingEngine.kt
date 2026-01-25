@@ -823,9 +823,16 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         val bMeetingIsOnRoundabout = ptMeeting.message!!.isRoundabout
         var bMeetsRoundaboutStart = false
+        var wayDistance = 0
+
         var i = 0
+        var last_n: OsmPathElement? = null
+
         while (i < indexEnd) {
             val n = t.nodes[i]
+            if (last_n != null) wayDistance += n.calcDistance(last_n);
+            last_n = n;
+
             if (n.positionEquals(ptStart)) {
                 indexStartFore = i
                 bMeetsRoundaboutStart = true
@@ -835,6 +842,13 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             }
 
             i++
+        }
+
+
+        if (routingContext.global.correctMisplacedViaPointsDistance > 0 &&
+            wayDistance > routingContext.global.correctMisplacedViaPointsDistance
+        ) {
+            return 0;
         }
 
         if (!bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
@@ -857,22 +871,23 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         while (i < tt.nodes.size) {
             val n = tt.nodes[i]
             val detours = tt.getFromDetourMap(n.idFromPos)
-            var h = detours
-            while (h != null) {
-                h = h.nextHolder
+            if (detours != null) {
+                var h = detours
+                while (h != null) {
+                    h = h.nextHolder
+                }
             }
             removeList.add(n)
             i++
         }
 
         var ttend: OsmPathElement? = null
-        var ttend_next: OsmPathElement? = null
         if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
             ttend = tt.nodes[indexStartBack]
-            ttend_next = tt.nodes[indexStartBack + 1]
-            tt.getFromDetourMap(ttend.idFromPos)
-
-            tt.registerDetourForId(ttend.idFromPos, null)
+            val ttend_detours = tt.getFromDetourMap(ttend.idFromPos)
+            if (ttend_detours != null) {
+                tt.registerDetourForId(ttend.idFromPos, null);
+            }
         }
 
         for (e in removeList) {
@@ -888,9 +903,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart && n.message!!.isRoundabout) break
 
             val detours = t.getFromDetourMap(n.idFromPos)
-            var h = detours
-            while (h != null) {
-                h = h.nextHolder
+            if (detours != null) {
+                var h = detours
+                while (h != null) {
+                    h = h.nextHolder
+                }
             }
             removeList.add(n)
             i++
@@ -920,34 +937,46 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         }
 
         if (!bMeetingIsOnRoundabout && !bMeetsRoundaboutStart) {
-            val tstart = t.nodes[0]
-            t.getFromDetourMap(tstart.idFromPos)
             val ttend_detours = tt.getFromDetourMap(ttend!!.idFromPos)
 
-            val mid = getExtraSegment(ttend, ttend_detours!!.node!!)
+            var mid: OsmTrack? = null
+            if (ttend_detours != null && ttend_detours.node != null) {
+                mid = getExtraSegment(ttend, ttend_detours.node!!)
+            }
+
             val tt_end = tt.nodes[tt.nodes.size - 1]
 
             val last_cost = tt_end.cost
+            val last_time: Float = tt_end.time
+            val last_energy: Float = tt_end.energy
             var tmp_cost = 0
+            var tmp_time = 0f
+            var tmp_energy = 0f
 
             if (mid != null) {
                 var start = false
                 for (e in mid.nodes) {
                     if (start) {
-                        if (e.positionEquals(ttend_detours.node!!)) {
+                        if (e.positionEquals(ttend_detours!!.node!!)) {
                             tmp_cost = e.cost
+                            tmp_time = e.time
+                            tmp_energy = e.energy
                             break
                         }
-                        e.cost = last_cost + e.cost
+                        e.cost += last_cost
+                        e.time += last_time
+                        e.energy += last_energy
                         tt.nodes.add(e)
                     }
                     if (e.positionEquals(tt_end)) start = true
                 }
-            }
 
-            ttend_detours.node!!.cost = last_cost + tmp_cost
-            tt.nodes.add(ttend_detours.node!!)
-            t.nodes.add(0, ttend_detours.node!!)
+                ttend_detours!!.node!!.cost = last_cost + tmp_cost
+                ttend_detours.node!!.time = last_time + tmp_time
+                ttend_detours.node!!.energy = last_energy + tmp_energy
+                tt.nodes.add(ttend_detours.node!!);
+                t.nodes.add(0, ttend_detours.node!!);
+            }
         }
 
         tt.cost = tt.nodes[tt.nodes.size - 1].cost

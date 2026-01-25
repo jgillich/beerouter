@@ -230,12 +230,9 @@ public class RoutingContext(
 
     var inverseDirection: Boolean = false
 
-
     var exportWaypoints: Boolean = false
-    var exportCorrectedWaypoints: Boolean = false
 
     var firstPrePath: OsmPrePath? = null
-
 
     /**
      * restore the full nogolist previously saved by cleanNogoList
