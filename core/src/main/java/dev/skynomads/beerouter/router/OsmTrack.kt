@@ -5,11 +5,10 @@
  */
 package dev.skynomads.beerouter.router
 
+import androidx.collection.MutableLongObjectMap
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint.Companion.readFromStream
 import dev.skynomads.beerouter.mapaccess.OsmPos
-import dev.skynomads.beerouter.util.CompactLongMap
-import dev.skynomads.beerouter.util.FrozenLongMap
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -41,9 +40,9 @@ class OsmTrack {
 
     var nodes: MutableList<OsmPathElement> = ArrayList()
 
-    private var nodesMap: CompactLongMap<OsmPathElementHolder?>? = null
+    private var nodesMap: MutableLongObjectMap<OsmPathElementHolder> = MutableLongObjectMap()
 
-    private var detourMap: CompactLongMap<OsmPathElementHolder?>? = null
+    private var detourMap: MutableLongObjectMap<OsmPathElementHolder> = MutableLongObjectMap()
 
     var voiceHints: VoiceHintList = VoiceHintList()
 
@@ -58,101 +57,50 @@ class OsmTrack {
     }
 
     fun registerDetourForId(id: Long, detour: OsmPathElement?) {
-        if (detourMap == null) {
-            detourMap = CompactLongMap()
-        }
         val nh = OsmPathElementHolder()
         nh.node = detour
-        var h = detourMap!!.get(id)
+        var h = detourMap[id]
         if (h != null) {
             while (h!!.nextHolder != null) {
                 h = h.nextHolder
             }
             h.nextHolder = nh
         } else {
-            detourMap!!.fastPut(id, nh)
+            detourMap.put(id, nh)
         }
     }
 
-    fun copyDetours(source: OsmTrack) {
-        detourMap =
-            if (source.detourMap == null) null else FrozenLongMap<OsmPathElementHolder?>(source.detourMap!!)
+    fun replaceDetours(source: OsmTrack) {
+        val newMap = MutableLongObjectMap<OsmPathElementHolder>()
+        source.detourMap.forEach { key, value ->
+            newMap[key] = value
+        }
+        detourMap = newMap
     }
 
     fun addDetours(source: OsmTrack) {
-        if (detourMap != null) {
-            val tmpDetourMap = CompactLongMap<OsmPathElementHolder?>()
-
-            val oldlist: MutableList<*> = (detourMap as FrozenLongMap<*>).valueList
-            val oldidlist = (detourMap as FrozenLongMap<*>).keyArray
-            for (i in oldidlist.indices) {
-                val id = oldidlist[i]
-                val v = detourMap!!.get(id)
-
-                tmpDetourMap.put(id, v)
-            }
-
-            if (source.detourMap != null) {
-                val idlist = (source.detourMap as FrozenLongMap<*>).keyArray
-                for (i in idlist.indices) {
-                    val id = idlist[i]
-                    val v = source.detourMap!!.get(id)
-                    if (!tmpDetourMap.contains(id) && source.nodesMap!!.contains(id)) {
-                        tmpDetourMap.put(id, v)
-                    }
-                }
-            }
-            detourMap = FrozenLongMap<OsmPathElementHolder?>(tmpDetourMap)
+        source.detourMap.forEach { id, value ->
+            detourMap.put(id, value)
         }
     }
 
     var lastorigin: OsmPathElement? = null
 
-    fun appendDetours(source: OsmTrack) {
-        if (detourMap == null) {
-            detourMap =
-                if (source.detourMap == null) null else CompactLongMap()
-        }
-        if (source.detourMap != null) {
-            val pos = nodes.size - source.nodes.size + 1
-            var origin: OsmPathElement? = null
-            if (pos > 0) origin = nodes[pos]
-            for (node in source.nodes) {
-                val id = node.idFromPos
-                val nh = OsmPathElementHolder()
-                if (node.origin == null && lastorigin != null) node.origin = lastorigin
-                nh.node = node
-                lastorigin = node
-                var h = detourMap!!.get(id)
-                if (h != null) {
-                    while (h!!.nextHolder != null) {
-                        h = h.nextHolder
-                    }
-                    h.nextHolder = nh
-                } else {
-                    detourMap!!.fastPut(id, nh)
-                }
-            }
-        }
-    }
-
     fun buildMap() {
-        nodesMap = CompactLongMap()
         for (node in nodes) {
             val id = node.idFromPos
             val nh = OsmPathElementHolder()
             nh.node = node
-            var h = nodesMap!!.get(id)
+            var h = nodesMap[id]
             if (h != null) {
                 while (h!!.nextHolder != null) {
                     h = h.nextHolder
                 }
                 h.nextHolder = nh
             } else {
-                nodesMap!!.fastPut(id, nh)
+                nodesMap.put(id, nh)
             }
         }
-        nodesMap = FrozenLongMap<OsmPathElementHolder?>(nodesMap!!)
     }
 
     /**

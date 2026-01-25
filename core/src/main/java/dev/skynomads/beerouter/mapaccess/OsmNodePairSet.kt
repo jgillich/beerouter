@@ -5,7 +5,8 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
-import dev.skynomads.beerouter.util.CompactLongMap
+import androidx.collection.MutableLongObjectMap
+
 
 class OsmNodePairSet(maxTempNodeCount: Int) {
     private val n1a: LongArray
@@ -22,7 +23,7 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         var next: OsmNodePair? = null
     }
 
-    private var map: CompactLongMap<OsmNodePair?>? = null
+    private var map: MutableLongObjectMap<OsmNodePair> = MutableLongObjectMap()
 
     init {
         this.maxTmpNodes = maxTempNodeCount
@@ -51,9 +52,6 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
     }
 
     private fun addPair(n1: Long, n2: Long) {
-        if (map == null) {
-            map = CompactLongMap()
-        }
         npairs++
 
         var e = getElement(n1, n2)
@@ -61,14 +59,14 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
             e = OsmNodePair()
             e.node2 = n2
 
-            var e0 = map!!.get(n1)
+            var e0 = map[n1]
             if (e0 != null) {
                 while (e0!!.next != null) {
                     e0 = e0.next
                 }
                 e0.next = e
             } else {
-                map!!.fastPut(n1, e)
+                map.put(n1, e)
             }
         }
     }
@@ -77,16 +75,12 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         return npairs
     }
 
-    fun tempSize(): Int {
-        return tempNodes
-    }
-
     fun hasPair(n1: Long, n2: Long): Boolean {
-        return map != null && (getElement(n1, n2) != null || getElement(n2, n1) != null)
+        return getElement(n1, n2) != null || getElement(n2, n1) != null
     }
 
     private fun getElement(n1: Long, n2: Long): OsmNodePair? {
-        var e = map!!.get(n1)
+        var e = map[n1]
         while (e != null) {
             if (e.node2 == n2) {
                 return e

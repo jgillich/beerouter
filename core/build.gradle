@@ -25,6 +25,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2"
     implementation "org.maplibre.spatialk:geojson:0.4.0"
     implementation "org.maplibre.spatialk:turf:0.4.0"
+    implementation 'org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.15'
     implementation "androidx.collection:collection:1.5.0"
 
     testImplementation "com.github.abrensch.brouter:brouter-core:c09ddffad9"
@@ -63,3 +64,15 @@ publishing {
     }
 }
 
+
+rewrite {
+    activeRecipe("org.openrewrite.kotlin.cleanup.EqualsMethodUsage")
+    activeRecipe("org.openrewrite.kotlin.cleanup.ImplicitParameterInLambda")
+    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveLambdaArgumentParentheses")
+    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveTrailingComma")
+    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveTrailingSemicolon")
+    activeRecipe("org.openrewrite.kotlin.cleanup.ReplaceCharToIntWithCode")
+    activeRecipe("org.openrewrite.kotlin.cleanup.UnnecessaryTypeParentheses")
+    activeRecipe("org.openrewrite.kotlin.OrderImports")
+    setExportDatatables(true)
+}

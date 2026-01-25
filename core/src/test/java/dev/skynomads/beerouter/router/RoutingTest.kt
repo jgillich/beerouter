@@ -1,6 +1,5 @@
 package dev.skynomads.beerouter.router
 
-import be.yellowduck.gpx.GPX
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
@@ -147,7 +146,7 @@ class RoutingTest {
         }
 
         val engine = RoutingEngine(
-            ctx,
+            ctx
         )
 
         return engine.doRouting(waypoints)

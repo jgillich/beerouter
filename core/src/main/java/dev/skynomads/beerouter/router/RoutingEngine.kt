@@ -1,5 +1,6 @@
 package dev.skynomads.beerouter.router
 
+import androidx.collection.MutableLongObjectMap
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.NodesCache
 import dev.skynomads.beerouter.mapaccess.OsmLink
@@ -10,7 +11,6 @@ import dev.skynomads.beerouter.router.OsmTrack.OsmPathElementHolder
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDifferenceFromDirection
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDirection
 import dev.skynomads.beerouter.util.CheapRuler.destination
-import dev.skynomads.beerouter.util.CompactLongMap
 import dev.skynomads.beerouter.util.SortedHeap
 import dev.skynomads.beerouter.util.StackSampler
 import kotlinx.coroutines.ensureActive
@@ -1013,7 +1013,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             val removeForeList: MutableList<OsmPathElement?> = ArrayList()
             val removeVoiceHintList: MutableList<Int> = ArrayList()
             var last: OsmPathElement? = null
-            val lastJunctions = CompactLongMap<OsmPathElementHolder?>()
+            val lastJunctions = MutableLongObjectMap<OsmPathElementHolder>()
             var newJunction: OsmPathElement?
             var newTarget: OsmPathElement? = null
             var tmpback: OsmPathElement?
@@ -2116,7 +2116,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         // for final track..
         if (guideTrack != null) {
-            track.copyDetours(guideTrack!!)
+            track.replaceDetours(guideTrack!!)
         }
         return track
     }
