@@ -40,7 +40,6 @@ open class RoutingBenchmark {
         )
     )
 
-
     @Setup
     fun prepare() {
         if (!segmentFile.exists()) {

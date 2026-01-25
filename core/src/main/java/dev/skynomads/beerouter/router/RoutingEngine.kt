@@ -12,7 +12,6 @@ import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDifferenceFromD
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDirection
 import dev.skynomads.beerouter.util.CheapRuler.destination
 import dev.skynomads.beerouter.util.SortedHeap
-import dev.skynomads.beerouter.util.StackSampler
 import kotlinx.coroutines.ensureActive
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -48,7 +47,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
     private val MAX_DYNAMIC_RANGE = 60000
 
-    private var stackSampler: StackSampler? = null
     private var airDistanceCostFactor: Double = 0.0
     private var lastAirDistanceCostFactor: Double = 0.0
 
@@ -116,14 +114,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 nodesCache = null
             }
             openSet.clear()
-
-            if (stackSampler != null) {
-                try {
-                    stackSampler!!.close()
-                } catch (_: Exception) {
-                }
-                stackSampler = null
-            }
         }
     }
 
