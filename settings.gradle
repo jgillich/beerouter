@@ -1,6 +1,6 @@
 pluginManagement {
     plugins {
-        id 'org.jetbrains.kotlin.jvm' version '2.2.0'
+        id 'org.jetbrains.kotlin.jvm' version '2.3.0'
     }
 }
 plugins {
@@ -8,4 +8,4 @@ plugins {
 }
 rootProject.name = 'beerouter'
 
-include ':core'
+include ':core', ':benchmark'
