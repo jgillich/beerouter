@@ -1700,7 +1700,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         if (costCuttingTrack != null) {
             val pe1 = costCuttingTrack.getLink(startNodeId1, startNodeId2)
             if (pe1 != null) {
-                logger.info("initialMatch pe1.cost={}", pe1.cost)
+                logger.debug("initialMatch pe1.cost={}", pe1.cost)
                 var c = startPath1!!.cost - pe1.cost
                 if (c < 0) c = 0
                 if (c < firstMatchCost) firstMatchCost = c
@@ -1708,16 +1708,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
             val pe2 = costCuttingTrack.getLink(startNodeId2, startNodeId1)
             if (pe2 != null) {
-                logger.info("initialMatch pe2.cost={}", pe2.cost)
+                logger.debug("initialMatch pe2.cost={}", pe2.cost)
                 var c = startPath2!!.cost - pe2.cost
                 if (c < 0) c = 0
                 if (c < firstMatchCost) firstMatchCost = c
             }
-
-            if (firstMatchCost < 1000000000) logger.info(
-                "firstMatchCost from initial match={}",
-                firstMatchCost
-            )
         }
 
         if (startPath1 == null) return null
@@ -1728,8 +1723,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         addToOpenset(startPath2)
 
         val openBorderList: MutableList<OsmPath> = ArrayList(4096)
-        var memoryPanicMode = false
-        var needNonPanicProcessing = false
 
         while (true) {
             currentCoroutineContext().ensureActive()
@@ -1743,8 +1736,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                     openSet.add(p.cost + (p.airdistance * airDistanceCostFactor).toInt(), p)
                 }
                 openBorderList.clear()
-                memoryPanicMode = false
-                needNonPanicProcessing = true
                 continue
             }
 
@@ -1753,41 +1744,25 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             }
 
             if (directWeaving && nodesCache!!.hasHollowLinkTargets(path.targetNode!!)) {
-                if (!memoryPanicMode) {
-                    if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, false)) {
-                        val nodesBefore = nodesCache!!.nodesMap.nodesCreated
-                        val pathsBefore = openSet.size
-
-                        nodesCache!!.nodesMap.collectOutreachers()
-                        while (true) {
-                            val p3: OsmPath? = openSet.popLowestKeyValue()
-                            if (p3 == null) break
-                            if (p3.airdistance != -1 && nodesCache!!.nodesMap.canEscape(p3.targetNode!!)) {
-                                openBorderList.add(p3)
-                            }
-                        }
-                        nodesCache!!.nodesMap.clearTemp()
-                        for (p in openBorderList) {
-                            openSet.add(
-                                p.cost + (p.airdistance * airDistanceCostFactor).toInt(),
-                                p
-                            )
-                        }
-                        openBorderList.clear()
-                        logger.info("collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache!!.nodesMap.nodesCreated + "/" + openSet.size + " maxTotalCost=" + maxTotalCost)
-                        if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, true)) {
-                            require(!(maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc)) { "memory limit reached" }
-                            memoryPanicMode = true
-                            logger.info("************************ memory limit reached, enabled memory panic mode *************************")
+                if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, false)) {
+                    nodesCache!!.nodesMap.collectOutreachers()
+                    while (true) {
+                        val p3: OsmPath? = openSet.popLowestKeyValue()
+                        if (p3 == null) break
+                        if (p3.airdistance != -1 && nodesCache!!.nodesMap.canEscape(p3.targetNode!!)) {
+                            openBorderList.add(p3)
                         }
                     }
-                }
-                if (memoryPanicMode) {
-                    openBorderList.add(path)
-                    continue
+                    nodesCache!!.nodesMap.clearTemp()
+                    for (p in openBorderList) {
+                        openSet.add(
+                            p.cost + (p.airdistance * airDistanceCostFactor).toInt(),
+                            p
+                        )
+                    }
+                    openBorderList.clear()
                 }
             }
-            needNonPanicProcessing = false
 
 
             if (fastPartialRecalc && matchPath != null && path.cost > 30L * firstMatchCost && !costCuttingTrack!!.isDirty) {
