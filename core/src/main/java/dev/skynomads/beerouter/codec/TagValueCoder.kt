@@ -36,7 +36,7 @@ class TagValueCoder {
             if (tvs == null) {
                 tvs = tvsProbe
                 nextTagValueSetId++
-                identityMap!!.put(tvs, tvs)
+                identityMap!![tvs] = tvs
             }
             tvs.frequency++
         }
@@ -56,7 +56,7 @@ class TagValueCoder {
         if (++pass == 3) {
             if (identityMap!!.isEmpty()) {
                 val dummy = TagValueSet(nextTagValueSetId++)
-                identityMap!!.put(dummy, dummy)
+                identityMap!![dummy] = dummy
             }
             val queue: Queue<TagValueSet> =
                 PriorityQueue(2 * identityMap!!.size, FrequencyComparator())
@@ -151,7 +151,7 @@ class TagValueCoder {
         var child2: Any? = null
     }
 
-    class TagValueSet(// serial number to make the comparator well defined in case of equal frequencies
+    class TagValueSet( // serial number to make the comparator well defined in case of equal frequencies
         private val id: Int
     ) {
         var data: ByteArray? = null

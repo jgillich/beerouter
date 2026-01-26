@@ -184,12 +184,12 @@ internal class BExpression {
             }
 
             if (ASSIGN_EXP == e.typ) {
-                // manage assined an injected values
+                // manage assigned an injected values
                 val assignedBefore = ctx.lastAssignedExpression!![e.variableIdx]
                 if (assignedBefore != null && assignedBefore.doNotChange) {
                     e.op1 = assignedBefore // was injected as key-value
                     e.op1!!.doNotChange =
-                        false // protect just once, can be changed in second assignement
+                        false // protect just once, can be changed in second assignment
                 }
                 ctx.lastAssignedExpression!![e.variableIdx] = e.op1
             } else if (!ctx.skipConstantExpressionOptimizations) {
@@ -297,11 +297,11 @@ internal class BExpression {
                     } else if ("not" == operator) {
                         exp.typ = NOT_EXP
                     } else {
-                        nops = 0 // check elemantary expressions
+                        nops = 0 // check elementary expressions
                         var idx = operator.indexOf('=')
                         if (idx >= 0) {
                             exp.typ = LOOKUP_EXP
-                            val name = operator.substring(0, idx)
+                            val name = operator.take(idx)
                             val values = operator.substring(idx + 1)
 
                             exp.lookupNameIdx = ctx.getLookupNameIdx(name)
@@ -329,7 +329,7 @@ internal class BExpression {
                                 exp.typ = VARIABLE_GET_EXP
                                 exp.lookupNameIdx = ctx.getLookupNameIdx(name)
                             } else {
-                                val context = operator.substring(0, idx)
+                                val context = operator.take(idx)
                                 val varname = operator.substring(idx + 1)
                                 exp.typ = FOREIGN_VARIABLE_EXP
                                 exp.variableIdx = ctx.getForeignVariableIdx(context, varname)

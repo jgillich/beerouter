@@ -43,9 +43,9 @@ internal class SearchBoundary(n: OsmNode, private val radius: Int, var direction
             return n.calcDistance(p) < radius
         }
         if (cost == 0) {
-            return n.iLon > minlon0 && n.iLon < maxlon0 && n.iLat > minlat0 && n.iLat < maxlat0
+            return n.iLon in (minlon0 + 1)..<maxlon0 && n.iLat > minlat0 && n.iLat < maxlat0
         }
-        return n.iLon > minlon && n.iLon < maxlon && n.iLat > minlat && n.iLat < maxlat
+        return n.iLon in (minlon + 1)..<maxlon && n.iLat > minlat && n.iLat < maxlat
     }
 
     fun getBoundaryDistance(n: OsmNode): Int {

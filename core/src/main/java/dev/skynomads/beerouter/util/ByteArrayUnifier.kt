@@ -1,7 +1,7 @@
 package dev.skynomads.beerouter.util
 
 class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : IByteArrayUnifier {
-    private val byteArrayCache: Array<ByteArray?> = arrayOfNulls<ByteArray>(size)
+    private val byteArrayCache: Array<ByteArray?> = arrayOfNulls(size)
     private var crcCrosscheck: IntArray? = null
 
     init {

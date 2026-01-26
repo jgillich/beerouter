@@ -371,10 +371,10 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
 
             if (sp0x != sp1x) { // S is not vertical
                 val px = p.x
-                if (sp0x <= px && px <= sp1x) {
+                if (px in sp0x..sp1x) {
                     return true
                 }
-                if (sp0x >= px && px >= sp1x) {
+                if (px in sp1x..sp0x) {
                     return true
                 }
             } else  // S is vertical, so test y coordinate
@@ -383,10 +383,10 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
                 val sp1y = seg_p1.y
                 val py = p.y
 
-                if (sp0y <= py && py <= sp1y) {
+                if (py in sp0y..sp1y) {
                     return true
                 }
-                if (sp0y >= py && py >= sp1y) {
+                if (py in sp1y..sp0y) {
                     return true
                 }
             }
@@ -475,14 +475,14 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
             // the segments are skew and may intersect in a point
             // get the intersect parameter for S1
             val sI = (vx * wy - vy * wx) / d
-            if (sI < 0 || sI > 1)  // no intersect with S1
+            if (sI !in 0.0..1.0)  // no intersect with S1
             {
                 return 0
             }
 
             // get the intersect parameter for S2
             val tI = (ux * wy - uy * wx) / d
-            return if (tI < 0 || tI > 1) 0 else 1 // return 0 if no intersect with S2
+            return if (tI !in 0.0..1.0) 0 else 1 // return 0 if no intersect with S2
         }
     }
 }

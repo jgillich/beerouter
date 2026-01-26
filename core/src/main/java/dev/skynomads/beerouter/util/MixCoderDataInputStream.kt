@@ -9,7 +9,7 @@ import java.io.DataInputStream
 import java.io.IOException
 import java.io.InputStream
 
-class MixCoderDataInputStream(`is`: InputStream) : DataInputStream(`is`) {
+class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputStream) {
     private var lastValue = 0
     private var repCount = 0
     private var diffshift = 0

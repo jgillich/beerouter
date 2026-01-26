@@ -523,7 +523,7 @@ abstract class BExpressionContext protected constructor(
                             // keep the unit of measure
                             val tmp = value.substring(value.indexOf("-") + 1)
                                 .replace("[0-9.,-]".toRegex(), "")
-                            value = value.substring(0, value.indexOf("-"))
+                            value = value.take(value.indexOf("-"))
                             if (value.matches("\\d+(\\.\\d+)?".toRegex())) value += tmp
                         }
                         value = value.lowercase()
@@ -824,7 +824,7 @@ abstract class BExpressionContext protected constructor(
         if (num == null) {
             if (create) {
                 num = variableNumbers.size
-                variableNumbers.put(name, num)
+                variableNumbers[name] = num
                 lastAssignedExpression!!.add(null)
             } else {
                 return -1

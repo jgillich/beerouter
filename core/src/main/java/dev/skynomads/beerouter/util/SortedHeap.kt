@@ -35,14 +35,9 @@ class SortedHeap<V> {
         var next: SortedBin? = null
         var nextNonEmpty: SortedBin? = null
         var al: IntArray = IntArray(binsize) // key array
-        var vla: Array<Any?> // value array
+        var vla: Array<Any?> = arrayOfNulls<Any>(binsize) // value array
         var lv: Int = 0 // low value
-        var lp: Int // low pointer
-
-        init {
-            vla = arrayOfNulls<Any>(binsize)
-            lp = binsize
-        }
+        var lp: Int = binsize // low pointer
 
         fun next(): SortedBin {
             if (next == null) {

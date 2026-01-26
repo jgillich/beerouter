@@ -135,7 +135,7 @@ class OsmTrack {
     }
 
     fun getLink(n1: Long, n2: Long): OsmPathElement? {
-        var h = nodesMap!!.get(n2)
+        var h = nodesMap!![n2]
         while (h != null) {
             val e1 = h.node!!.origin
             if (e1 != null && e1.idFromPos == n1) {
@@ -163,9 +163,9 @@ class OsmTrack {
             if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.MIN_VALUE) nodes[ourSize - 1].sElev =
                 e.sElev
             if (i > 0 || ourSize == 0) {
-                e.time = e.time + t0
-                e.energy = e.energy + e0
-                e.cost = e.cost + c0
+                e.time += t0
+                e.energy += e0
+                e.cost += c0
                 if (e.message != null) {
                     if (!(e.message!!.lon == e.iLon && e.message!!.lat == e.iLat)) {
                         e.message!!.lon = e.iLon
@@ -255,7 +255,7 @@ class OsmTrack {
 
     fun getFromDetourMap(id: Long): OsmPathElementHolder? {
         if (detourMap == null) return null
-        return detourMap!!.get(id)
+        return detourMap!![id]
     }
 
     fun prepareSpeedProfile(rc: RoutingContext?) {
@@ -312,7 +312,7 @@ class OsmTrack {
                     }
                 }
                 if (detourMap != null) {
-                    val detours = detourMap!!.get(origin.idFromPos)
+                    val detours = detourMap!![origin.idFromPos]
                     if (nodeNr >= 0 && detours != null) {
                         var h: OsmPathElementHolder? = detours
                         while (h != null) {

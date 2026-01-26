@@ -48,7 +48,7 @@ class AreaReader {
         var used = 0
         val checkBorder = maxscale > 7
 
-        val tiles: MutableMap<Long?, String?> = TreeMap<Long?, String?>()
+        val tiles: MutableMap<Long?, String?> = TreeMap()
         for (idxLat in -scale..scale) {
             for (idxLon in -scale..scale) {
                 if (ignoreCenter(maxscale, idxLon, idxLat)) continue
@@ -131,7 +131,7 @@ class AreaReader {
                     continue
                 }
 
-                tiles.put((tmplon.toLong()) shl 32 or tmplat.toLong(), filenameBase)
+                tiles[(tmplon.toLong()) shl 32 or tmplat.toLong()] = filenameBase
                 count++
             }
         }

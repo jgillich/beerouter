@@ -292,36 +292,5 @@ open class BitCoderContext(private var ab: ByteArray) {
                 bm2bits[1 shl b] = b
             }
         }
-
-
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val ab = ByteArray(581969)
-            var ctx = BitCoderContext(ab)
-            for (i in 0..30) {
-                ctx.encodeVarBits((1 shl i) + 3)
-            }
-            run {
-                var i = 0
-                while (i < 100000) {
-                    ctx.encodeVarBits(i)
-                    i += 13
-                }
-            }
-            ctx.closeAndGetEncodedLength()
-            ctx = BitCoderContext(ab)
-
-            for (i in 0..30) {
-                val value = ctx.decodeVarBits()
-                val v0 = (1 shl i) + 3
-                if (v0 != value) throw RuntimeException("value mismatch value=" + value + "v0=" + v0)
-            }
-            var i = 0
-            while (i < 100000) {
-                val value = ctx.decodeVarBits()
-                if (value != i) throw RuntimeException("value mismatch i=" + i + "v=" + value)
-                i += 13
-            }
-        }
     }
 }

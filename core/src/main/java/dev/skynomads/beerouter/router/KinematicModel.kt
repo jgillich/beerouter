@@ -88,7 +88,7 @@ internal class KinematicModel : OsmPathModel() {
         }
         val v = ctxWay!!.getVariableValue(name, defaultValue)
         if (params != null) {
-            params!!.put(name, "" + v)
+            params!![name] = "" + v
         }
         return v
     }

@@ -18,7 +18,7 @@ class BExpressionMetaData {
         HashMap()
 
     fun registerListener(context: String?, ctx: BExpressionContext?) {
-        listeners.put(context, ctx!!)
+        listeners[context] = ctx!!
     }
 
     fun readMetaData(lookupsFile: File) {

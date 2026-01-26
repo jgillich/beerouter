@@ -81,7 +81,7 @@ abstract class Formatter {
         private fun format1(n: Double): String {
             val s = "" + (n * 10 + 0.5).toLong()
             val len = s.length
-            return s.substring(0, len - 1) + "." + s[len - 1]
+            return s.take(len - 1) + "." + s[len - 1]
         }
 
 

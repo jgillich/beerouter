@@ -301,7 +301,7 @@ class MicroCache2 : MicroCache {
     override fun encodeMicroCache(buffer: ByteArray): Int {
         val idMap: MutableMap<Long?, Int?> = HashMap()
         for (n in 0..<size) { // loop over nodes
-            idMap.put(expandId(faid[n]), n)
+            idMap[expandId(faid[n])] = n
         }
 
         val linkCounts = IntegerFifo3Pass(256)

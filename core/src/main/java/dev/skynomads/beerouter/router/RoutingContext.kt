@@ -544,7 +544,7 @@ public class RoutingContext(
                 }
                 var s = nogo.name!!
                 val idx = s.indexOf(' ')
-                if (idx > 0) s = s.substring(0, idx)
+                if (idx > 0) s = s.take(idx)
                 var ir = 20 // default radius
                 if (s.length > 4) {
                     try {

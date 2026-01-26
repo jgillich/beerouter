@@ -178,7 +178,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
                     }
 
                     if (badWay.costfactor < 20f && abs(badTurn) < minAbsAngeRaw) {
-                        minAbsAngeRaw = abs(badTurn);
+                        minAbsAngeRaw = abs(badTurn)
                     }
 
                     if (badPrio < minPrio) {
@@ -187,7 +187,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
 
                     if (badWay.isBadOneway) {
                         if (minAbsAngeRaw == 180f) {
-                            minAbsAngeRaw = abs(turnAngle); // disable hasSomethingMoreStraight
+                            minAbsAngeRaw = abs(turnAngle) // disable hasSomethingMoreStraight
                         }
 
                         continue  // ignore wrong oneways
@@ -195,7 +195,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
 
                     if (abs(badTurn) - abs(turnAngle) > 80f) {
                         if (minAbsAngeRaw == 180f) {
-                            minAbsAngeRaw = abs(turnAngle); // disable hasSomethingMoreStraight
+                            minAbsAngeRaw = abs(turnAngle) // disable hasSomethingMoreStraight
                         }
 
                         continue  // ways from the back should not trigger a slight turn
@@ -500,7 +500,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
                     } else {
                         // otherwise ignore but add distance to next
                         // when drop add distance to last
-                        nextInput.distanceToNext += input.distanceToNext;
+                        nextInput.distanceToNext += input.distanceToNext
                         save = false
                     }
 

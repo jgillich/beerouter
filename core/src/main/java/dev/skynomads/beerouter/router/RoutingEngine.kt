@@ -12,6 +12,7 @@ import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDifferenceFromD
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDirection
 import dev.skynomads.beerouter.util.CheapRuler.destination
 import dev.skynomads.beerouter.util.SortedHeap
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -19,7 +20,6 @@ import java.io.File
 import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
-import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -34,7 +34,6 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     private var extraWaypoints: MutableList<OsmNodeNamed> = mutableListOf()
     protected var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
     private var linksProcessed: Int = 0
-        private set
 
     private var nodeLimit = 0 // used for target island search
     private val MAXNODES_ISLAND_CHECK = 500
@@ -818,8 +817,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         while (i < indexEnd) {
             val n = t.nodes[i]
-            if (last_n != null) wayDistance += n.calcDistance(last_n);
-            last_n = n;
+            if (last_n != null) wayDistance += n.calcDistance(last_n)
+            last_n = n
 
             if (n.positionEquals(ptStart)) {
                 indexStartFore = i
@@ -836,7 +835,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         if (routingContext.global.correctMisplacedViaPointsDistance > 0 &&
             wayDistance > routingContext.global.correctMisplacedViaPointsDistance
         ) {
-            return 0;
+            return 0
         }
 
         if (!bMeetsRoundaboutStart && bMeetingIsOnRoundabout) {
@@ -874,7 +873,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             ttend = tt.nodes[indexStartBack]
             val ttend_detours = tt.getFromDetourMap(ttend.idFromPos)
             if (ttend_detours != null) {
-                tt.registerDetourForId(ttend.idFromPos, null);
+                tt.registerDetourForId(ttend.idFromPos, null)
             }
         }
 
@@ -918,9 +917,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         if (atime > 0f) {
             for (e in t.nodes) {
-                e.time = e.time - atime
-                e.energy = e.energy - aenergy
-                e.cost = e.cost - acost
+                e.time -= atime
+                e.energy -= aenergy
+                e.cost -= acost
             }
         }
 
@@ -962,8 +961,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 ttend_detours!!.node!!.cost = last_cost + tmp_cost
                 ttend_detours.node!!.time = last_time + tmp_time
                 ttend_detours.node!!.energy = last_energy + tmp_energy
-                tt.nodes.add(ttend_detours.node!!);
-                t.nodes.add(0, ttend_detours.node!!);
+                tt.nodes.add(ttend_detours.node!!)
+                t.nodes.add(0, ttend_detours.node!!)
             }
         }
 
@@ -1161,9 +1160,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
             if (atime > 0f) {
                 for (e in t.nodes) {
-                    e.time = e.time - atime
-                    e.energy = e.energy - aenergy
-                    e.cost = e.cost - acost
+                    e.time -= atime
+                    e.energy -= aenergy
+                    e.cost -= acost
                 }
             }
 
@@ -1246,7 +1245,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 speed_min = min(speed_min, speed)
             }
             if (tmptime == 1f) { // no time used here
-                directMap.put(i, dist)
+                directMap[i] = dist
             }
 
             lastenergy = n.energy
@@ -1259,7 +1258,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             if (nLast != null) {
                 val ele_last = nLast.sElev
                 if (ele_last != Short.MIN_VALUE) {
-                    ehb = ehb + (ele_last - ele) * eleFactor
+                    ehb += (ele_last - ele) * eleFactor
                 }
                 val filter = elevationFilter(n)
                 if (ehb > 0) {
@@ -1294,8 +1293,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             }
             for (j in key..<ourSize) {
                 val n = t.nodes[j]
-                n.time = n.time + addTime
-                n.energy = n.energy + addEnergy.toFloat()
+                n.time += addTime
+                n.energy += addEnergy.toFloat()
             }
         }
         t.energy = t.nodes[t.nodes.size - 1].energy.toInt()
@@ -1373,7 +1372,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
                         if (wp.name != null) nmw.name = wp.name
                         waypoints.add(nmw)
-                        wp.name = wp.name + "_add"
+                        wp.name += "_add"
                         waypoints.add(wp)
                         if (wp.name!!.startsWith("via")) {
                             wp.type = MatchedWaypoint.Type.DIRECT
@@ -1734,7 +1733,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var needNonPanicProcessing = false
 
         while (true) {
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
 
             synchronized(openSet) {
                 val path: OsmPath? = openSet.popLowestKeyValue()

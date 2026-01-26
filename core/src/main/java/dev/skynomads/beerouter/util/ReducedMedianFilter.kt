@@ -6,11 +6,7 @@ package dev.skynomads.beerouter.util
 class ReducedMedianFilter(size: Int) {
     private var nsamples = 0
     private val weights: DoubleArray = DoubleArray(size)
-    private val values: IntArray
-
-    init {
-        values = IntArray(size)
-    }
+    private val values: IntArray = IntArray(size)
 
     fun reset() {
         nsamples = 0

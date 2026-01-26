@@ -385,7 +385,7 @@ class NodesCache(
                 currentFileName = f.getName()
                 ra = PhysicalFile(f, dataBuffers, lookupVersion, lookupMinorVersion)
             }
-            fileCache!!.put(filenameBase, ra)
+            fileCache!![filenameBase] = ra
         }
         ra = fileCache!![filenameBase]
         val osmf = OsmFile(ra, lonDegree, latDegree, dataBuffers)

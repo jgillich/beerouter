@@ -32,7 +32,7 @@ object Rd5DiffValidator {
             if (fn.length() < 1024 * 1024) {
                 continue  // expecting no diff for small files
             }
-            val basename = name.substring(0, name.length - 4)
+            val basename = name.take(name.length - 4)
             val fo = File(oldDir, name)
             if (!fo.isFile()) {
                 continue

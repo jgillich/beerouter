@@ -16,12 +16,12 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
     fun assignBits(name: String?) {
         val bitpos = writingBitPosition.toLong()
         if (statsPerName == null) {
-            statsPerName = TreeMap<String?, LongArray>()
+            statsPerName = TreeMap()
         }
         var stats: LongArray? = statsPerName!![name]
         if (stats == null) {
             stats = LongArray(2)
-            statsPerName!!.put(name, stats)
+            statsPerName!![name] = stats
         }
         stats[0] += bitpos - lastbitpos
         stats[1] += 1

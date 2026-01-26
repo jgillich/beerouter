@@ -18,55 +18,55 @@ open class ByteDataReader {
 
     constructor(byteArray: ByteArray = ByteArray(0)) {
         ab = byteArray
-        aboffsetEnd = if (ab == null) 0 else ab!!.size
+        aboffsetEnd = ab.size
     }
 
     constructor(byteArray: ByteArray, offset: Int) {
         ab = byteArray
         aboffset = offset
-        aboffsetEnd = if (ab == null) 0 else ab!!.size
+        aboffsetEnd = ab.size
     }
 
     fun reset(byteArray: ByteArray) {
         ab = byteArray
         aboffset = 0
-        aboffsetEnd = if (ab == null) 0 else ab!!.size
+        aboffsetEnd = ab.size
     }
 
 
     fun readInt(): Int {
-        val i3 = ab!![aboffset++].toInt() and 0xff
-        val i2 = ab!![aboffset++].toInt() and 0xff
-        val i1 = ab!![aboffset++].toInt() and 0xff
-        val i0 = ab!![aboffset++].toInt() and 0xff
+        val i3 = ab[aboffset++].toInt() and 0xff
+        val i2 = ab[aboffset++].toInt() and 0xff
+        val i1 = ab[aboffset++].toInt() and 0xff
+        val i0 = ab[aboffset++].toInt() and 0xff
         return (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
     }
 
     fun readLong(): Long {
-        val i7 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i6 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i5 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i4 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i3 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i2 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i1 = (ab!![aboffset++].toInt() and 0xff).toLong()
-        val i0 = (ab!![aboffset++].toInt() and 0xff).toLong()
+        val i7 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i6 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i5 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i4 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i3 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i2 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i1 = (ab[aboffset++].toInt() and 0xff).toLong()
+        val i0 = (ab[aboffset++].toInt() and 0xff).toLong()
         return (i7 shl 56) + (i6 shl 48) + (i5 shl 40) + (i4 shl 32) + (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
     }
 
     fun readBoolean(): Boolean {
-        val i0 = ab!![aboffset++].toInt() and 0xff
+        val i0 = ab[aboffset++].toInt() and 0xff
         return i0 != 0
     }
 
     fun readByte(): Byte {
-        val i0 = ab!![aboffset++].toInt() and 0xff
+        val i0 = ab[aboffset++].toInt() and 0xff
         return (i0).toByte()
     }
 
     fun readShort(): Short {
-        val i1 = ab!![aboffset++].toInt() and 0xff
-        val i0 = ab!![aboffset++].toInt() and 0xff
+        val i1 = ab[aboffset++].toInt() and 0xff
+        val i0 = ab[aboffset++].toInt() and 0xff
         return ((i1 shl 8) or i0).toShort()
     }
 

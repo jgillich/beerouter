@@ -140,7 +140,7 @@ class OsmFile(
         if (asize == 0) {
             return MicroCache.emptyCache()
         }
-        if (asize > ab!!.size) {
+        if (asize > ab.size) {
             ab = ByteArray(asize)
             asize = getDataInputForSubIdx(subIdx, ab)
         }
@@ -150,7 +150,7 @@ class OsmFile(
         try {
             if (!reallyDecode) {
                 TODO()
-//                return null
+                //                return null
             }
             if (hollowNodes == null) {
                 return MicroCache2(
@@ -210,8 +210,7 @@ class OsmFile(
         var deleted: Long = 0
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
-            val mc = microCaches!![i]
-            if (mc == null) continue
+            val mc = microCaches!![i] ?: continue
             if (!mc.ghost) {
                 deleted += mc.collect(0).toLong()
             }
@@ -223,8 +222,7 @@ class OsmFile(
         val deleted: Long = 0
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
-            val mc = microCaches!![i]
-            if (mc == null) continue
+            val mc = microCaches!![i] ?: continue
             if (mc.ghost) {
                 microCaches!![i] = null
             }
