@@ -1723,11 +1723,10 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         if (startPath1 == null) return null
         if (startPath2 == null) return null
 
-        synchronized(openSet) {
-            openSet.clear()
-            addToOpenset(startPath1)
-            addToOpenset(startPath2)
-        }
+        openSet.clear()
+        addToOpenset(startPath1)
+        addToOpenset(startPath2)
+
         val openBorderList: MutableList<OsmPath> = ArrayList(4096)
         var memoryPanicMode = false
         var needNonPanicProcessing = false
@@ -1735,205 +1734,178 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         while (true) {
             currentCoroutineContext().ensureActive()
 
-            synchronized(openSet) {
-                val path: OsmPath? = openSet.popLowestKeyValue()
-                if (path == null) {
-                    if (openBorderList.isEmpty()) {
-                        break
+            val path: OsmPath? = openSet.popLowestKeyValue()
+            if (path == null) {
+                if (openBorderList.isEmpty()) {
+                    break
+                }
+                for (p in openBorderList) {
+                    openSet.add(p.cost + (p.airdistance * airDistanceCostFactor).toInt(), p)
+                }
+                openBorderList.clear()
+                memoryPanicMode = false
+                needNonPanicProcessing = true
+                continue
+            }
+
+            if (path.airdistance == -1) {
+                continue
+            }
+
+            if (directWeaving && nodesCache!!.hasHollowLinkTargets(path.targetNode!!)) {
+                if (!memoryPanicMode) {
+                    if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, false)) {
+                        val nodesBefore = nodesCache!!.nodesMap.nodesCreated
+                        val pathsBefore = openSet.size
+
+                        nodesCache!!.nodesMap.collectOutreachers()
+                        while (true) {
+                            val p3: OsmPath? = openSet.popLowestKeyValue()
+                            if (p3 == null) break
+                            if (p3.airdistance != -1 && nodesCache!!.nodesMap.canEscape(p3.targetNode!!)) {
+                                openBorderList.add(p3)
+                            }
+                        }
+                        nodesCache!!.nodesMap.clearTemp()
+                        for (p in openBorderList) {
+                            openSet.add(
+                                p.cost + (p.airdistance * airDistanceCostFactor).toInt(),
+                                p
+                            )
+                        }
+                        openBorderList.clear()
+                        logger.info("collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache!!.nodesMap.nodesCreated + "/" + openSet.size + " maxTotalCost=" + maxTotalCost)
+                        if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, true)) {
+                            require(!(maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc)) { "memory limit reached" }
+                            memoryPanicMode = true
+                            logger.info("************************ memory limit reached, enabled memory panic mode *************************")
+                        }
                     }
-                    for (p in openBorderList) {
-                        openSet.add(p.cost + (p.airdistance * airDistanceCostFactor).toInt(), p)
-                    }
-                    openBorderList.clear()
-                    memoryPanicMode = false
-                    needNonPanicProcessing = true
+                }
+                if (memoryPanicMode) {
+                    openBorderList.add(path)
                     continue
                 }
+            }
+            needNonPanicProcessing = false
 
-                if (path.airdistance == -1) {
-                    continue
+
+            if (fastPartialRecalc && matchPath != null && path.cost > 30L * firstMatchCost && !costCuttingTrack!!.isDirty) {
+                logger.info(
+                    "early exit: firstMatchCost={} path.cost={}",
+                    firstMatchCost,
+                    path.cost
+                )
+
+                // use an early exit, unless there's a realistc chance to complete within the timeout
+                //                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
+                logger.info("early exit supressed, running for completion, resetting timeout")
+                //                    startTime = System.currentTimeMillis()
+                fastPartialRecalc = false
+                //                    } else {
+                //                        throw IllegalArgumentException("early exit for a close recalc")
+                //                    }
+            }
+
+            if (nodeLimit > 0) { // check node-limit for target island search
+                if (--nodeLimit == 0) {
+                    return null
+                }
+            }
+
+            nodesVisited++
+            linksProcessed++
+
+            val currentLink = path.link!!
+            val sourceNode = path.sourceNode!!
+            val currentNode = path.targetNode!!
+
+            if (currentLink.isLinkUnused) {
+                continue
+            }
+
+            val currentNodeId = currentNode.idFromPos
+            val sourceNodeId = sourceNode.idFromPos
+
+            if (!path.didEnterDestinationArea()) {
+                islandNodePairs.addTempPair(sourceNodeId, currentNodeId)
+            }
+
+            if (path.treedepth != 1) {
+                if (path.treedepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
+                    path.treedepth = 1
                 }
 
-                if (directWeaving && nodesCache!!.hasHollowLinkTargets(path.targetNode!!)) {
-                    if (!memoryPanicMode) {
-                        if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, false)) {
-                            val nodesBefore = nodesCache!!.nodesMap.nodesCreated
-                            val pathsBefore = openSet.size
+                if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
+                    || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)
+                ) {
+                    // track found, compile
+                    logger.info("found track at cost " + path.cost + " nodesVisited = " + nodesVisited)
+                    val t = compileTrack(path, verbose)
+                    t.showspeed = routingContext.global.showspeed
+                    t.showSpeedProfile = routingContext.global.showSpeedProfile
+                    return t
+                }
 
-                            nodesCache!!.nodesMap.collectOutreachers()
-                            while (true) {
-                                val p3: OsmPath? = openSet.popLowestKeyValue()
-                                if (p3 == null) break
-                                if (p3.airdistance != -1 && nodesCache!!.nodesMap.canEscape(p3.targetNode!!)) {
-                                    openBorderList.add(p3)
-                                }
-                            }
-                            nodesCache!!.nodesMap.clearTemp()
-                            for (p in openBorderList) {
-                                openSet.add(
-                                    p.cost + (p.airdistance * airDistanceCostFactor).toInt(),
-                                    p
-                                )
-                            }
-                            openBorderList.clear()
-                            logger.info("collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache!!.nodesMap.nodesCreated + "/" + openSet.size + " maxTotalCost=" + maxTotalCost)
-                            if (!nodesCache!!.nodesMap.isInMemoryBounds(openSet.size, true)) {
-                                require(!(maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc)) { "memory limit reached" }
-                                memoryPanicMode = true
-                                logger.info("************************ memory limit reached, enabled memory panic mode *************************")
-                            }
+                // check for a match with the cost-cutting-track
+                if (costCuttingTrack != null) {
+                    val pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId)
+                    if (pe != null) {
+                        // remember first match cost for fast termination of partial recalcs
+                        var parentcost =
+                            if (path.originElement == null) 0 else path.originElement!!.cost
+
+                        // hitting start-element of costCuttingTrack?
+                        val c = path.cost - parentcost - pe.cost
+                        if (c > 0) parentcost += c
+
+                        if (parentcost < firstMatchCost) firstMatchCost = parentcost
+
+                        val costEstimate = (path.cost
+                                + path.elevationCorrection()
+                                + (costCuttingTrack.cost - pe.cost))
+                        if (costEstimate <= maxTotalCost) {
+                            matchPath = OsmPathElement.create(path)
                         }
-                    }
-                    if (memoryPanicMode) {
-                        openBorderList.add(path)
-                        continue
-                    }
-                }
-                needNonPanicProcessing = false
-
-
-                if (fastPartialRecalc && matchPath != null && path.cost > 30L * firstMatchCost && !costCuttingTrack!!.isDirty) {
-                    logger.info(
-                        "early exit: firstMatchCost={} path.cost={}",
-                        firstMatchCost,
-                        path.cost
-                    )
-
-                    // use an early exit, unless there's a realistc chance to complete within the timeout
-                    //                    if (path.cost > maxTotalCost / 2 && System.currentTimeMillis() - startTime < maxRunningTime / 3) {
-                    logger.info("early exit supressed, running for completion, resetting timeout")
-                    //                    startTime = System.currentTimeMillis()
-                    fastPartialRecalc = false
-                    //                    } else {
-                    //                        throw IllegalArgumentException("early exit for a close recalc")
-                    //                    }
-                }
-
-                if (nodeLimit > 0) { // check node-limit for target island search
-                    if (--nodeLimit == 0) {
-                        return null
-                    }
-                }
-
-                nodesVisited++
-                linksProcessed++
-
-                val currentLink = path.link!!
-                val sourceNode = path.sourceNode!!
-                val currentNode = path.targetNode!!
-
-                if (currentLink.isLinkUnused) {
-                    continue
-                }
-
-                val currentNodeId = currentNode.idFromPos
-                val sourceNodeId = sourceNode.idFromPos
-
-                if (!path.didEnterDestinationArea()) {
-                    islandNodePairs.addTempPair(sourceNodeId, currentNodeId)
-                }
-
-                if (path.treedepth != 1) {
-                    if (path.treedepth == 0) { // hack: sameSegment Paths marked treedepth=0 to pass above check
-                        path.treedepth = 1
-                    }
-
-                    if ((sourceNodeId == endNodeId1 && currentNodeId == endNodeId2)
-                        || (sourceNodeId == endNodeId2 && currentNodeId == endNodeId1)
-                    ) {
-                        // track found, compile
-                        logger.info("found track at cost " + path.cost + " nodesVisited = " + nodesVisited)
-                        val t = compileTrack(path, verbose)
-                        t.showspeed = routingContext.global.showspeed
-                        t.showSpeedProfile = routingContext.global.showSpeedProfile
-                        return t
-                    }
-
-                    // check for a match with the cost-cutting-track
-                    if (costCuttingTrack != null) {
-                        val pe = costCuttingTrack.getLink(sourceNodeId, currentNodeId)
-                        if (pe != null) {
-                            // remember first match cost for fast termination of partial recalcs
-                            var parentcost =
-                                if (path.originElement == null) 0 else path.originElement!!.cost
-
-                            // hitting start-element of costCuttingTrack?
-                            val c = path.cost - parentcost - pe.cost
-                            if (c > 0) parentcost += c
-
-                            if (parentcost < firstMatchCost) firstMatchCost = parentcost
-
-                            val costEstimate = (path.cost
-                                    + path.elevationCorrection()
-                                    + (costCuttingTrack.cost - pe.cost))
-                            if (costEstimate <= maxTotalCost) {
-                                matchPath = OsmPathElement.create(path)
-                            }
-                            if (costEstimate < maxTotalCost) {
-                                logger.info("maxcost $maxTotalCost -> $costEstimate")
-                                maxTotalCost = costEstimate
-                            }
+                        if (costEstimate < maxTotalCost) {
+                            logger.info("maxcost $maxTotalCost -> $costEstimate")
+                            maxTotalCost = costEstimate
                         }
                     }
                 }
+            }
 
-                val firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode)
-                var linkHolder = firstLinkHolder
-                while (linkHolder != null) {
-                    (linkHolder as OsmPath).airdistance =
-                        -1 // invalidate the entry in the open set;
-                    linkHolder = linkHolder.nextForLink
+            val firstLinkHolder = currentLink.getFirstLinkHolder(sourceNode)
+            var linkHolder = firstLinkHolder
+            while (linkHolder != null) {
+                (linkHolder as OsmPath).airdistance =
+                    -1 // invalidate the entry in the open set;
+                linkHolder = linkHolder.nextForLink
+            }
+
+            if (path.treedepth > 1) {
+                val isBidir = currentLink.isBidirectional
+                sourceNode.unlinkLink(currentLink)
+
+                // if the counterlink is alive and does not yet have a path, remove it
+                if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null && !routingContext.global.considerTurnRestrictions) {
+                    currentNode.unlinkLink(currentLink)
                 }
+            }
 
-                if (path.treedepth > 1) {
-                    val isBidir = currentLink.isBidirectional
-                    sourceNode.unlinkLink(currentLink)
+            // recheck cutoff before doing expensive stuff
+            val addDiff = 100
+            if (path.cost + path.airdistance > maxTotalCost + addDiff) {
+                continue
+            }
 
-                    // if the counterlink is alive and does not yet have a path, remove it
-                    if (isBidir && currentLink.getFirstLinkHolder(currentNode) == null && !routingContext.global.considerTurnRestrictions) {
-                        currentNode.unlinkLink(currentLink)
-                    }
-                }
+            nodesCache!!.nodesMap.currentMaxCost = maxTotalCost
+            nodesCache!!.nodesMap.currentPathCost = path.cost
+            nodesCache!!.nodesMap.destination = endPos
 
-                // recheck cutoff before doing expensive stuff
-                val addDiff = 100
-                if (path.cost + path.airdistance > maxTotalCost + addDiff) {
-                    continue
-                }
+            routingContext.firstPrePath = null
 
-                nodesCache!!.nodesMap.currentMaxCost = maxTotalCost
-                nodesCache!!.nodesMap.currentPathCost = path.cost
-                nodesCache!!.nodesMap.destination = endPos
-
-                routingContext.firstPrePath = null
-
-                run {
-                    var link = currentNode.firstlink
-                    while (link != null) {
-                        val nextNode = link.getTarget(currentNode)
-
-                        if (!nodesCache!!.obtainNonHollowNode(nextNode!!)) {
-                            link = link.getNext(currentNode)
-                            continue  // border node?
-                        }
-                        if (nextNode.firstlink == null) {
-                            link = link.getNext(currentNode)
-                            continue  // don't care about dead ends
-                        }
-                        if (nextNode === sourceNode) {
-                            link = link.getNext(currentNode)
-                            continue  // border node?
-                        }
-
-                        val prePath = routingContext.createPrePath(path, link)
-                        if (prePath != null) {
-                            prePath.next = routingContext.firstPrePath
-                            routingContext.firstPrePath = prePath
-                        }
-                        link = link.getNext(currentNode)
-                    }
-                }
-
+            run {
                 var link = currentNode.firstlink
                 while (link != null) {
                     val nextNode = link.getTarget(currentNode)
@@ -1951,95 +1923,120 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                         continue  // border node?
                     }
 
-                    if (guideTrack != null) {
-                        val gidx = path.treedepth + 1
-                        if (gidx >= guideTrack!!.nodes.size) {
-                            link = link.getNext(currentNode)
-                            continue
-                        }
-                        val guideNode =
-                            guideTrack!!.nodes[if (routingContext.global.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx]
-                        val nextId = nextNode.idFromPos
-                        if (nextId != guideNode.idFromPos) {
-                            // not along the guide-track, discard, but register for voice-hint processing
-                            if (routingContext.global.turnInstructionMode > 0) {
-                                val detour = routingContext.createPath(path, link, refTrack, true)
-                                if (detour.cost >= 0.0 && nextId != startNodeId1 && nextId != startNodeId2) {
-                                    guideTrack!!.registerDetourForId(
-                                        currentNode.idFromPos,
-                                        OsmPathElement.create(detour)
-                                    )
-                                }
-                            }
-                            link = link.getNext(currentNode)
-                            continue
-                        }
-                    }
-
-                    var bestPath: OsmPath? = null
-
-                    var isFinalLink = false
-                    val targetNodeId = nextNode.idFromPos
-                    if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
-                        if (targetNodeId == endNodeId1 || targetNodeId == endNodeId2) {
-                            isFinalLink = true
-                        }
-                    }
-
-                    var linkHolder = firstLinkHolder
-                    while (linkHolder != null) {
-                        val otherPath = linkHolder as OsmPath
-                        try {
-                            if (isFinalLink) {
-                                endPos!!.radius =
-                                    1.5 // 1.5 meters is the upper limit that will not change the unit-test result..
-                                routingContext.setWaypoint(endPos, true)
-                            }
-                            val testPath = routingContext.createPath(
-                                otherPath,
-                                link,
-                                refTrack,
-                                guideTrack != null
-                            )
-                            if (testPath.cost >= 0 && (bestPath == null || testPath.cost < bestPath.cost) &&
-                                (testPath.sourceNode!!.idFromPos != testPath.targetNode!!.idFromPos)
-                            ) {
-                                bestPath = testPath
-                            }
-                        } finally {
-                            if (isFinalLink) {
-                                routingContext.unsetWaypoint()
-                            }
-                        }
-                        linkHolder = linkHolder.nextForLink
-                    }
-                    if (bestPath != null) {
-                        bestPath.airdistance =
-                            if (isFinalLink) 0 else nextNode.calcDistance(endPos!!)
-
-                        val inRadius =
-                            boundary == null || boundary!!.isInBoundary(nextNode, bestPath.cost)
-
-                        if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (if (lastAirDistanceCostFactor != 0.0) maxTotalCost * lastAirDistanceCostFactor else maxTotalCost.toDouble()) + addDiff)) {
-                            // add only if this may beat an existing path for that link
-                            var dominator = link.getFirstLinkHolder(currentNode)
-                            while (dominator != null) {
-                                val dp = dominator as OsmPath
-                                if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) {
-                                    break
-                                }
-                                dominator = dominator.nextForLink
-                            }
-
-                            if (dominator == null) {
-                                bestPath.treedepth = path.treedepth + 1
-                                link.addLinkHolder(bestPath, currentNode)
-                                addToOpenset(bestPath)
-                            }
-                        }
+                    val prePath = routingContext.createPrePath(path, link)
+                    if (prePath != null) {
+                        prePath.next = routingContext.firstPrePath
+                        routingContext.firstPrePath = prePath
                     }
                     link = link.getNext(currentNode)
                 }
+            }
+
+            var link = currentNode.firstlink
+            while (link != null) {
+                val nextNode = link.getTarget(currentNode)
+
+                if (!nodesCache!!.obtainNonHollowNode(nextNode!!)) {
+                    link = link.getNext(currentNode)
+                    continue  // border node?
+                }
+                if (nextNode.firstlink == null) {
+                    link = link.getNext(currentNode)
+                    continue  // don't care about dead ends
+                }
+                if (nextNode === sourceNode) {
+                    link = link.getNext(currentNode)
+                    continue  // border node?
+                }
+
+                if (guideTrack != null) {
+                    val gidx = path.treedepth + 1
+                    if (gidx >= guideTrack!!.nodes.size) {
+                        link = link.getNext(currentNode)
+                        continue
+                    }
+                    val guideNode =
+                        guideTrack!!.nodes[if (routingContext.global.inverseRouting) guideTrack!!.nodes.size - 1 - gidx else gidx]
+                    val nextId = nextNode.idFromPos
+                    if (nextId != guideNode.idFromPos) {
+                        // not along the guide-track, discard, but register for voice-hint processing
+                        if (routingContext.global.turnInstructionMode > 0) {
+                            val detour = routingContext.createPath(path, link, refTrack, true)
+                            if (detour.cost >= 0.0 && nextId != startNodeId1 && nextId != startNodeId2) {
+                                guideTrack!!.registerDetourForId(
+                                    currentNode.idFromPos,
+                                    OsmPathElement.create(detour)
+                                )
+                            }
+                        }
+                        link = link.getNext(currentNode)
+                        continue
+                    }
+                }
+
+                var bestPath: OsmPath? = null
+
+                var isFinalLink = false
+                val targetNodeId = nextNode.idFromPos
+                if (currentNodeId == endNodeId1 || currentNodeId == endNodeId2) {
+                    if (targetNodeId == endNodeId1 || targetNodeId == endNodeId2) {
+                        isFinalLink = true
+                    }
+                }
+
+                var linkHolder = firstLinkHolder
+                while (linkHolder != null) {
+                    val otherPath = linkHolder as OsmPath
+                    try {
+                        if (isFinalLink) {
+                            endPos!!.radius =
+                                1.5 // 1.5 meters is the upper limit that will not change the unit-test result..
+                            routingContext.setWaypoint(endPos, true)
+                        }
+                        val testPath = routingContext.createPath(
+                            otherPath,
+                            link,
+                            refTrack,
+                            guideTrack != null
+                        )
+                        if (testPath.cost >= 0 && (bestPath == null || testPath.cost < bestPath.cost) &&
+                            (testPath.sourceNode!!.idFromPos != testPath.targetNode!!.idFromPos)
+                        ) {
+                            bestPath = testPath
+                        }
+                    } finally {
+                        if (isFinalLink) {
+                            routingContext.unsetWaypoint()
+                        }
+                    }
+                    linkHolder = linkHolder.nextForLink
+                }
+                if (bestPath != null) {
+                    bestPath.airdistance =
+                        if (isFinalLink) 0 else nextNode.calcDistance(endPos!!)
+
+                    val inRadius =
+                        boundary == null || boundary!!.isInBoundary(nextNode, bestPath.cost)
+
+                    if (inRadius && (isFinalLink || bestPath.cost + bestPath.airdistance <= (if (lastAirDistanceCostFactor != 0.0) maxTotalCost * lastAirDistanceCostFactor else maxTotalCost.toDouble()) + addDiff)) {
+                        // add only if this may beat an existing path for that link
+                        var dominator = link.getFirstLinkHolder(currentNode)
+                        while (dominator != null) {
+                            val dp = dominator as OsmPath
+                            if (dp.airdistance != -1 && bestPath.definitlyWorseThan(dp)) {
+                                break
+                            }
+                            dominator = dominator.nextForLink
+                        }
+
+                        if (dominator == null) {
+                            bestPath.treedepth = path.treedepth + 1
+                            link.addLinkHolder(bestPath, currentNode)
+                            addToOpenset(bestPath)
+                        }
+                    }
+                }
+                link = link.getNext(currentNode)
             }
         }
 
@@ -2136,44 +2133,5 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         track.buildMap()
         return track
-    }
-
-    val pathPeak: Int
-        get() {
-            synchronized(openSet) {
-                return openSet.peakSize
-            }
-        }
-
-    fun getOpenSet(): IntArray {
-        if (extract == null) {
-            extract = arrayOfNulls(500)
-        }
-
-        synchronized(openSet) {
-            if (guideTrack != null) {
-                val nodes = guideTrack!!.nodes
-                val res = IntArray(nodes.size * 2)
-                var i = 0
-                for (n in nodes) {
-                    res[i++] = n.iLon
-                    res[i++] = n.iLat
-                }
-                return res
-            }
-            val size: Int = openSet.getExtract(extract!!)
-            val res = IntArray(size * 2)
-            var i = 0
-            var j = 0
-            while (i < size) {
-                val p = extract!![i] as OsmPath
-                extract!![i] = null
-                val n = p.targetNode!!
-                res[j++] = n.iLon
-                res[j++] = n.iLat
-                i++
-            }
-            return res
-        }
     }
 }
