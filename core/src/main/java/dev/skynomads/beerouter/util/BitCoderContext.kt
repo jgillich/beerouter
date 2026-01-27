@@ -2,14 +2,10 @@ package dev.skynomads.beerouter.util
 
 
 open class BitCoderContext(private var ab: ByteArray) {
-    private var idxMax: Int
+    private var idxMax: Int = ab.size - 1
     private var idx = -1
     private var bits = 0 // bits left in buffer
     private var b = 0 // buffer word
-
-    init {
-        idxMax = ab.size - 1
-    }
 
     fun reset(ab: ByteArray) {
         this.ab = ab
@@ -101,7 +97,6 @@ open class BitCoderContext(private var ab: ByteArray) {
         }
         return decodeVarBits2() // no chance, use the slow one
     }
-
 
     fun encodeBit(value: Boolean) {
         if (bits > 31) {

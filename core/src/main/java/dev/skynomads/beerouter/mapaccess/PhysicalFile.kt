@@ -92,17 +92,6 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
     }
 
     companion object {
-        @JvmStatic
-        fun main(args: Array<String>) {
-            try {
-                checkFileIntegrity(File(args[0]))
-            } catch (e: IOException) {
-                System.err.println("************************************")
-                e.printStackTrace()
-                System.err.println("************************************")
-            }
-        }
-
         fun checkVersionIntegrity(f: File): Int {
             var version = -1
             var raf: RandomAccessFile? = null

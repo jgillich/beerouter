@@ -172,10 +172,8 @@ public class RoutingContext(
 
     var memoryclass: Int = 64
 
-
     var ai: AreaInfo? = null
     var pm: OsmPathModel? = null
-
 
     init {
         val meta = BExpressionMetaData()

@@ -34,9 +34,9 @@ open class RoutingBenchmark {
             9.053596
         ),
         createWaypoint(
-            "Rottenburg",
-            48.47696,
-            8.9336788
+            "Horb am Neckar",
+            48.4421,
+            8.6849
         )
     )
 

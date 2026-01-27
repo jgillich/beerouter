@@ -8,10 +8,8 @@ import java.util.Queue
 /**
  * Encoder/Decoder for way-/node-descriptions
  *
- *
  * It detects identical descriptions and sorts them
  * into a huffman-tree according to their frequencies
- *
  *
  * Adapted for 3-pass encoding (counters -&gt; statistics -&gt; encoding )
  * but doesn't do anything at pass1
@@ -187,20 +185,19 @@ class TagValueCoder {
             }
         }
 
-        override fun equals(o: Any?): Boolean {
-            if (o is TagValueSet) {
-                val tvs = o
+        override fun equals(other: Any?): Boolean {
+            if (other is TagValueSet) {
                 if (data == null) {
-                    return tvs.data == null
+                    return other.data == null
                 }
-                if (tvs.data == null) {
-                    return data == null
+                if (other.data == null) {
+                    return false
                 }
-                if (data!!.size != tvs.data!!.size) {
+                if (data!!.size != other.data!!.size) {
                     return false
                 }
                 for (i in data!!.indices) {
-                    if (data!![i] != tvs.data!![i]) {
+                    if (data!![i] != other.data!![i]) {
                         return false
                     }
                 }

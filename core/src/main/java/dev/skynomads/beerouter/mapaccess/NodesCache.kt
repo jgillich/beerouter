@@ -14,18 +14,16 @@ import java.io.IOException
 
 class NodesCache(
     private var segmentDir: File,
-    ctxWay: BExpressionContextWay,
+    private val ctxWay: BExpressionContextWay,
     forceSecondaryData: Boolean,
     maxmem: Long,
     oldCache: NodesCache?,
     detailed: Boolean
 ) {
-    private val MAX_DYNAMIC_CATCHES = 20 // used with RoutingEngiine MAX_DYNAMIC_RANGE = 60000m
-
+    private val MAX_DYNAMIC_CATCHES = 20 // used with RoutingEngine MAX_DYNAMIC_RANGE = 60000m
 
     @JvmField
-    var nodesMap: OsmNodesMap
-    private val expCtxWay: BExpressionContextWay?
+    var nodesMap: OsmNodesMap = OsmNodesMap()
     private val lookupVersion: Int
     private val lookupMinorVersion: Int
     private val forceSecondaryData: Boolean
@@ -60,17 +58,13 @@ class NodesCache(
     }
 
     init {
-        this.nodesMap = OsmNodesMap()
         this.nodesMap.maxmem = (2L * maxmem) / 3L
-        this.expCtxWay = ctxWay
         this.lookupVersion = ctxWay.meta.lookupVersion.toInt()
         this.lookupMinorVersion = ctxWay.meta.lookupMinorVersion.toInt()
         this.forceSecondaryData = forceSecondaryData
         this.detailed = detailed
 
-        if (ctxWay != null) {
-            ctxWay.setDecodeForbidden(detailed)
-        }
+        ctxWay.setDecodeForbidden(detailed)
 
         first_file_access_failed = false
         first_file_access_name = null
@@ -181,7 +175,7 @@ class NodesCache(
                     ilon,
                     ilat,
                     dataBuffers,
-                    expCtxWay,
+                    ctxWay,
                     waypointMatcher,
                     if (directWeaving) nodesMap else null
                 )
@@ -221,7 +215,7 @@ class NodesCache(
 
         val id = node.idFromPos
         if (segment.getAndClear(id)) {
-            node.parseNodeBody(segment, nodesMap, expCtxWay!!)
+            node.parseNodeBody(segment, nodesMap, ctxWay!!)
         }
 
         if (garbageCollectionEnabled) { // garbage collection
