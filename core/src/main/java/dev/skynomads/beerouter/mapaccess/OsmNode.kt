@@ -248,7 +248,9 @@ open class OsmNode : OsmLink, OsmPos {
 
 
     override fun equals(other: Any?): Boolean {
-        return (other as OsmNode).iLon == iLon && other.iLat == iLat
+        if (this === other) return true
+        if (other !is OsmNode) return false
+        return other.iLon == iLon && other.iLat == iLat
     }
 
     override fun hashCode(): Int {

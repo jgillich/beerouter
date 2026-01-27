@@ -44,8 +44,8 @@ class MessageData : Cloneable {
     }
 
     fun copy(): MessageData? {
-        try {
-            return clone() as MessageData?
+        return try {
+            clone() as MessageData?
         } catch (e: CloneNotSupportedException) {
             throw RuntimeException(e)
         }

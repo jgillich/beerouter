@@ -291,4 +291,8 @@ class SortedHeap<V> {
         }
         return tp
     }
+
+    override fun toString(): String {
+        return "SortedHeap(size=$size, peakSize=$peakSize)"
+    }
 }

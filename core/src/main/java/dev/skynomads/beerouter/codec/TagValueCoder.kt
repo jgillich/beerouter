@@ -186,35 +186,15 @@ class TagValueCoder {
         }
 
         override fun equals(other: Any?): Boolean {
-            if (other is TagValueSet) {
-                if (data == null) {
-                    return other.data == null
-                }
-                if (other.data == null) {
-                    return false
-                }
-                if (data!!.size != other.data!!.size) {
-                    return false
-                }
-                for (i in data!!.indices) {
-                    if (data!![i] != other.data!![i]) {
-                        return false
-                    }
-                }
-                return true
-            }
-            return false
+            if (other !is TagValueSet) return false
+            if (data == null) return other.data == null
+            if (other.data == null) return false
+            if (data!!.size != other.data!!.size) return false
+            return data!!.contentEquals(other.data!!)
         }
 
         override fun hashCode(): Int {
-            if (data == null) {
-                return 0
-            }
-            var h = 17
-            for (i in data!!.indices) {
-                h = (h shl 8) + data!![i]
-            }
-            return h
+            return data?.contentHashCode() ?: 0
         }
 
         class FrequencyComparator : Comparator<TagValueSet> {

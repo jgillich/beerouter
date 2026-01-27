@@ -23,22 +23,22 @@ object CheapRuler {
     const val KILOMETERS_TO_METERS: Int = 1000
 
     @JvmField
-    val DEG_TO_RAD: Double = Math.PI / 180.0
+    val DEG_TO_RAD: Double = kotlin.math.PI / 180.0
 
     // Scale cache constants
     private const val SCALE_CACHE_LENGTH = 1800
     private const val SCALE_CACHE_INCREMENT = 100000
 
     // SCALE_CACHE_LENGTH cached values between 0 and COS_CACHE_MAX_DEGREES degrees.
-    private val SCALE_CACHE: Array<DoubleArray?> = arrayOfNulls(SCALE_CACHE_LENGTH)
+    private val SCALE_CACHE: Array<DoubleArray?> = Array(SCALE_CACHE_LENGTH) { i ->
+        calcKxKyFromILat(i * SCALE_CACHE_INCREMENT + SCALE_CACHE_INCREMENT / 2)
+    }
 
     /**
      * build the cache of cosine values.
      */
     init {
-        for (i in 0..<SCALE_CACHE_LENGTH) {
-            SCALE_CACHE[i] = calcKxKyFromILat(i * SCALE_CACHE_INCREMENT + SCALE_CACHE_INCREMENT / 2)
-        }
+        // Cache is pre-populated in the array initialization above
     }
 
     private fun calcKxKyFromILat(ilat: Int): DoubleArray {
@@ -94,19 +94,17 @@ object CheapRuler {
 
     @JvmStatic
     fun destination(lon1: Int, lat1: Int, distance: Double, angle: Double): IntArray {
-        var angle = angle
         val lonlat2m = getLonLatToMeterScales(lat1)!!
         val lon2m = lonlat2m[0]
         val lat2m = lonlat2m[1]
-        angle = 90.0 - angle
-        val st = sin(angle * Math.PI / 180.0)
-        val ct = cos(angle * Math.PI / 180.0)
+        val adjustedAngle = 90.0 - angle
+        val radAngle = adjustedAngle * kotlin.math.PI / 180.0
+        val st = sin(radAngle)
+        val ct = cos(radAngle)
 
         val lon2 = (0.5 + lon1 + ct * distance / lon2m).toInt()
         val lat2 = (0.5 + lat1 + st * distance / lat2m).toInt()
-        val ret = IntArray(2)
-        ret[0] = lon2
-        ret[1] = lat2
-        return ret
+
+        return intArrayOf(lon2, lat2)
     }
 }

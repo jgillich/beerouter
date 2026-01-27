@@ -40,19 +40,6 @@ open class OsmLink {
      */
     fun getTarget(source: OsmNode?): OsmNode? {
         return if (n2 !== source && n2 != null) n2 else n1
-        /* if ( n2 != null && n2 != source )
-    {
-      return n2;
-    }
-    else if ( n1 != null && n1 != source )
-    {
-      return n1;
-    }
-    else
-    {
-      new Throwable( "ups" ).printStackTrace();
-      throw new IllegalArgumentException( "internal error: getTarget: unknown source; " + source + " n1=" + n1 + " n2=" + n2 );
-    } */
     }
 
     /**
@@ -60,18 +47,6 @@ open class OsmLink {
      */
     fun getNext(source: OsmNode?): OsmLink? {
         return if (n2 !== source && n2 != null) next else previous
-        /* if ( n2 != null && n2 != source )
-    {
-      return next;
-    }
-    else if ( n1 != null && n1 != source )
-    {
-      return previous;
-    }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: gextNext: unknown source" );
-    } */
     }
 
     /**
@@ -121,18 +96,6 @@ open class OsmLink {
 
     fun isReverse(source: OsmNode?): Boolean {
         return n1 !== source && n1 != null
-        /* if ( n2 != null && n2 != source )
-    {
-      return false;
-    }
-    else if ( n1 != null && n1 != source )
-   {
-      return true;
-    }
-    else
-    {
-      throw new IllegalArgumentException( "internal error: isReverse: unknown source" );
-    } */
     }
 
     val isBidirectional: Boolean

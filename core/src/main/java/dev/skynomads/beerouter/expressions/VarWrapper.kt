@@ -10,11 +10,14 @@ class VarWrapper {
         return hash
     }
 
-    override fun equals(o: Any?): Boolean {
-        val n = o as VarWrapper
-        if (hash != n.hash) {
-            return false
-        }
-        return vars.contentEquals(n.vars)
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is VarWrapper) return false
+        if (hash != other.hash) return false
+        return vars.contentEquals(other.vars)
+    }
+
+    override fun toString(): String {
+        return "VarWrapper(vars=${vars?.contentToString()}, hash=$hash)"
     }
 }

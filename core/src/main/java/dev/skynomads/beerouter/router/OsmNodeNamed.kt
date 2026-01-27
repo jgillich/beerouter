@@ -39,14 +39,14 @@ open class OsmNodeNamed : OsmNode {
         lat2: Int,
         totalSegmentLength: Double
     ): Double {
-        var lon1 = lon1
-        var lat1 = lat1
-        var lon2 = lon2
-        var lat2 = lat2
-        val lonlat2m = getLonLatToMeterScales((lat1 + lat2) shr 1)
+        var currentLon1 = lon1
+        var currentLat1 = lat1
+        var currentLon2 = lon2
+        var currentLat2 = lat2
+        val lonlat2m = getLonLatToMeterScales((currentLat1 + currentLat2) shr 1) ?: return 0.0
 
-        var isFirstPointWithinCircle = distance(lon1, lat1, iLon, iLat) < radius
-        var isLastPointWithinCircle = distance(lon2, lat2, iLon, iLat) < radius
+        var isFirstPointWithinCircle = distance(currentLon1, currentLat1, iLon, iLat) < radius
+        var isLastPointWithinCircle = distance(currentLon2, currentLat2, iLon, iLat) < radius
         // First point is within the circle
         if (isFirstPointWithinCircle) {
             // Last point is within the circle
@@ -56,14 +56,15 @@ open class OsmNodeNamed : OsmNode {
             // Last point is not within the circle
             // Just swap points and go on with first first point not within the
             // circle now.
-            // Swap longitudes
-            var tmp = lon2
-            lon2 = lon1
-            lon1 = tmp
-            // Swap latitudes
-            tmp = lat2
-            lat2 = lat1
-            lat1 = tmp
+            // Swap coordinates
+            val tempLon = currentLon2
+            currentLon2 = currentLon1
+            currentLon1 = tempLon
+
+            val tempLat = currentLat2
+            currentLat2 = currentLat1
+            currentLat1 = tempLat
+
             // Fix boolean values
             isLastPointWithinCircle = isFirstPointWithinCircle
             isFirstPointWithinCircle = false
@@ -71,11 +72,11 @@ open class OsmNodeNamed : OsmNode {
         // Distance between the initial point and projection of center of
         // the circle on the current segment.
         val initialToProject: Double =
-            (((lon2 - lon1) * (iLon - lon1) * lonlat2m!![0] * lonlat2m[0]
-                    + (lat2 - lat1) * (iLat - lat1) * lonlat2m[1] * lonlat2m[1]
+            (((currentLon2 - currentLon1) * (iLon - currentLon1) * lonlat2m[0] * lonlat2m[0]
+                    + (currentLat2 - currentLat1) * (iLat - currentLat1) * lonlat2m[1] * lonlat2m[1]
                     ) / totalSegmentLength)
         // Distance between the initial point and the center of the circle.
-        val initialToCenter = distance(iLon, iLat, lon1, lat1)
+        val initialToCenter = distance(iLon, iLat, currentLon1, currentLat1)
         // Half length of the segment within the circle
         val halfDistanceWithin = sqrt(
             radius * radius - (initialToCenter * initialToCenter -
@@ -83,10 +84,11 @@ open class OsmNodeNamed : OsmNode {
                     )
         )
         // Last point is within the circle
-        if (isLastPointWithinCircle) {
-            return halfDistanceWithin + (totalSegmentLength - initialToProject)
+        return if (isLastPointWithinCircle) {
+            halfDistanceWithin + (totalSegmentLength - initialToProject)
+        } else {
+            2 * halfDistanceWithin
         }
-        return 2 * halfDistanceWithin
     }
 
     companion object {
