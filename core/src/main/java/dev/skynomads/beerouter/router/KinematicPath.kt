@@ -130,12 +130,12 @@ internal class KinematicPath : OsmPath() {
         }
 
         // linear temperature correction
-        val tcorr = (20.0 - km.outside_temp) * 0.0035
+        val tcorr = (20.0 - km.outsideTemp) * 0.0035
 
         // air_pressure down 1mb/8m
         val ecorr = 0.0001375 * (elevation - 100.0)
 
-        val f_air = km.f_air * (1.0 + tcorr - ecorr)
+        val f_air = km.fAir * (1.0 + tcorr - ecorr)
 
         val distanceCost = evolveDistance(km, dist, delta_h, f_air)
 
@@ -158,7 +158,7 @@ internal class KinematicPath : OsmPath() {
         km: KinematicModel,
         dist: Double,
         delta_h: Double,
-        f_air: Double
+        fAir: Double
     ): Double {
         // elevation force
         val fh = delta_h * km.totalweight * 9.81 / dist
@@ -180,12 +180,12 @@ internal class KinematicPath : OsmPath() {
             val slow = ekin < elow
             val fast = ekin >= emax
             val etarget = if (slow) elow else emax
-            var f = km.f_roll + f_air * v * v + fh
-            val f_recup = max(
+            var f = km.fRoll + fAir * v * v + fh
+            val fRecup = max(
                 0.0,
-                if (fast) -f else (if (slow) km.f_recup else 0.0) - fh
+                if (fast) -f else (if (slow) km.fRecup else 0.0) - fh
             ) // additional recup for slow part
-            f += f_recup
+            f += fRecup
 
             var delta_ekin: Double
             val timeStep: Double
@@ -197,7 +197,7 @@ internal class KinematicPath : OsmPath() {
                 ekin = etarget
             } else {
                 delta_ekin = etarget - ekin
-                val b = 2.0 * f_air / km.totalweight
+                val b = 2.0 * fAir / km.totalweight
                 val x0 = delta_ekin / f
                 val x0b = x0 * b
                 x =
@@ -221,15 +221,15 @@ internal class KinematicPath : OsmPath() {
             elapsedTime += timeStep
 
             // dissipated energy does not contain elevation and efficient recup
-            dissipatedEnergy += delta_ekin - x * (fh + f_recup * km.recup_efficiency)
+            dissipatedEnergy += delta_ekin - x * (fh + fRecup * km.recupEfficiency)
 
             // correction: inefficient recup going into heating is half efficient
-            val ieRecup = x * f_recup * (1.0 - km.recup_efficiency)
-            val eaux = timeStep * km.p_standby
+            val ieRecup = x * fRecup * (1.0 - km.recupEfficiency)
+            val eaux = timeStep * km.pStandby
             dissipatedEnergy -= max(ieRecup, eaux) * 0.5
         }
 
-        dissipatedEnergy += elapsedTime * km.p_standby
+        dissipatedEnergy += elapsedTime * km.pStandby
 
         totalTime += elapsedTime
         totalEnergy += dissipatedEnergy + dist * fh

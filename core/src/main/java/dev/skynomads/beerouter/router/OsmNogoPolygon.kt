@@ -81,7 +81,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         var rad = 0.0 // radius
 
         var dmax = 0.0 // length of vector from center to point
-        var i_max = -1
+        var iMax = -1
 
         do {
             // now identify the point outside of the circle that has the greatest distance
@@ -100,15 +100,15 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
                 if (dist > dmax) {
                     // new maximum distance found
                     dmax = dist
-                    i_max = i
+                    iMax = i
                 }
             }
-            if (i_max < 0) {
+            if (iMax < 0) {
                 break // leave loop when no point outside the circle is found any more.
             }
             val dd = 0.5 * (1 - rad / dmax)
 
-            val p = points[i_max] // calculate new radius to just include this point
+            val p = points[iMax] // calculate new radius to just include this point
             cx += (dd * (p.x - cx) + 0.5).toInt() // shift center toward point
             cy += (dd * (p.y - cy) + 0.5).toInt()
 
@@ -121,7 +121,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
             val y1 = (cy - p.y) * dlat2m
             rad = sqrt(x1 * x1 + y1 * y1)
             dmax = rad
-            i_max = -1
+            iMax = -1
         } while (true)
 
         iLon = cx
@@ -146,9 +146,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
     fun intersects(lon0: Int, lat0: Int, lon1: Int, lat1: Int): Boolean {
         val p0 = Point(lon0, lat0)
         val p1 = Point(lon1, lat1)
-        val i_last = points.size - 1
-        var p2 = points[if (isClosed) i_last else 0]
-        for (i in (if (isClosed) 0 else 1)..i_last) {
+        val iLast = points.size - 1
+        var p2 = points[if (isClosed) iLast else 0]
+        for (i in (if (isClosed) 0 else 1)..iLast) {
             val p3 = points[i]
             // does it intersect with at least one of the polygon's segments?
             if (intersect2D_2Segments(p0, p1, p2, p3) > 0) {
@@ -160,9 +160,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
     }
 
     fun isOnPolyline(px: Long, py: Long): Boolean {
-        val i_last = points.size - 1
+        val iLast = points.size - 1
         var p1 = points[0]
-        for (i in 1..i_last) {
+        for (i in 1..iLast) {
             val p2 = points[i]
             if (isOnLine(px, py, p1.x.toLong(), p1.y.toLong(), p2.x.toLong(), p2.y.toLong())) {
                 return true
@@ -189,12 +189,12 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         var wn = 0 // the winding number counter
 
         // loop through all edges of the polygon
-        val i_last = points.size - 1
-        val p0 = points[if (isClosed) i_last else 0]
+        val iLast = points.size - 1
+        val p0 = points[if (isClosed) iLast else 0]
         var p0x = p0.x.toLong() // need to use long to avoid overflow in products
         var p0y = p0.y.toLong()
 
-        for (i in (if (isClosed) 0 else 1)..i_last) { // edge from v[i] to v[i+1]
+        for (i in (if (isClosed) 0 else 1)..iLast) { // edge from v[i] to v[i+1]
             val p1 = points[i]
 
             val p1x = p1.x.toLong()
@@ -249,10 +249,10 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         }
 
         // Loop over edges of the polygon to find intersections
-        val i_last = points.size - 1
+        val iLast = points.size - 1
         var i = (if (isClosed) 0 else 1)
-        var j = (if (isClosed) i_last else 0)
-        while (i <= i_last) {
+        var j = (if (isClosed) iLast else 0)
+        while (i <= iLast) {
             val edgePoint1 = points[j]
             val edgePoint2 = points[i]
             val intersectsEdge: Int = intersect2D_2Segments(p1, p2, edgePoint1, edgePoint2)

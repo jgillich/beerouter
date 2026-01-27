@@ -418,15 +418,15 @@ class OsmTrack {
                             t = OsmTrack()
                             t.endPoint = ep
                             val n = dis.readInt()
-                            var last_pe: OsmPathElement? = null
+                            var lastPe: OsmPathElement? = null
                             for (i in 0..<n) {
                                 val pe: OsmPathElement =
                                     OsmPathElement.readFromStream(dis)
-                                pe.origin = last_pe
-                                last_pe = pe
+                                pe.origin = lastPe
+                                lastPe = pe
                                 t.nodes.add(pe)
                             }
-                            t.cost = last_pe!!.cost
+                            t.cost = lastPe!!.cost
                             t.buildMap()
 
                             // check cheecksums, too

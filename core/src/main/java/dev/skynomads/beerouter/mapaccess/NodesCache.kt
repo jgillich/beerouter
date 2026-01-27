@@ -36,8 +36,8 @@ class NodesCache(
 
     var waypointMatcher: WaypointMatcher? = null
 
-    var first_file_access_failed: Boolean = false
-    var first_file_access_name: String?
+    var firstFileAccessFailed: Boolean = false
+    var firstFileAccessName: String?
 
     private var cacheSum: Long = 0
     private var maxmemtiles: Long = maxmem / 8
@@ -66,8 +66,8 @@ class NodesCache(
 
         ctxWay.setDecodeForbidden(detailed)
 
-        first_file_access_failed = false
-        first_file_access_name = null
+        firstFileAccessFailed = false
+        firstFileAccessName = null
 
         if (!this.segmentDir.isDirectory()) throw RuntimeException("segment directory " + segmentDir.absolutePath + " does not exist")
 
@@ -307,7 +307,7 @@ class NodesCache(
             }
         }
 
-        require(!first_file_access_failed) { "datafile $first_file_access_name not found" }
+        require(!firstFileAccessFailed) { "datafile $firstFileAccessName not found" }
         val len = unmatchedWaypoints.size
         for (i in 0..<len) {
             val mwp = unmatchedWaypoints[i]
@@ -336,10 +336,10 @@ class NodesCache(
         maxscale: Int,
         bUseDynamicRange: Boolean
     ) {
-        first_file_access_failed = false
-        first_file_access_name = null
+        firstFileAccessFailed = false
+        firstFileAccessName = null
         loadSegmentFor(n.iLon, n.iLat)
-        require(!first_file_access_failed) { "datafile $first_file_access_name not found" }
+        require(!firstFileAccessFailed) { "datafile $firstFileAccessName not found" }
         var scale = 1
         while (scale < maxscale) {
             for (idxLat in -scale..scale) for (idxLon in -scale..scale) {
@@ -384,9 +384,9 @@ class NodesCache(
         ra = fileCache!![filenameBase]
         val osmf = OsmFile(ra, lonDegree, latDegree, dataBuffers)
 
-        if (first_file_access_name == null) {
-            first_file_access_name = currentFileName
-            first_file_access_failed = osmf.filename == null
+        if (firstFileAccessName == null) {
+            firstFileAccessName = currentFileName
+            firstFileAccessFailed = osmf.filename == null
         }
 
         return osmf

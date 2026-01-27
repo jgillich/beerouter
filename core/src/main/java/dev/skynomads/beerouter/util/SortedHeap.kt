@@ -241,8 +241,8 @@ class SortedHeap<V> {
             }
         } while (cnt > tbin.binsize)
 
-        val al_t = tbin.al
-        val vla_t = tbin.vla
+        val alT = tbin.al
+        val vlaT = tbin.vla
         var tp = tbin.binsize - cnt // target pointer
 
         // unlink any higher, non-empty arrays
@@ -253,8 +253,8 @@ class SortedHeap<V> {
         while (firstNonEmpty != null) {
             // copy current minimum to target array
             val minBin = firstNonEmpty!!.minBin
-            al_t[tp] = minBin.lv
-            vla_t[tp++] = minBin.dropLowest()
+            alT[tp] = minBin.lv
+            vlaT[tp++] = minBin.dropLowest()
         }
 
         tp = tbin.binsize - cnt

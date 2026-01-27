@@ -36,15 +36,15 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     private var linksProcessed: Int = 0
 
     private var nodeLimit = 0 // used for target island search
-    private val MAXNODES_ISLAND_CHECK = 500
-    private val islandNodePairs = OsmNodePairSet(MAXNODES_ISLAND_CHECK)
+    private val maxNodesIslandCheck = 500
+    private val islandNodePairs = OsmNodePairSet(maxNodesIslandCheck)
     private val useNodePoints = false // use the start/end nodes  instead of crosspoint
 
-    private val MAX_STEPS_CHECK = 500
+    private val maxStepsCheck = 500
 
-    private val ROUNDTRIP_DEFAULT_DIRECTIONADD = 45
+    private val roundtripDefaultDirectionAdd = 45
 
-    private val MAX_DYNAMIC_RANGE = 60000
+    private val maxDynamicRange = 60000
 
     private var airDistanceCostFactor: Double = 0.0
     private var lastAirDistanceCostFactor: Double = 0.0
@@ -212,7 +212,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
         var direction =
             (if (routingContext.startDirection == null) -1 else routingContext.startDirection)!!.toDouble()
-        (if (routingContext.roundTripDirectionAdd == null) ROUNDTRIP_DEFAULT_DIRECTIONADD else routingContext.roundTripDirectionAdd)!!.toDouble()
+        (if (routingContext.roundTripDirectionAdd == null) roundtripDefaultDirectionAdd else routingContext.roundTripDirectionAdd)!!.toDouble()
         if (direction == -1.0) direction =
             getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
 
@@ -637,7 +637,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             routingContext.inverseDirection = !routingContext.global.inverseRouting
             airDistanceCostFactor = 0.0
             for (i in 0..<matchedWaypoints.size - 1) {
-                nodeLimit = MAXNODES_ISLAND_CHECK
+                nodeLimit = maxNodesIslandCheck
                 if (matchedWaypoints[i].type == MatchedWaypoint.Type.DIRECT) continue
                 if (routingContext.global.inverseRouting) {
                     val seg = findTrack(
@@ -813,12 +813,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var wayDistance = 0
 
         var i = 0
-        var last_n: OsmPathElement? = null
+        var lastN: OsmPathElement? = null
 
         while (i < indexEnd) {
             val n = t.nodes[i]
-            if (last_n != null) wayDistance += n.calcDistance(last_n)
-            last_n = n
+            if (lastN != null) wayDistance += n.calcDistance(lastN)
+            lastN = n
 
             if (n.positionEquals(ptStart)) {
                 indexStartFore = i
@@ -933,34 +933,34 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
             val tt_end = tt.nodes[tt.nodes.size - 1]
 
-            val last_cost = tt_end.cost
-            val last_time: Float = tt_end.time
-            val last_energy: Float = tt_end.energy
-            var tmp_cost = 0
-            var tmp_time = 0f
-            var tmp_energy = 0f
+            val lastCost = tt_end.cost
+            val lastTime: Float = tt_end.time
+            val lastEnergy: Float = tt_end.energy
+            var tmpCost = 0
+            var tmpTime = 0f
+            var tmpEnergy = 0f
 
             if (mid != null) {
                 var start = false
                 for (e in mid.nodes) {
                     if (start) {
                         if (e.positionEquals(ttend_detours!!.node!!)) {
-                            tmp_cost = e.cost
-                            tmp_time = e.time
-                            tmp_energy = e.energy
+                            tmpCost = e.cost
+                            tmpTime = e.time
+                            tmpEnergy = e.energy
                             break
                         }
-                        e.cost += last_cost
-                        e.time += last_time
-                        e.energy += last_energy
+                        e.cost += lastCost
+                        e.time += lastTime
+                        e.energy += lastEnergy
                         tt.nodes.add(e)
                     }
                     if (e.positionEquals(tt_end)) start = true
                 }
 
-                ttend_detours!!.node!!.cost = last_cost + tmp_cost
-                ttend_detours.node!!.time = last_time + tmp_time
-                ttend_detours.node!!.energy = last_energy + tmp_energy
+                ttend_detours!!.node!!.cost = lastCost + tmpCost
+                ttend_detours.node!!.time = lastTime + tmpTime
+                ttend_detours.node!!.energy = lastEnergy + tmpEnergy
                 tt.nodes.add(ttend_detours.node!!)
                 t.nodes.add(0, ttend_detours.node!!)
             }
@@ -1008,7 +1008,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             var tmpStart: OsmPathElement? = null
             var indexback = ourSize - 1
             var indexfore = 0
-            val stop = (if (indexback - MAX_STEPS_CHECK > 1) indexback - MAX_STEPS_CHECK else 1)
+            val stop = (if (indexback - maxStepsCheck > 1) indexback - maxStepsCheck else 1)
             var wayDistance = 0.0
             var nextDist: Double
             var bCheckRoundAbout = false
@@ -1192,7 +1192,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var totaltime = 0
         var lasttime = 0f
         var lastenergy = 0f
-        var speed_min = 9999f
+        var speedMin = 9999f
         val directMap: MutableMap<Int?, Int?> = HashMap()
         var tmptime: Float
         var speed: Float
@@ -1203,8 +1203,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         var ehb = 0.0
         val ourSize = t.nodes.size
 
-        var ele_start = Short.MIN_VALUE
-        var ele_end = Short.MIN_VALUE
+        var eleStart = Short.MIN_VALUE
+        var eleEnd = Short.MIN_VALUE
         val eleFactor = if (routingContext.global.inverseRouting) 0.25 else -0.25
 
         for (i in 0..<ourSize) {
@@ -1242,7 +1242,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             tmptime = (n.time - lasttime)
             if (dist > 0) {
                 speed = dist / tmptime * 3.6f
-                speed_min = min(speed_min, speed)
+                speedMin = min(speedMin, speed)
             }
             if (tmptime == 1f) { // no time used here
                 directMap[i] = dist
@@ -1252,13 +1252,13 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             lasttime = n.time
 
             val ele = n.sElev
-            if (ele != Short.MIN_VALUE) ele_end = ele
-            if (ele_start == Short.MIN_VALUE) ele_start = ele
+            if (ele != Short.MIN_VALUE) eleEnd = ele
+            if (eleStart == Short.MIN_VALUE) eleStart = ele
 
             if (nLast != null) {
-                val ele_last = nLast.sElev
-                if (ele_last != Short.MIN_VALUE) {
-                    ehb += (ele_last - ele) * eleFactor
+                val eleLast = nLast.sElev
+                if (eleLast != Short.MIN_VALUE) {
+                    ehb += (eleLast - ele) * eleFactor
                 }
                 val filter = elevationFilter(n)
                 if (ehb > 0) {
@@ -1271,7 +1271,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         }
 
         t.ascend = ascend.toInt()
-        t.plainAscend = ((ele_start - ele_end) * eleFactor + 0.5).toInt()
+        t.plainAscend = ((eleStart - eleEnd) * eleFactor + 0.5).toInt()
 
         t.distance = totaldist
 
@@ -1279,7 +1279,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         val keys: SortedSet<Int> = TreeSet(directMap.keys)
         for (key in keys) {
             val value: Int = directMap[key]!!
-            val addTime = (value / (speed_min / 3.6f))
+            val addTime = (value / (speedMin / 3.6f))
 
             var addEnergy = 0.0
             if (key > 0) {
@@ -1288,7 +1288,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                     (if (t.nodes[key - 1].sElev == Short.MIN_VALUE || t.nodes[key].sElev == Short.MIN_VALUE) 0.0 else (t.nodes[key - 1].elev - t.nodes[key].elev) / value)
                 val f_roll =
                     routingContext.global.totalMass * GRAVITY * (routingContext.global.defaultC_r + incline)
-                val spd = speed_min / 3.6
+                val spd = speedMin / 3.6
                 addEnergy = value * (routingContext.global.S_C_x * spd * spd + f_roll)
             }
             for (j in key..<ourSize) {
@@ -1327,7 +1327,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         if (!ok && useDynamicDistance) {
             logger.info("second check for way points")
             resetCache(false)
-            range = -MAX_DYNAMIC_RANGE.toDouble()
+            range = -maxDynamicRange.toDouble()
             val tmp: MutableList<MatchedWaypoint> = ArrayList()
             for (mwp in unmatchedWaypoints) {
                 if (mwp.crosspoint == null || mwp.radius >= routingContext.global.waypointCatchingRange) tmp.add(
@@ -2015,7 +2015,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             }
         }
 
-        if (nodesVisited < MAXNODES_ISLAND_CHECK && islandNodePairs.freezeCount < 5) {
+        if (nodesVisited < maxNodesIslandCheck && islandNodePairs.freezeCount < 5) {
             throw RoutingIslandException()
         }
 

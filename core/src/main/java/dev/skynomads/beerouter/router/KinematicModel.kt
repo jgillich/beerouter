@@ -18,12 +18,12 @@ internal class KinematicModel : OsmPathModel() {
     }
 
     var turnAngleDecayTime: Double = 0.0
-    var f_roll: Double = 0.0
-    var f_air: Double = 0.0
-    var f_recup: Double = 0.0
-    var p_standby: Double = 0.0
-    var outside_temp: Double = 0.0
-    var recup_efficiency: Double = 0.0
+    var fRoll: Double = 0.0
+    var fAir: Double = 0.0
+    var fRecup: Double = 0.0
+    var pStandby: Double = 0.0
+    var outsideTemp: Double = 0.0
+    var recupEfficiency: Double = 0.0
     var totalweight: Double = 0.0
     var vmax: Double = 0.0
     var leftWaySpeed: Double = 0.0
@@ -66,19 +66,19 @@ internal class KinematicModel : OsmPathModel() {
         params = keyValues
 
         turnAngleDecayTime = getParam("turnAngleDecayTime", 5f).toDouble()
-        f_roll = getParam("f_roll", 232f).toDouble()
-        f_air = getParam("f_air", 0.4f).toDouble()
-        f_recup = getParam("f_recup", 400f).toDouble()
-        p_standby = getParam("p_standby", 250f).toDouble()
-        outside_temp = getParam("outside_temp", 20f).toDouble()
-        recup_efficiency = getParam("recup_efficiency", 0.7f).toDouble()
+        fRoll = getParam("f_roll", 232f).toDouble()
+        fAir = getParam("f_air", 0.4f).toDouble()
+        fRecup = getParam("f_recup", 400f).toDouble()
+        pStandby = getParam("p_standby", 250f).toDouble()
+        outsideTemp = getParam("outside_temp", 20f).toDouble()
+        recupEfficiency = getParam("recup_efficiency", 0.7f).toDouble()
         totalweight = getParam("totalweight", 1640f).toDouble()
         vmax = getParam("vmax", 80f) / 3.6
         leftWaySpeed = getParam("leftWaySpeed", 12f) / 3.6
         rightWaySpeed = getParam("rightWaySpeed", 12f) / 3.6
 
-        pw = 2.0 * f_air * vmax * vmax * vmax - p_standby
-        cost0 = (pw + p_standby) / vmax + f_roll + f_air * vmax * vmax
+        pw = 2.0 * fAir * vmax * vmax * vmax - pStandby
+        cost0 = (pw + pStandby) / vmax + fRoll + fAir * vmax * vmax
     }
 
     protected fun getParam(name: String, defaultValue: Float): Float {
@@ -126,13 +126,13 @@ internal class KinematicModel : OsmPathModel() {
         }
 
         var v = vl * 0.8
-        val pw2 = pw + p_standby
-        val e = recup_efficiency
-        val x0 = pw2 / vl + f_air * e * vl * vl + (1.0 - e) * f_roll
+        val pw2 = pw + pStandby
+        val e = recupEfficiency
+        val x0 = pw2 / vl + fAir * e * vl * vl + (1.0 - e) * fRoll
         for (i in 0..4) {
             val v2 = v * v
-            val x = pw2 / v + f_air * e * v2 - x0
-            val dx = 2.0 * e * f_air * v - pw2 / v2
+            val x = pw2 / v + fAir * e * v2 - x0
+            val dx = 2.0 * e * fAir * v - pw2 / v2
             v -= x / dx
         }
         lastEffectiveLimit = vl

@@ -14,9 +14,9 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
     catchingRange: Double, // private double catchingRange; // range to catch angles and merge turns
     private val explicitRoundabouts: Boolean, private val transportMode: Int
 ) {
-    var SIGNIFICANT_ANGLE: Double = 22.5
-    var INTERNAL_CATCHING_RANGE_NEAR: Double = 2.0
-    var INTERNAL_CATCHING_RANGE_WIDE: Double = 10.0
+    var significantAngle: Double = 22.5
+    var internalCatchingRangeNear: Double = 2.0
+    var internalCatchingRangeWide: Double = 10.0
 
     private fun sumNonConsumedWithinCatchingRange(
         inputs: MutableList<VoiceHint>,
@@ -89,7 +89,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
                 roundAboutTurnAngle += sumNonConsumedWithinCatchingRange(
                     inputs,
                     hintIdx,
-                    INTERNAL_CATCHING_RANGE_NEAR
+                    internalCatchingRangeNear
                 )
                 if (roundaboudStartIdx == hintIdx) {
                     if (input.badWays != null) {
@@ -298,16 +298,16 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
                 }
 
                 input.angle =
-                    sumNonConsumedWithinCatchingRange(inputs, hintIdx, INTERNAL_CATCHING_RANGE_WIDE)
+                    sumNonConsumedWithinCatchingRange(inputs, hintIdx, internalCatchingRangeWide)
                 input.distanceToNext = distance
                 distance = 0.0
                 results.add(input)
             }
-            if (results.isNotEmpty() && distance < INTERNAL_CATCHING_RANGE_NEAR) { //catchingRange
+            if (results.isNotEmpty() && distance < internalCatchingRangeNear) { //catchingRange
                 results[results.size - 1].angle += sumNonConsumedWithinCatchingRange(
                     inputs,
                     hintIdx,
-                    INTERNAL_CATCHING_RANGE_NEAR
+                    internalCatchingRangeNear
                 )
             }
         }
@@ -328,7 +328,7 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
             if (!(hint.needsRealTurn && (hint.command == VoiceHint.C || hint.command == VoiceHint.BL))) {
                 var dist = hint.distanceToNext
                 // sum up other hints within the catching range (e.g. 40m)
-                while (dist < INTERNAL_CATCHING_RANGE_NEAR && i > 0) {
+                while (dist < internalCatchingRangeNear && i > 0) {
                     val h2 = results[i - 1]
                     dist = h2.distanceToNext
                     hint.distanceToNext += dist
@@ -478,23 +478,23 @@ internal class VoiceHintProcessor // this.catchingRange = catchingRange;
                     } else if (VoiceHint.is180DegAngle(input.angle)) {
                         // add u-turn, 180 degree
                         save = true
-                    } else if (transportMode == VoiceHintList.TRANS_MODE_CAR && abs(angles) > 180 - SIGNIFICANT_ANGLE) {
+                    } else if (transportMode == VoiceHintList.TRANS_MODE_CAR && abs(angles) > 180 - significantAngle) {
                         // add when inc car mode and u-turn, collects e.g. two left turns in range
                         input.angle = angles
                         input.calcCommand()
                         input.distanceToNext += nextInput.distanceToNext
                         save = true
                         hintIdx++
-                    } else if (abs(angles) < SIGNIFICANT_ANGLE && input.distanceToNext < minRange) {
+                    } else if (abs(angles) < significantAngle && input.distanceToNext < minRange) {
                         input.angle = angles
                         input.calcCommand()
                         input.distanceToNext += nextInput.distanceToNext
                         save = true
                         hintIdx++
-                    } else if (abs(input.angle) > SIGNIFICANT_ANGLE) {
+                    } else if (abs(input.angle) > significantAngle) {
                         // add when angle above 22.5 deg
                         save = true
-                    } else if (abs(input.angle) < SIGNIFICANT_ANGLE) {
+                    } else if (abs(input.angle) < significantAngle) {
                         // add when angle below 22.5 deg ???
                         // save = true;
                     } else {

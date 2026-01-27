@@ -74,11 +74,11 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
     fun decodeVarBits(): Int {
         fillBuffer()
         val b12 = b and 0xfff
-        val len: Int = vl_length[b12]
+        val len: Int = vlLength[b12]
         if (len <= 12) {
             b = b ushr len
             bits -= len
-            return vl_values[b12] // full value lookup
+            return vlValues[b12] // full value lookup
         }
         if (len <= 23) { // // only length lookup
             val len2 = len shr 1
@@ -93,7 +93,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
             // here we just know len in [25..47]
             // ( fillBuffer guarantees only 24 bits! )
             b = b ushr 12
-            val len3: Int = 1 + (vl_length[b and 0xfff] shr 1)
+            val len3: Int = 1 + (vlLength[b and 0xfff] shr 1)
             b = b ushr len3
             val len2 = 11 + len3
             bits -= len2 + 1
@@ -120,7 +120,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
     }
 
     companion object {
-        private val vl_values = BitCoderContext.vl_values
-        private val vl_length = BitCoderContext.vl_length
+        private val vlValues = BitCoderContext.vlValues
+        private val vlLength = BitCoderContext.vlLength
     }
 }

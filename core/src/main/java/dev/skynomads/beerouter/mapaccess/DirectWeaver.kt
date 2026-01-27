@@ -105,29 +105,29 @@ class DirectWeaver(
             for (li in 0..<links) {
                 val nodeIdx = n + nodeIdxDiff.decodeSignedValue()
 
-                var dlon_remaining: Int
-                var dlat_remaining: Int
+                var dlonRemaining: Int
+                var dlatRemaining: Int
 
                 var isReverse = false
                 if (nodeIdx != n) { // internal (forward-) link
-                    dlon_remaining = nodes[nodeIdx].iLon - ilon
-                    dlat_remaining = nodes[nodeIdx].iLat - ilat
+                    dlonRemaining = nodes[nodeIdx].iLon - ilon
+                    dlatRemaining = nodes[nodeIdx].iLat - ilat
                 } else {
                     isReverse = bc.decodeBit()
-                    dlon_remaining = extLonDiff.decodeSignedValue()
-                    dlat_remaining = extLatDiff.decodeSignedValue()
+                    dlonRemaining = extLonDiff.decodeSignedValue()
+                    dlatRemaining = extLatDiff.decodeSignedValue()
                 }
 
                 val wayTags = wayTagCoder.decodeTagValueSet()
 
-                val linklon = ilon + dlon_remaining
-                val linklat = ilat + dlat_remaining
+                val linklon = ilon + dlonRemaining
+                val linklat = ilat + dlatRemaining
                 aboffset = 0
                 if (!isReverse) { // write geometry for forward links only
                     var matcher =
                         if (wayTags == null || wayTags.accessType < 2) null else waypointMatcher
-                    val ilontarget = ilon + dlon_remaining
-                    val ilattarget = ilat + dlat_remaining
+                    val ilontarget = ilon + dlonRemaining
+                    val ilattarget = ilat + dlatRemaining
                     if (matcher != null) {
                         val useAsStartWay =
                             wayTags == null || wayValidator.checkStartWay(wayTags.data)
@@ -139,10 +139,10 @@ class DirectWeaver(
                     val transcount = bc.decodeVarBits()
                     var count = transcount + 1
                     for (i in 0..<transcount) {
-                        val dlon = bc.decodePredictedValue(dlon_remaining / count)
-                        val dlat = bc.decodePredictedValue(dlat_remaining / count)
-                        dlon_remaining -= dlon
-                        dlat_remaining -= dlat
+                        val dlon = bc.decodePredictedValue(dlonRemaining / count)
+                        val dlat = bc.decodePredictedValue(dlatRemaining / count)
+                        dlonRemaining -= dlon
+                        dlatRemaining -= dlat
                         count--
                         val elediff = transEleDiff.decodeSignedValue()
                         if (wayTags != null) {
@@ -152,8 +152,8 @@ class DirectWeaver(
                         }
 
                         matcher?.transferNode(
-                            ilontarget - dlon_remaining,
-                            ilattarget - dlat_remaining
+                            ilontarget - dlonRemaining,
+                            ilattarget - dlatRemaining
                         )
                     }
                     matcher?.end()

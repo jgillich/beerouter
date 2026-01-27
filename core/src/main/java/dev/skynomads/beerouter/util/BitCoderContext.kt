@@ -44,8 +44,8 @@ open class BitCoderContext(private var ab: ByteArray) {
     fun encodeVarBits(value: Int) {
         if ((value and 0xfff) == value) {
             flushBuffer()
-            b = b or (vc_values[value] shl bits)
-            bits += vc_length[value]
+            b = b or (vcValues[value] shl bits)
+            bits += vcLength[value]
         } else {
             encodeVarBits2(value) // slow fallback for large values
         }
@@ -65,11 +65,11 @@ open class BitCoderContext(private var ab: ByteArray) {
     fun decodeVarBits(): Int {
         fillBuffer()
         val b12 = b and 0xfff
-        val len: Int = vl_length[b12]
+        val len: Int = vlLength[b12]
         if (len <= 12) {
             b = b ushr len
             bits -= len
-            return vl_values[b12] // full value lookup
+            return vlValues[b12] // full value lookup
         }
         if (len <= 23) { // // only length lookup
             val len2 = len shr 1
@@ -84,7 +84,7 @@ open class BitCoderContext(private var ab: ByteArray) {
             // here we just know len in [25..47]
             // ( fillBuffer guarantees only 24 bits! )
             b = b ushr 12
-            val len3: Int = 1 + (vl_length[b and 0xfff] shr 1)
+            val len3: Int = 1 + (vlLength[b and 0xfff] shr 1)
             b = b ushr len3
             val len2 = 11 + len3
             bits -= len2 + 1
@@ -176,13 +176,13 @@ open class BitCoderContext(private var ab: ByteArray) {
         fillBuffer()
         var value = 0
         while (count > 8) {
-            value = (value shl 8) or reverse_byte[b and 0xff]
+            value = (value shl 8) or reverseByte[b and 0xff]
             b = b shr 8
             count -= 8
             bits -= 8
             fillBuffer()
         }
-        value = (value shl count) or (reverse_byte[b and 0xff] shr (8 - count))
+        value = (value shl count) or (reverseByte[b and 0xff] shr (8 - count))
         bits -= count
         b = b shr count
         return value
@@ -235,15 +235,15 @@ open class BitCoderContext(private var ab: ByteArray) {
 
     companion object {
         @JvmField
-        val vl_values: IntArray = IntArray(4096)
+        val vlValues: IntArray = IntArray(4096)
 
         @JvmField
-        val vl_length: IntArray = IntArray(4096)
+        val vlLength: IntArray = IntArray(4096)
 
-        private val vc_values = IntArray(4096)
-        private val vc_length = IntArray(4096)
+        private val vcValues = IntArray(4096)
+        private val vcLength = IntArray(4096)
 
-        private val reverse_byte = IntArray(256)
+        private val reverseByte = IntArray(256)
 
         private val bm2bits = IntArray(256)
 
@@ -257,15 +257,15 @@ open class BitCoderContext(private var ab: ByteArray) {
                 bc.b = 0x1000 + i
 
                 val b0 = bc.readingBitPosition
-                vl_values[i] = bc.decodeVarBits2()
-                vl_length[i] = bc.readingBitPosition - b0
+                vlValues[i] = bc.decodeVarBits2()
+                vlLength[i] = bc.readingBitPosition - b0
             }
             for (i in 0..4095) {
                 bc.reset()
                 val b0 = bc.writingBitPosition
                 bc.encodeVarBits2(i)
-                vc_values[i] = bc.b
-                vc_length[i] = bc.writingBitPosition - b0
+                vcValues[i] = bc.b
+                vcLength[i] = bc.writingBitPosition - b0
             }
             for (i in 0..1023) {
                 bc.reset()
@@ -273,15 +273,15 @@ open class BitCoderContext(private var ab: ByteArray) {
                 bc.b = 0x1000 + i
 
                 val b0 = bc.readingBitPosition
-                vl_values[i] = bc.decodeVarBits2()
-                vl_length[i] = bc.readingBitPosition - b0
+                vlValues[i] = bc.decodeVarBits2()
+                vlLength[i] = bc.readingBitPosition - b0
             }
             for (b in 0..255) {
                 var r = 0
                 for (i in 0..7) {
                     if ((b and (1 shl i)) != 0) r = r or (1 shl (7 - i))
                 }
-                reverse_byte[b] = r
+                reverseByte[b] = r
             }
             for (b in 0..7) {
                 bm2bits[1 shl b] = b

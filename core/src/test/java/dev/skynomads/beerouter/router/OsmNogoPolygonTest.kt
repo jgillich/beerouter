@@ -206,12 +206,12 @@ class OsmNogoPolygonTest {
         val lons: DoubleArray = doubleArrayOf(1.0, 1.0, 0.5, 0.5, 1.0, 1.0, -1.1, -1.0)
         val lats: DoubleArray = doubleArrayOf(-1.0, -0.1, -0.1, 0.1, 0.1, 1.0, 1.1, -1.0)
 
-        fun toOsmLon(lon: Double, offset_x: Int): Int {
-            return ((lon + 180.0) * 1000000.0 + 0.5).toInt() + offset_x // see ServerHandler.readPosition()
+        fun toOsmLon(lon: Double, offsetX: Int): Int {
+            return ((lon + 180.0) * 1000000.0 + 0.5).toInt() + offsetX // see ServerHandler.readPosition()
         }
 
-        fun toOsmLat(lat: Double, offset_y: Int): Int {
-            return ((lat + 90.0) * 1000000.0 + 0.5).toInt() + offset_y
+        fun toOsmLat(lat: Double, offsetY: Int): Int {
+            return ((lat + 90.0) * 1000000.0 + 0.5).toInt() + offsetY
         }
 
         @BeforeClass

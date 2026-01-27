@@ -131,19 +131,19 @@ class MicroCache2 : MicroCache {
                 var sizeoffset = 0
                 val nodeIdx = n + nodeIdxDiff.decodeSignedValue()
 
-                var dlon_remaining: Int
-                var dlat_remaining: Int
+                var dlonRemaining: Int
+                var dlatRemaining: Int
 
                 var isReverse = false
                 if (nodeIdx != n) { // internal (forward-) link
-                    dlon_remaining = alon[nodeIdx] - ilon
-                    dlat_remaining = alat[nodeIdx] - ilat
+                    dlonRemaining = alon[nodeIdx] - ilon
+                    dlatRemaining = alat[nodeIdx] - ilat
                 } else {
                     isReverse = bc.decodeBit()
-                    dlon_remaining = extLonDiff.decodeSignedValue()
-                    dlat_remaining = extLatDiff.decodeSignedValue()
+                    dlonRemaining = extLonDiff.decodeSignedValue()
+                    dlatRemaining = extLatDiff.decodeSignedValue()
                 }
-                //                if (MicroCache.debug) println("***     decoding link to " + (ilon + dlon_remaining) + "/" + (ilat + dlat_remaining) + " extern=" + (nodeIdx == n))
+                //                if (MicroCache.debug) println("***     decoding link to " + (ilon + dlonRemaining) + "/" + (ilat + dlatRemaining) + " extern=" + (nodeIdx == n))
 
                 val wayTags = wayTagCoder.decodeTagValueSet()
 
@@ -152,8 +152,8 @@ class MicroCache2 : MicroCache {
                     val startPointer = aboffset
                     sizeoffset = writeSizePlaceHolder()
 
-                    writeVarLengthSigned(dlon_remaining)
-                    writeVarLengthSigned(dlat_remaining)
+                    writeVarLengthSigned(dlonRemaining)
+                    writeVarLengthSigned(dlatRemaining)
 
                     validBits[n shr 5] = validBits[n shr 5] or (1 shl n) // mark source-node valid
                     if (nodeIdx != n) { // valid internal (forward-) link
@@ -168,8 +168,8 @@ class MicroCache2 : MicroCache {
                 if (!isReverse) { // write geometry for forward links only
                     var matcher =
                         if (wayTags == null || wayTags.accessType < 2) null else waypointMatcher
-                    val ilontarget = ilon + dlon_remaining
-                    val ilattarget = ilat + dlat_remaining
+                    val ilontarget = ilon + dlonRemaining
+                    val ilattarget = ilat + dlatRemaining
                     if (matcher != null) {
                         val useAsStartWay = wayValidator!!.checkStartWay(wayTags!!.data)
                         if (!matcher.start(ilon, ilat, ilontarget, ilattarget, useAsStartWay)) {
@@ -181,10 +181,10 @@ class MicroCache2 : MicroCache {
                     //                    if (MicroCache.debug) println("***       decoding geometry with count=" + transcount)
                     var count = transcount + 1
                     for (i in 0..<transcount) {
-                        val dlon = bc.decodePredictedValue(dlon_remaining / count)
-                        val dlat = bc.decodePredictedValue(dlat_remaining / count)
-                        dlon_remaining -= dlon
-                        dlat_remaining -= dlat
+                        val dlon = bc.decodePredictedValue(dlonRemaining / count)
+                        val dlat = bc.decodePredictedValue(dlatRemaining / count)
+                        dlonRemaining -= dlon
+                        dlatRemaining -= dlat
                         count--
                         val elediff = transEleDiff.decodeSignedValue()
                         if (wayTags != null) {
@@ -194,8 +194,8 @@ class MicroCache2 : MicroCache {
                         }
 
                         matcher?.transferNode(
-                            ilontarget - dlon_remaining,
-                            ilattarget - dlat_remaining
+                            ilontarget - dlonRemaining,
+                            ilattarget - dlatRemaining
                         )
                     }
                     matcher?.end()
@@ -456,8 +456,8 @@ class MicroCache2 : MicroCache {
                         if (dostats) bc.assignBits("transcount")
                         var transcount = 0
                         if (geometry != null) {
-                            var dlon_remaining = ilonlink - ilon
-                            var dlat_remaining = ilatlink - ilat
+                            var dlonRemaining = ilonlink - ilon
+                            var dlatRemaining = ilatlink - ilat
 
                             val r = ByteDataReader(geometry)
                             while (r.hasMoreData()) {
@@ -465,10 +465,10 @@ class MicroCache2 : MicroCache {
 
                                 val dlon = r.readVarLengthSigned()
                                 val dlat = r.readVarLengthSigned()
-                                bc.encodePredictedValue(dlon, dlon_remaining / count)
-                                bc.encodePredictedValue(dlat, dlat_remaining / count)
-                                dlon_remaining -= dlon
-                                dlat_remaining -= dlat
+                                bc.encodePredictedValue(dlon, dlonRemaining / count)
+                                bc.encodePredictedValue(dlat, dlatRemaining / count)
+                                dlonRemaining -= dlon
+                                dlatRemaining -= dlat
                                 if (count > 1) count--
                                 if (dostats) bc.assignBits("transpos")
                                 transEleDiff.encodeSignedValue(r.readVarLengthSigned())

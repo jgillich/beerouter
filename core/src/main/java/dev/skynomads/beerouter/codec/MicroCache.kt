@@ -126,17 +126,17 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
             var idx = 0
 
             val nab = ByteArray(ab.size - delbytes)
-            var nab_off = 0
+            var nabOff = 0
             for (i in 0..<size) {
                 val pos = fapos!![i]
                 if ((pos and -0x80000000) == 0) {
                     val start = startPos(i)
                     val end = fapos!![i]
                     val len = end - start
-                    System.arraycopy(ab, start, nab, nab_off, len)
+                    System.arraycopy(ab, start, nab, nabOff, len)
                     nfaid[idx] = faid!![i]
-                    nab_off += len
-                    nfapos[idx] = nab_off
+                    nabOff += len
+                    nfapos[idx] = nabOff
                     idx++
                 }
             }

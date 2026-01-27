@@ -126,7 +126,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
             noisybits++
             p = p shr 1
         }
-        return predictor + decodeNoisyDiff(noisybits + noisy_bits[p])
+        return predictor + decodeNoisyDiff(noisybits + noisyBits[p])
     }
 
     /**
@@ -230,7 +230,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
 
     companion object {
         private var statsPerName: MutableMap<String?, LongArray>? = null
-        private val noisy_bits = IntArray(1024)
+        private val noisyBits = IntArray(1024)
 
         init {
             // noisybits lookup
@@ -241,7 +241,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
                     noisybits++
                     p = p shr 1
                 }
-                noisy_bits[i] = noisybits
+                noisyBits[i] = noisybits
             }
         }
 
