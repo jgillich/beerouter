@@ -26,7 +26,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 public class RoutingEngine(private val routingContext: RoutingContext) : Thread() {
-    private var logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(RoutingEngine::class.java)
 
     private var nodesCache: NodesCache? = null
     private val openSet = SortedHeap<OsmPath?>()
@@ -64,19 +64,14 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         try {
             if (routingContext.allowSamewayback) {
                 if (waypoints.size == 2) {
-                    val onn =
-                        OsmNodeNamed(OsmNode(waypoints[0].iLon, waypoints[0].iLat))
-                    onn.name = "to"
+                    val onn = OsmNodeNamed(OsmNode(waypoints[0].iLon, waypoints[0].iLat)).apply { name = "to" }
                     waypoints.add(onn)
                 } else {
-                    waypoints[waypoints.size - 1].name =
-                        "via" + (waypoints.size - 1) + "_center"
-                    val newpoints: MutableList<OsmNodeNamed> = ArrayList()
+                    waypoints[waypoints.size - 1].name = "via${waypoints.size - 1}_center"
+                    val newpoints = mutableListOf<OsmNodeNamed>()
                     for (i in waypoints.size - 2 downTo 0) {
                         // System.out.println("back " + waypoints.get(i));
-                        val onn =
-                            OsmNodeNamed(OsmNode(waypoints[i].iLon, waypoints[i].iLat))
-                        onn.name = "via"
+                        val onn = OsmNodeNamed(OsmNode(waypoints[i].iLon, waypoints[i].iLat)).apply { name = "via" }
                         newpoints.add(onn)
                     }
                     newpoints[newpoints.size - 1].name = "to"
@@ -95,7 +90,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 // we are only looking for info
                 if (routingContext.ai != null) return null
 
-                track.name = "brouter_" + routingContext.profile.name + "_" + i
+                track.name = "brouter_${routingContext.profile.name}_$i"
 
                 if (i != min(3, max(0, routingContext.alternativeIdx))) {
                     i++
@@ -117,10 +112,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     public suspend fun doGetInfo(waypoints: List<OsmNodeNamed>): OsmTrack? {
         routingContext.freeNoWays()
 
-        val wpt1 = MatchedWaypoint()
-        wpt1.waypoint = waypoints[0]
-        wpt1.name = "wpt_info"
-        val listOne: MutableList<MatchedWaypoint> = ArrayList()
+        val wpt1 = MatchedWaypoint().apply {
+            waypoint = waypoints[0]
+            name = "wpt_info"
+        }
+        val listOne = mutableListOf<MatchedWaypoint>()
         listOne.add(wpt1)
         matchWaypointsToNodes(listOne)
 
@@ -130,40 +126,40 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         val start1 = nodesCache!!.getGraphNode(listOne[0].node1!!)
         nodesCache!!.obtainNonHollowNode(start1)
 
-        guideTrack = OsmTrack()
-        guideTrack!!.addNode(
-            OsmPathElement.create(
-                wpt1.node2!!.iLon,
-                wpt1.node2!!.iLat,
-                0.toShort(),
-                null
+        guideTrack = OsmTrack().apply {
+            addNode(
+                OsmPathElement.create(
+                    wpt1.node2!!.iLon,
+                    wpt1.node2!!.iLat,
+                    0.toShort(),
+                    null
+                )
             )
-        )
-        guideTrack!!.addNode(
-            OsmPathElement.create(
-                wpt1.node1!!.iLon,
-                wpt1.node1!!.iLat,
-                0.toShort(),
-                null
+            addNode(
+                OsmPathElement.create(
+                    wpt1.node1!!.iLon,
+                    wpt1.node1!!.iLat,
+                    0.toShort(),
+                    null
+                )
             )
-        )
+        }
 
-        matchedWaypoints = ArrayList()
-        val wp1 = MatchedWaypoint()
-        wp1.crosspoint = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-        wp1.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-        wp1.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        matchedWaypoints = mutableListOf()
+        val wp1 = MatchedWaypoint().apply {
+            crosspoint = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+            node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+            node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        }
         matchedWaypoints.add(wp1)
-        val wp2 = MatchedWaypoint()
-        wp2.crosspoint = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
-        wp2.node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
-        wp2.node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        val wp2 = MatchedWaypoint().apply {
+            crosspoint = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+            node1 = OsmNode(wpt1.node1!!.iLon, wpt1.node1!!.iLat)
+            node2 = OsmNode(wpt1.node2!!.iLon, wpt1.node2!!.iLat)
+        }
         matchedWaypoints.add(wp2)
 
-        val t = findTrack(wp1, wp2, null, null, false)
-        if (t == null) {
-            return null
-        }
+        val t = findTrack(wp1, wp2, null, null, false) ?: return null
 
         t.matchedWaypoints = matchedWaypoints
         t.name = "getinfo"
@@ -179,7 +175,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 minIdx = i
             }
         }
-        val otherIdx: Int = if (minIdx == t.nodes.size - 1) {
+        val otherIdx = if (minIdx == t.nodes.size - 1) {
             minIdx - 1
         } else {
             minIdx + 1
@@ -187,17 +183,15 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         val otherdist = t.nodes[otherIdx].calcDistance(listOne[0].crosspoint!!)
         val minSElev = t.nodes[minIdx].sElev.toInt()
         val otherSElev = t.nodes[otherIdx].sElev.toInt()
-        var diffSElev: Int
-        diffSElev = otherSElev - minSElev
+        val diffSElev = otherSElev - minSElev
         val diff = mindist.toDouble() / (mindist + otherdist) * diffSElev
 
 
-        val n = OsmNodeNamed(listOne[0].crosspoint!!)
-        n.name = wpt1.name
-        n.sElev = if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE
-
-        n.nodeDescription =
-            if (start1 != null && start1.firstlink != null) start1.firstlink!!.descriptionBitmap else null
+        val n = OsmNodeNamed(listOne[0].crosspoint!!).apply {
+            name = wpt1.name
+            sElev = if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE
+            nodeDescription = start1?.firstlink?.descriptionBitmap
+        }
         t.pois.add(n)
         t.matchedWaypoints = listOne
         t.exportWaypoints = routingContext.exportWaypoints
@@ -208,13 +202,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
     public suspend fun doRoundTrip(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val waypoints = waypoints.toMutableList()
         routingContext.global.useDynamicDistance = true
-        val searchRadius =
-            (if (routingContext.roundTripDistance == null) 1500 else routingContext.roundTripDistance)!!.toDouble()
-        var direction =
-            (if (routingContext.startDirection == null) -1 else routingContext.startDirection)!!.toDouble()
-        (if (routingContext.roundTripDirectionAdd == null) roundtripDefaultDirectionAdd else routingContext.roundTripDirectionAdd)!!.toDouble()
-        if (direction == -1.0) direction =
-            getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
+        val searchRadius = (routingContext.roundTripDistance ?: 1500).toDouble()
+        var direction = (routingContext.startDirection ?: -1).toDouble()
+        if (direction == -1.0) direction = getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
 
         if (routingContext.allowSamewayback) {
             val pos = destination(
@@ -223,12 +213,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 searchRadius,
                 direction
             )
-            val wpt2 = MatchedWaypoint()
-            wpt2.waypoint = OsmNode(pos[0], pos[1])
-            wpt2.name = "rt1_$direction"
+            val wpt2 = MatchedWaypoint().apply {
+                waypoint = OsmNode(pos[0], pos[1])
+                name = "rt1_$direction"
+            }
 
-            val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-            onn.name = "rt1"
+            val onn = OsmNodeNamed(OsmNode(pos[0], pos[1])).apply { name = "rt1" }
             waypoints.add(onn)
         } else {
             buildPointsFromCircle(
@@ -259,72 +249,61 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 searchRadius,
                 startAngle - anAngle
             )
-            val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-            onn.name = "rt$i"
+            val onn = OsmNodeNamed(OsmNode(pos[0], pos[1])).apply { name = "rt$i" }
             waypoints.add(onn)
         }
 
-        val onn = OsmNodeNamed(waypoints[0])
-        onn.name = "to_rt"
+        val onn = OsmNodeNamed(waypoints[0]).apply { name = "to_rt" }
         waypoints.add(onn)
     }
 
     private fun getRandomDirectionFromData(wp: OsmNodeNamed, searchRadius: Double): Int {
         val start = System.currentTimeMillis()
 
-        var preferredRandomType: Int
-        val consider_elevation =
-            routingContext.way.getVariableValue("consider_elevation", 0f) == 1f
-        val consider_forest =
-            routingContext.way.getVariableValue("consider_forest", 0f) == 1f
+        val consider_elevation = routingContext.way.getVariableValue("consider_elevation", 0f) == 1f
+        val consider_forest = routingContext.way.getVariableValue("consider_forest", 0f) == 1f
         val consider_river = routingContext.way.getVariableValue("consider_river", 0f) == 1f
-        preferredRandomType = if (consider_elevation) {
+
+        val preferredRandomType = if (consider_elevation) {
             AreaInfo.RESULT_TYPE_ELEV50
         } else if (consider_forest) {
             AreaInfo.RESULT_TYPE_GREEN
         } else if (consider_river) {
             AreaInfo.RESULT_TYPE_RIVER
         } else {
-            return (Math.random() * 360).toInt()
+            return (kotlin.random.Random.nextDouble() * 360).toInt()
         }
 
-        val wpt1 = MatchedWaypoint()
-        wpt1.waypoint = wp
-        wpt1.name = "info"
-        wpt1.radius = searchRadius * 1.5
+        val wpt1 = MatchedWaypoint().apply {
+            waypoint = wp
+            name = "info"
+            radius = searchRadius * 1.5
+        }
 
-        val ais: MutableList<AreaInfo> = ArrayList()
+        val ais = mutableListOf<AreaInfo>()
         val areareader = AreaReader()
-        if (routingContext.rawAreaPath != null) {
-            val fai = File(routingContext.rawAreaPath)
+        routingContext.rawAreaPath?.let { path ->
+            val fai = File(path)
             if (fai.exists()) {
                 areareader.readAreaInfo(fai, wpt1, ais)
             }
         }
 
         if (ais.isEmpty()) {
-            val listStart: MutableList<MatchedWaypoint> = ArrayList()
-            listStart.add(wpt1)
+            val listStart = mutableListOf<MatchedWaypoint>().apply { add(wpt1) }
+            val wpliststart = mutableListOf<OsmNodeNamed>().apply { add(wp) }
+            val listOne = mutableListOf<OsmNodeNamed>()
 
-            val wpliststart: MutableList<OsmNodeNamed> = ArrayList()
-            wpliststart.add(wp)
+            for (a in 45..315 step 90) {
+                val pos = destination(wp.iLon, wp.iLat, searchRadius * 1.5, a.toDouble())
+                val onn = OsmNodeNamed(OsmNode(pos[0], pos[1])).apply { name = "via$a" }
+                listOne.add(onn)
 
-            val listOne: MutableList<OsmNodeNamed> = ArrayList()
-
-            run {
-                var a = 45
-                while (a < 360) {
-                    val pos = destination(wp.iLon, wp.iLat, searchRadius * 1.5, a.toDouble())
-                    val onn = OsmNodeNamed(OsmNode(pos[0], pos[1]))
-                    onn.name = "via$a"
-                    listOne.add(onn)
-
-                    val wpt = MatchedWaypoint()
-                    wpt.waypoint = onn
-                    wpt.name = onn.name
-                    listStart.add(wpt)
-                    a += 90
+                val wpt = MatchedWaypoint().apply {
+                    waypoint = onn
+                    name = onn.name
                 }
+                listStart.add(wpt)
             }
 
             val rc = RoutingContext(routingContext.profile, routingContext.segmentDir)
@@ -338,8 +317,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
             val start1 = re.nodesCache!!.getStartNode(listStart[0].node1!!.idFromPos)
 
-            val elev =
-                (start1?.elev ?: 0.0) // listOne.get(0).crosspoint.getElev();
+            val elev = start1?.elev ?: 0.0 // listOne.get(0).crosspoint.getElev();
 
             var maxlon = Int.MIN_VALUE
             var minlon = Int.MAX_VALUE
@@ -351,11 +329,13 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 maxlat = max(on.iLat, maxlat)
                 minlat = min(on.iLat, minlat)
             }
-            val searchRect = OsmNogoPolygon(true)
-            searchRect.addVertex(maxlon, maxlat)
-            searchRect.addVertex(maxlon, minlat)
-            searchRect.addVertex(minlon, minlat)
-            searchRect.addVertex(minlon, maxlat)
+
+            val searchRect = OsmNogoPolygon(true).apply {
+                addVertex(maxlon, maxlat)
+                addVertex(maxlon, minlat)
+                addVertex(minlon, minlat)
+                addVertex(minlon, maxlat)
+            }
 
             for (a in 0..3) {
                 rc.ai = AreaInfo(a * 90 + 90)
@@ -385,11 +365,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 ais
             )
 
-            if (routingContext.rawAreaPath != null) {
+            routingContext.rawAreaPath?.let { path ->
                 try {
                     wpt1.radius = searchRadius * 1.5
-                    areareader.writeAreaInfo(routingContext.rawAreaPath!!, wpt1, ais)
+                    areareader.writeAreaInfo(path, wpt1, ais)
                 } catch (e: Exception) {
+                    // Silently ignore exceptions
                 }
             }
             rc.ai = null
@@ -404,23 +385,14 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         //  System.out.println("\n" + ai.toString());
         //}
         when (preferredRandomType) {
-            AreaInfo.RESULT_TYPE_ELEV50 -> Collections.sort(
-                ais,
-                Comparator<AreaInfo> { o1, o2 -> o2.elev50Weight - o1.elev50Weight })
-
-            AreaInfo.RESULT_TYPE_GREEN -> Collections.sort(
-                ais,
-                Comparator<AreaInfo> { o1, o2 -> o2.green - o1.green })
-
-            AreaInfo.RESULT_TYPE_RIVER -> Collections.sort(
-                ais,
-                Comparator<AreaInfo> { o1, o2 -> o2.river - o1.river })
-
-            else -> return (Math.random() * 360).toInt()
+            AreaInfo.RESULT_TYPE_ELEV50 -> ais.sortByDescending { it.elev50Weight }
+            AreaInfo.RESULT_TYPE_GREEN -> ais.sortByDescending { it.green }
+            AreaInfo.RESULT_TYPE_RIVER -> ais.sortByDescending { it.river }
+            else -> return (kotlin.random.Random.nextDouble() * 360).toInt()
         }
 
         val angle = ais[0].direction
-        return angle - 30 + (Math.random() * 60).toInt()
+        return angle - 30 + (kotlin.random.Random.nextDouble() * 60).toInt()
     }
 
 
@@ -469,14 +441,13 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
                         if (msg?.contains("incline") == true) {
                             hasInclineTags = true
-                            try {
-                                tmpincline = msg["incline"]!!
+                            tmpincline = try {
+                                msg["incline"]!!
                                     .replace("%", "")
                                     .replace("°", "")
-                                    .toDouble()
-                                if (reverse) tmpincline *= -1.0
+                                    .toDouble().let { if (reverse) -it else it }
                             } catch (e: NumberFormatException) {
-                                tmpincline = 0.0
+                                0.0
                             }
                         } else {
                             tmpincline = 0.0
@@ -501,15 +472,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                 dist = 0
             } else if (n.sElev != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startIdx == 0) {
                 // fill at start
-                for (i in 0..<idx) {
-                    track.nodes[i].sElev = n.sElev
-                }
+                track.nodes.subList(0, idx).forEach { it.sElev = n.sElev }
             } else if (n.sElev == Short.MIN_VALUE && idx == track.nodes.size - 1) {
                 // fill at end
                 startIdx = idx
-                for (i in startIdx..<track.nodes.size) {
-                    track.nodes[i].sElev = (lastElev)
-                }
+                track.nodes.subList(startIdx, track.nodes.size).forEach { it.sElev = lastElev }
             } else if (n.sElev == Short.MIN_VALUE) {
                 if (lastPt != null) dist += n.calcDistance(lastPt)
             }
@@ -1328,63 +1295,59 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             logger.info("second check for way points")
             resetCache(false)
             range = -maxDynamicRange.toDouble()
-            val tmp: MutableList<MatchedWaypoint> = ArrayList()
-            for (mwp in unmatchedWaypoints) {
-                if (mwp.crosspoint == null || mwp.radius >= routingContext.global.waypointCatchingRange) tmp.add(
-                    mwp
-                )
-            }
+            val tmp = unmatchedWaypoints.filter { it.crosspoint == null || it.radius >= routingContext.global.waypointCatchingRange }.toMutableList()
             ok = nodesCache!!.matchWaypointsToNodes(tmp, range, islandNodePairs)
         }
         if (!ok) {
             for (mwp in unmatchedWaypoints) {
-                requireNotNull(mwp.crosspoint) { mwp.name + "-position not mapped in existing datafile" }
+                requireNotNull(mwp.crosspoint) { "${mwp.name}-position not mapped in existing datafile" }
             }
         }
         // add beeline points when not already done
         if (useDynamicDistance && !useNodePoints && bAddBeeline) {
-            val waypoints: MutableList<MatchedWaypoint> = ArrayList()
+            val waypoints = mutableListOf<MatchedWaypoint>()
             for (i in unmatchedWaypoints.indices) {
                 val wp = unmatchedWaypoints[i]
                 if (wp.waypoint!!.calcDistance(wp.crosspoint!!) > routingContext.global.waypointCatchingRange) {
                     val nmw = MatchedWaypoint()
                     if (i == 0) {
-                        var onn = OsmNodeNamed(wp.waypoint!!)
-                        onn.name = "from"
-                        nmw.waypoint = onn
-                        nmw.name = onn.name
-                        nmw.crosspoint = OsmNode(wp.waypoint!!.iLon, wp.waypoint!!.iLat)
-                        nmw.type = MatchedWaypoint.Type.DIRECT
-                        onn = OsmNodeNamed(wp.crosspoint!!)
-                        onn.name = wp.name + "_add"
+                        var onn = OsmNodeNamed(wp.waypoint!!).apply { name = "from" }
+                        nmw.apply {
+                            waypoint = onn
+                            name = onn.name
+                            crosspoint = OsmNode(wp.waypoint!!.iLon, wp.waypoint!!.iLat)
+                            type = MatchedWaypoint.Type.DIRECT
+                        }
+                        onn = OsmNodeNamed(wp.crosspoint!!).apply { name = "${wp.name}_add" }
                         wp.waypoint = onn
                         waypoints.add(nmw)
                         wp.name += "_add"
                         waypoints.add(wp)
                     } else {
-                        val onn = OsmNodeNamed(wp.crosspoint!!)
-                        onn.name = wp.name + "_add"
-                        nmw.waypoint = onn
-                        nmw.crosspoint = OsmNode(wp.crosspoint!!.iLon, wp.crosspoint!!.iLat)
-                        nmw.node1 = OsmNode(wp.node1!!.iLon, wp.node1!!.iLat)
-                        nmw.node2 = OsmNode(wp.node2!!.iLon, wp.node2!!.iLat)
-                        nmw.type = MatchedWaypoint.Type.DIRECT
+                        val onn = OsmNodeNamed(wp.crosspoint!!).apply { name = "${wp.name}_add" }
+                        nmw.apply {
+                            waypoint = onn
+                            crosspoint = OsmNode(wp.crosspoint!!.iLon, wp.crosspoint!!.iLat)
+                            node1 = OsmNode(wp.node1!!.iLon, wp.node1!!.iLat)
+                            node2 = OsmNode(wp.node2!!.iLon, wp.node2!!.iLat)
+                            type = MatchedWaypoint.Type.DIRECT
+                            name = wp.name
+                        }
 
-                        if (wp.name != null) nmw.name = wp.name
                         waypoints.add(nmw)
                         wp.name += "_add"
                         waypoints.add(wp)
-                        if (wp.name!!.startsWith("via")) {
+                        if (wp.name?.startsWith("via") == true) {
                             wp.type = MatchedWaypoint.Type.DIRECT
-                            val emw = MatchedWaypoint()
-                            val onn2 = OsmNodeNamed(wp.crosspoint!!)
-                            onn2.name = wp.name + "_2"
-                            emw.name = onn2.name
-                            emw.waypoint = onn2
-                            emw.crosspoint = OsmNode(nmw.crosspoint!!.iLon, nmw.crosspoint!!.iLat)
-                            emw.node1 = OsmNode(nmw.node1!!.iLon, nmw.node1!!.iLat)
-                            emw.node2 = OsmNode(nmw.node2!!.iLon, nmw.node2!!.iLat)
-                            emw.type = MatchedWaypoint.Type.SHAPING
+                            val emw = MatchedWaypoint().apply {
+                                val onn2 = OsmNodeNamed(wp.crosspoint!!).apply { name = "${wp.name}_2" }
+                                this.name = onn2.name
+                                this.waypoint = onn2
+                                this.crosspoint = OsmNode(nmw.crosspoint!!.iLon, nmw.crosspoint!!.iLat)
+                                this.node1 = OsmNode(nmw.node1!!.iLon, nmw.node1!!.iLat)
+                                this.node2 = OsmNode(nmw.node2!!.iLon, nmw.node2!!.iLat)
+                                this.type = MatchedWaypoint.Type.SHAPING
+                            }
                             waypoints.add(emw)
                         }
                         wp.crosspoint = OsmNode(wp.waypoint!!.iLon, wp.waypoint!!.iLat)
