@@ -3,7 +3,6 @@ plugins {
     id 'maven-publish'
     id 'java'
     id('org.jetbrains.kotlin.jvm')
-    id("org.openrewrite.rewrite") version "7.25.0"
     id("org.jetbrains.kotlinx.benchmark") version "0.4.15"
 }
 
@@ -64,15 +63,9 @@ publishing {
     }
 }
 
-
-rewrite {
-    activeRecipe("org.openrewrite.kotlin.cleanup.EqualsMethodUsage")
-    activeRecipe("org.openrewrite.kotlin.cleanup.ImplicitParameterInLambda")
-    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveLambdaArgumentParentheses")
-    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveTrailingComma")
-    activeRecipe("org.openrewrite.kotlin.cleanup.RemoveTrailingSemicolon")
-    activeRecipe("org.openrewrite.kotlin.cleanup.ReplaceCharToIntWithCode")
-    activeRecipe("org.openrewrite.kotlin.cleanup.UnnecessaryTypeParentheses")
-    activeRecipe("org.openrewrite.kotlin.OrderImports")
-    setExportDatatables(true)
+test {
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
 }
