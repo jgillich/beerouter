@@ -125,72 +125,15 @@ class SortedHeap<V> {
         }
 
         val minBin: SortedBin
-            // unrolled loop for performance sake
             get() {
-                var minBin: SortedBin? = this
-                var bin: SortedBin? = this
-                if ((bin!!.nextNonEmpty.also { bin = it }) == null) return minBin!!
-                if (bin!!.lv < minBin!!.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
-                if ((bin.nextNonEmpty.also { bin = it }) == null) return minBin
-                if (bin!!.lv < minBin.lv) minBin = bin
+                var minBin = this
+                var current = this.nextNonEmpty
+                while (current != null) {
+                    if (current.lv < minBin.lv) {
+                        minBin = current
+                    }
+                    current = current.nextNonEmpty
+                }
                 return minBin
             }
     }
