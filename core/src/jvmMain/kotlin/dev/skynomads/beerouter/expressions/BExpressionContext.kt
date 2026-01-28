@@ -542,7 +542,7 @@ abstract class BExpressionContext protected constructor(
                                 inch = value.toInt()
                                 feet += inch / 12f
                             }
-                            value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
+                            value = "%.1f".format(Locale.US, feet * 0.3048f)
                         } else if (value.contains("'")) {
                             var feet = 0f
                             var inch: Int
@@ -558,29 +558,29 @@ abstract class BExpressionContext protected constructor(
                                 inch = value.toInt()
                                 feet += inch / 12f
                             }
-                            value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
+                            value = "%.1f".format(Locale.US, feet * 0.3048f)
                         } else if (value.contains("in") || value.contains("\"")) {
                             if (value.indexOf("in") > 0) value =
                                 value.substringBefore("in")
                             if (value.indexOf("\"") > 0) value =
                                 value.substringBefore("\"")
                             val inch: Float = value.toFloat()
-                            value = String.format(Locale.US, "%3.1f", inch * 0.0254f)
+                            value = "%.1f".format(Locale.US, inch * 0.0254f)
                         } else if (value.contains("feet") || value.contains("foot")) {
                             var feet: Float
                             val s = value.substringBefore("f")
                             feet = s.toFloat()
-                            value = String.format(Locale.US, "%3.1f", feet * 0.3048f)
+                            value = "%.1f".format(Locale.US, feet * 0.3048f)
                         } else if (value.contains("fathom") || value.contains("fm")) {
                             val s = value.substringBefore("f")
                             val fathom = s.toFloat()
-                            value = String.format(Locale.US, "%3.1f", fathom * 1.8288f)
+                            value = "%.1f".format(Locale.US, fathom * 1.8288f)
                         } else if (value.contains("cm")) {
                             val sa = value.split("cm".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
                             if (sa.isNotEmpty()) value = sa[0]
                             val cm = value.toFloat()
-                            value = String.format(Locale.US, "%3.1f", cm / 100f)
+                            value = "%.1f".format(Locale.US, cm / 100f)
                         } else if (value.contains("meter")) {
                             value = value.substringBefore("m")
                         } else if (value.contains("mph")) {
@@ -588,13 +588,13 @@ abstract class BExpressionContext protected constructor(
                                 .toTypedArray()
                             if (sa.isNotEmpty()) value = sa[0]
                             val mph = value.toFloat()
-                            value = String.format(Locale.US, "%3.1f", mph * 1.609344f)
+                            value = "%.1f".format(Locale.US, mph * 1.609344f)
                         } else if (value.contains("knot")) {
                             val sa = value.split("knot".toRegex()).dropLastWhile { it.isEmpty() }
                                 .toTypedArray()
                             if (sa.isNotEmpty()) value = sa[0]
                             val nm = value.toFloat()
-                            value = String.format(Locale.US, "%3.1f", nm * 1.852f)
+                            value = "%.1f".format(Locale.US, nm * 1.852f)
                         } else if (value.contains("kmh") || value.contains("km/h") || value.contains(
                                 "kph"
                             )
