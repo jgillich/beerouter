@@ -10,6 +10,12 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(25)
 }

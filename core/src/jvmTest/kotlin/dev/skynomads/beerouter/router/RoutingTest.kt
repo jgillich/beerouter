@@ -1,14 +1,14 @@
 package dev.skynomads.beerouter.router
 
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
 import org.maplibre.spatialk.geojson.Position
 import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import kotlin.test.BeforeTest
+import kotlin.test.DefaultAsserter.assertTrue
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.time.Duration.Companion.seconds
@@ -27,7 +27,7 @@ class RoutingTest {
         return n
     }
 
-    @Before
+    @BeforeTest
     fun before() {
         if (!segmentFile.exists()) {
             val url = URL("https://brouter.de/brouter/segments4/E5_N45.rd5")
@@ -107,7 +107,7 @@ class RoutingTest {
 
     fun routeBrouter(waypoints: List<OsmNodeNamed>): btools.router.OsmTrack {
         val profile = File(root, "../misc/profiles2/trekking.brf")
-        Assert.assertTrue("profile exists ${segmentFile.path}", profile.exists())
+        assertTrue("profile exists ${segmentFile.path}", profile.exists())
 
         val rc = btools.router.RoutingContext().apply {
             turnInstructionMode = 2
@@ -135,7 +135,7 @@ class RoutingTest {
 
     suspend fun routeBeerouter(waypoints: List<OsmNodeNamed>): OsmTrack? {
         val profile = File(root, "../misc/profiles2/trekking.brf")
-        Assert.assertTrue("profile exists ${segmentFile.path}", profile.exists())
+        kotlin.test.assertTrue(profile.exists(), "profile exists ${segmentFile.path}")
 
 
         val ctx = RoutingContext(

@@ -2,11 +2,11 @@ package dev.skynomads.beerouter.util
 
 import dev.skynomads.beerouter.osm.toIntLatitude
 import dev.skynomads.beerouter.osm.toIntLongitude
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class CheapAngleMeterTest {
     @Test
@@ -27,7 +27,6 @@ class CheapAngleMeterTest {
         lon2 = 2.317471.toIntLongitude()
         lat2 = 48.818043.toIntLatitude()
         assertEquals(
-            "Works for an angle between -pi/4 and pi/4",
             -10.0,
             am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
             0.05 * 10.0
@@ -40,7 +39,6 @@ class CheapAngleMeterTest {
         lon2 = lon0
         lat2 = lat0
         assertEquals(
-            "Works for an angle between 3*pi/4 and 5*pi/4",
             180.0,
             am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
             0.05 * 180.0
@@ -53,7 +51,6 @@ class CheapAngleMeterTest {
         lon2 = 2.317673.toIntLongitude()
         lat2 = 48.817799.toIntLatitude()
         assertEquals(
-            "Works for an angle between -3*pi/4 and -pi/4",
             100.0,
             am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
             0.1 * 100.0
@@ -66,7 +63,6 @@ class CheapAngleMeterTest {
         lon2 = 2.317497.toIntLongitude()
         lat2 = 48.818264.toIntLatitude()
         assertEquals(
-            "Works for an angle between pi/4 and 3*pi/4",
             -100.0,
             am.calcAngle(lon0, lat0, lon1, lat1, lon2, lat2),
             0.1 * 100.0
@@ -106,8 +102,8 @@ class CheapAngleMeterTest {
                 val c1 = cos(a1 * PI / 180.0)
                 val c2 = am.cosAngle
 
-                assertEquals("angle mismatch for afrom=$afrom ato=$ato", a1, a2, 0.2)
-                assertEquals("cosinus mismatch for afrom=$afrom ato=$ato", c1, c2, 0.001)
+                assertEquals(a1, a2, 0.2)
+                assertEquals(c1, c2, 0.001)
                 ato += 10.0
             }
             afrom += 10.0
@@ -127,39 +123,39 @@ class CheapAngleMeterTest {
         lat2 = 60.0.toIntLatitude()
 
         var angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", 0.0, angle, 0.0)
+        assertEquals(0.0, angle, 0.0)
 
         lon2 = 10.0.toIntLongitude()
         lat2 = 40.0.toIntLatitude()
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", 180.0, angle, 0.0)
+        assertEquals(180.0, angle, 0.0)
 
         lon2 = 0.0.toIntLongitude()
         lat2 = 50.0.toIntLatitude()
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", -90.0, angle, 0.0)
+        assertEquals(-90.0, angle, 0.0)
 
         lon2 = 20.0.toIntLongitude()
         lat2 = 50.0.toIntLatitude()
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", 90.0, angle, 0.0)
+        assertEquals(90.0, angle, 0.0)
 
         lon2 = 20.0.toIntLongitude()
         lat2 = 60.0.toIntLatitude()
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", 45.0, angle, 0.0)
+        assertEquals(45.0, angle, 0.0)
 
         lon2 = 0.0.toIntLongitude()
         lat2 = 60.0.toIntLatitude()
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", -45.0, angle, 0.0)
+        assertEquals(-45.0, angle, 0.0)
 
         lon1 = 1
         lat1 = 1
         lon2 = 2
         lat2 = 2
         angle = CheapAngleMeter.getAngle(lon1, lat1, lon2, lat2)
-        assertEquals("Angle = $angle", 45.0, angle, 0.0)
+        assertEquals(45.0, angle, 0.0)
     }
 
     @Test
@@ -175,39 +171,39 @@ class CheapAngleMeterTest {
         lat2 = 60.0.toIntLatitude()
 
         var angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 0.0, angle, 0.0)
+        assertEquals(0.0, angle, 0.0)
 
         lon2 = 10.0.toIntLongitude()
         lat2 = 40.0.toIntLatitude()
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 180.0, angle, 0.0)
+        assertEquals(180.0, angle, 0.0)
 
         lon2 = 0.0.toIntLongitude()
         lat2 = 50.0.toIntLatitude()
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 270.0, angle, 0.0)
+        assertEquals(270.0, angle, 0.0)
 
         lon2 = 20.0.toIntLongitude()
         lat2 = 50.0.toIntLatitude()
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 90.0, angle, 0.0)
+        assertEquals(90.0, angle, 0.0)
 
         lon2 = 20.0.toIntLongitude()
         lat2 = 60.0.toIntLatitude()
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 45.0, angle, 0.0)
+        assertEquals(45.0, angle, 0.0)
 
         lon2 = 0.0.toIntLongitude()
         lat2 = 60.0.toIntLatitude()
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 315.0, angle, 0.0)
+        assertEquals(315.0, angle, 0.0)
 
         lon1 = 1
         lat1 = 1
         lon2 = 2
         lat2 = 2
         angle = CheapAngleMeter.getDirection(lon1, lat1, lon2, lat2)
-        assertEquals("Direction = $angle", 45.0, angle, 0.0)
+        assertEquals(45.0, angle, 0.0)
     }
 
     @Test
@@ -215,19 +211,19 @@ class CheapAngleMeterTest {
         val am = CheapAngleMeter()
 
         var n = 1.0
-        assertEquals("Direction  normalize = $n", 1.0, CheapAngleMeter.normalize(n), 0.0)
+        assertEquals(1.0, CheapAngleMeter.normalize(n), 0.0)
 
         n = -1.0
-        assertEquals("Direction normalize  = $n", 359.0, CheapAngleMeter.normalize(n), 0.0)
+        assertEquals(359.0, CheapAngleMeter.normalize(n), 0.0)
 
         n = 361.0
-        assertEquals("Direction normalize  = $n", 1.0, CheapAngleMeter.normalize(n), 0.0)
+        assertEquals(1.0, CheapAngleMeter.normalize(n), 0.0)
 
         n = 0.0
-        assertEquals("Direction  normalize = $n", 0.0, CheapAngleMeter.normalize(n), 0.0)
+        assertEquals(0.0, CheapAngleMeter.normalize(n), 0.0)
 
         n = 360.0
-        assertEquals("Direction  normalize = $n", 0.0, CheapAngleMeter.normalize(n), 0.0)
+        assertEquals(0.0, CheapAngleMeter.normalize(n), 0.0)
     }
 
     @Test
@@ -235,7 +231,6 @@ class CheapAngleMeterTest {
         var a1 = 90.0
         var a2 = 180.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             90.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0
@@ -244,7 +239,6 @@ class CheapAngleMeterTest {
         a1 = 180.0
         a2 = 90.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             90.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0
@@ -253,7 +247,6 @@ class CheapAngleMeterTest {
         a1 = 5.0
         a2 = 355.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             10.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0
@@ -262,7 +255,6 @@ class CheapAngleMeterTest {
         a1 = 355.0
         a2 = 5.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             10.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0
@@ -271,7 +263,6 @@ class CheapAngleMeterTest {
         a1 = 90.0
         a2 = 270.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             180.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0
@@ -280,7 +271,6 @@ class CheapAngleMeterTest {
         a1 = 270.0
         a2 = 90.0
         assertEquals(
-            "Direction diff $a1 $a2 = ",
             180.0,
             CheapAngleMeter.getDifferenceFromDirection(a1, a2),
             0.0

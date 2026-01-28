@@ -4,9 +4,10 @@ import dev.skynomads.beerouter.osm.toDoubleLatitude
 import dev.skynomads.beerouter.osm.toDoubleLongitude
 import dev.skynomads.beerouter.osm.toIntLatitude
 import dev.skynomads.beerouter.osm.toIntLongitude
-import org.junit.Assert
-import org.junit.Test
 import org.maplibre.spatialk.geojson.Position
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class CoordinateConversionTest {
 
@@ -32,15 +33,15 @@ class CoordinateConversionTest {
             val backToIntLat = doubleLat.toIntLatitude()
 
             // Allow for small rounding errors (typically within 1 unit due to floating point precision)
-            Assert.assertEquals(
-                "Longitude conversion should be accurate for $lon",
+            assertEquals(
                 lon,
                 backToIntLon,
+                message = "Longitude conversion should be accurate for $lon"
             )
-            Assert.assertEquals(
-                "Latitude conversion should be accurate for $lat",
+            assertEquals(
                 lat,
                 backToIntLat,
+                message = "Latitude conversion should be accurate for $lat"
             )
         }
     }
@@ -67,24 +68,24 @@ class CoordinateConversionTest {
             val node = OsmNode(position)
 
             // Check that the derived iLat/iLon properties match the original values (with tolerance for precision)
-            Assert.assertEquals("iLon should match original", lon, node.iLon)
-            Assert.assertEquals("iLat should match original", lat, node.iLat)
+            assertEquals(lon, node.iLon, message = "iLon should match original")
+            assertEquals(lat, node.iLat, message = "iLat should match original")
 
             // Check that the position is calculated correctly
             val expectedLon = lon.toDoubleLongitude()
             val expectedLat = lat.toDoubleLatitude()
 
-            Assert.assertEquals(
-                "Longitude should be calculated correctly",
+            assertEquals(
                 expectedLon,
                 node.position.longitude,
-                1e-6
+                1e-6,
+                "Longitude should be calculated correctly"
             )
-            Assert.assertEquals(
-                "Latitude should be calculated correctly",
+            assertEquals(
                 expectedLat,
                 node.position.latitude,
-                1e-6
+                1e-6,
+                "Latitude should be calculated correctly"
             )
         }
     }
@@ -111,15 +112,15 @@ class CoordinateConversionTest {
             val expectedILon = lon.toIntLongitude()
             val expectedILat = lat.toIntLatitude()
 
-            Assert.assertEquals(
-                "iLon should be calculated correctly from longitude $lon",
+            assertEquals(
                 expectedILon,
                 node.iLon,
+                message = "iLon should be calculated correctly from longitude $lon"
             )
-            Assert.assertEquals(
-                "iLat should be calculated correctly from latitude $lat",
+            assertEquals(
                 expectedILat,
                 node.iLat,
+                message = "iLat should be calculated correctly from latitude $lat"
             )
         }
     }
@@ -143,8 +144,8 @@ class CoordinateConversionTest {
             )
             val node = OsmNode(position)
 
-            Assert.assertEquals("iLon should match original for extreme value", lon, node.iLon)
-            Assert.assertEquals("iLat should match original for extreme value", lat, node.iLat)
+            assertEquals(lon, node.iLon, message = "iLon should match original for extreme value")
+            assertEquals(lat, node.iLat, message = "iLat should match original for extreme value")
         }
     }
 
@@ -177,15 +178,15 @@ class CoordinateConversionTest {
             val resultLat = positionLat.toIntLatitude()
 
             // Step 4: Check that the integer coordinates match the original (with tolerance for precision)
-            Assert.assertEquals(
-                "Longitude should be preserved through round-trip",
+            assertEquals(
                 originalLon,
                 resultLon,
+                message = "Longitude should be preserved through round-trip"
             )
-            Assert.assertEquals(
-                "Latitude should be preserved through round-trip",
+            assertEquals(
                 originalLat,
                 resultLat,
+                message = "Latitude should be preserved through round-trip"
             )
         }
     }

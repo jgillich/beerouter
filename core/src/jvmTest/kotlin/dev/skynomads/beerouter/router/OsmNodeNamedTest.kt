@@ -4,9 +4,10 @@ import dev.skynomads.beerouter.osm.toIntLatitude
 import dev.skynomads.beerouter.osm.toIntLongitude
 import dev.skynomads.beerouter.util.CheapRuler.destination
 import dev.skynomads.beerouter.util.CheapRuler.distance
-import org.junit.Assert
-import org.junit.Test
 import org.maplibre.spatialk.geojson.Position
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class OsmNodeNamedTest {
     @Test
@@ -29,39 +30,39 @@ class OsmNodeNamedTest {
         lon2 = 2.335018.toIntLongitude()
         lat2 = 48.824105.toIntLatitude()
         var totalSegmentLength = distance(lon1, lat1, lon2, lat2)
-        Assert.assertEquals(
-            "Works for segment aligned with the nogo center",
+        assertEquals(
             2 * node.radius,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.01 * (2 * node.radius)
+            0.01 * (2 * node.radius),
+            "Works for segment aligned with the nogo center"
         )
 
         // Check distance within radius is correctly computed for a given circle
         node.position = Position(2.33438, 48.824275)
-        Assert.assertEquals(
-            "Works for a segment with no particular properties",
+        assertEquals(
             27.5,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.1 * 27.5
+            0.1 * 27.5,
+            "Works for a segment with no particular properties"
         )
 
         // Check distance within radius is the same if we reverse start and end point
-        Assert.assertEquals(
-            "Works if we switch firs and last point",
-            node.distanceWithinRadius(lon2, lat2, lon1, lat1, totalSegmentLength),
+        assertEquals(
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.01
+            node.distanceWithinRadius(lon2, lat2, lon1, lat1, totalSegmentLength),
+            0.01,
+            "Works if we switch firs and last point"
         )
 
         // Check distance within radius is correctly computed if a point is inside the circle
         lon2 = 2.334495.toIntLongitude()
         lat2 = 48.824045.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
-        Assert.assertEquals(
-            "Works if last point is within the circle",
+        assertEquals(
             17.0,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.1 * 17
+            0.1 * 17,
+            "Works if last point is within the circle"
         )
 
         lon1 = 2.334495.toIntLongitude()
@@ -69,11 +70,11 @@ class OsmNodeNamedTest {
         lon2 = 2.335018.toIntLongitude()
         lat2 = 48.824105.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
-        Assert.assertEquals(
-            "Works if first point is within the circle",
+        assertEquals(
             9.0,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.1 * 9
+            0.1 * 9,
+            "Works if first point is within the circle"
         )
 
         lon1 = 2.33427.toIntLongitude()
@@ -81,11 +82,11 @@ class OsmNodeNamedTest {
         lon2 = 2.334587.toIntLongitude()
         lat2 = 48.824061.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
-        Assert.assertEquals(
-            "Works if both points are within the circle",
+        assertEquals(
             25.0,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.1 * 25
+            0.1 * 25,
+            "Works if both points are within the circle"
         )
 
         // Check distance within radius is correctly computed if both points are on
@@ -98,11 +99,11 @@ class OsmNodeNamedTest {
         lon2 = 2.33431.toIntLongitude()
         lat2 = 48.824027.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
-        Assert.assertEquals(
-            "Works if both points are on the same side of the circle center",
+        assertEquals(
             5.0,
             node.distanceWithinRadius(lon1, lat1, lon2, lat2, totalSegmentLength),
-            0.1 * 5
+            0.1 * 5,
+            "Works if both points are on the same side of the circle center"
         )
     }
 
@@ -123,9 +124,9 @@ class OsmNodeNamedTest {
         while (i <= 360) {
             val pos = destination(node.iLon, node.iLat, startDist, i.toDouble())
             val dist = distance(node.iLon, node.iLat, pos[0], pos[1])
-            Assert.assertTrue(
-                "pos " + pos[0] + " " + pos[1] + " distance (" + dist + ") should be around (" + startDist + ")",
-                dist - 1 < startDist && dist + 1 > startDist
+            assertTrue(
+                dist - 1 < startDist && dist + 1 > startDist,
+                "pos " + pos[0] + " " + pos[1] + " distance (" + dist + ") should be around (" + startDist + ")"
             )
             i += 45
         }
