@@ -1,5 +1,6 @@
 package dev.skynomads.beerouter.osm
 
+import org.maplibre.spatialk.geojson.Position
 import kotlin.math.roundToInt
 
 fun Double.toIntLongitude(): Int {
@@ -16,4 +17,8 @@ fun Int.toDoubleLongitude(): Double {
 
 fun Int.toDoubleLatitude(): Double {
     return (this * 1e-6) - 90.0
+}
+
+fun Position.toOsmId(): Long {
+    return (longitude.toIntLongitude().toLong()) shl 32 or latitude.toIntLatitude().toLong()
 }

@@ -4,6 +4,7 @@ import dev.skynomads.beerouter.codec.MicroCache
 import dev.skynomads.beerouter.codec.MicroCache2
 import dev.skynomads.beerouter.osm.toDoubleLatitude
 import dev.skynomads.beerouter.osm.toDoubleLongitude
+import dev.skynomads.beerouter.osm.toOsmId
 import dev.skynomads.beerouter.util.CheapRuler.distance
 import dev.skynomads.beerouter.util.IByteArrayUnifier
 import org.maplibre.spatialk.geojson.Position
@@ -208,7 +209,7 @@ open class OsmNode : OsmLink, OsmPos {
     }
 
     override val idFromPos: Long
-        get() = (iLon.toLong()) shl 32 or iLat.toLong()
+        get() = position.toOsmId()
 
     fun vanish() {
         if (!this.isHollow) {
@@ -265,6 +266,7 @@ open class OsmNode : OsmLink, OsmPos {
     }
 
     override fun hashCode(): Int {
-        return iLon + iLat
+        return position.toOsmId().hashCode()
     }
+
 }

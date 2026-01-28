@@ -196,7 +196,11 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
 
         val n = OsmNodeNamed(listOne[0].crosspoint!!).apply {
             name = wpt1.name
-            position = Position(position.longitude, position.latitude, (if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE).toDouble() / 4.0)
+            position = Position(
+                position.longitude,
+                position.latitude,
+                (if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE).toDouble() / 4.0
+            )
             nodeDescription = start1.firstlink?.descriptionBitmap
         }
         t.pois.add(n)
@@ -473,18 +477,34 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                     distRest -= tmpdist
                     if (hasInclineTags) incline = tmpincline
                     selev = (selev + (tmpdist / 100.0 * incline))
-                    tmp.position = Position(tmp.position.longitude, tmp.position.latitude, selev.toInt().toDouble() / 4.0)
+                    tmp.position = Position(
+                        tmp.position.longitude,
+                        tmp.position.latitude,
+                        selev.toInt().toDouble() / 4.0
+                    )
                     tmp.message!!.ele = selev.toInt().toShort()
                     tmpPt = tmp
                 }
                 dist = 0
             } else if (n.sElev != Short.MIN_VALUE && lastElev == Short.MIN_VALUE && startIdx == 0) {
                 // fill at start
-                track.nodes.subList(0, idx).forEach { it.position = Position(it.position.longitude, it.position.latitude, n.sElev.toDouble() / 4.0) }
+                track.nodes.subList(0, idx).forEach {
+                    it.position = Position(
+                        it.position.longitude,
+                        it.position.latitude,
+                        n.sElev.toDouble() / 4.0
+                    )
+                }
             } else if (n.sElev == Short.MIN_VALUE && idx == track.nodes.size - 1) {
                 // fill at end
                 startIdx = idx
-                track.nodes.subList(startIdx, track.nodes.size).forEach { it.position = Position(it.position.longitude, it.position.latitude, lastElev.toDouble() / 4.0) }
+                track.nodes.subList(startIdx, track.nodes.size).forEach {
+                    it.position = Position(
+                        it.position.longitude,
+                        it.position.latitude,
+                        lastElev.toDouble() / 4.0
+                    )
+                }
             } else if (n.sElev == Short.MIN_VALUE) {
                 if (lastPt != null) dist += n.calcDistance(lastPt)
             }
@@ -1260,7 +1280,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             if (key > 0) {
                 val GRAVITY = 9.81 // in meters per second^(-2)
                 val incline =
-                    (if (t.nodes[key - 1].sElev == Short.MIN_VALUE || t.nodes[key].sElev == Short.MIN_VALUE) 0.0 else ((t.nodes[key - 1].position.altitude ?: 0.0) - (t.nodes[key].position.altitude ?: 0.0)) / value)
+                    (if (t.nodes[key - 1].sElev == Short.MIN_VALUE || t.nodes[key].sElev == Short.MIN_VALUE) 0.0 else ((t.nodes[key - 1].position.altitude
+                        ?: 0.0) - (t.nodes[key].position.altitude ?: 0.0)) / value)
                 val f_roll =
                     routingContext.global.totalMass * GRAVITY * (routingContext.global.defaultC_r + incline)
                 val spd = speedMin / 3.6

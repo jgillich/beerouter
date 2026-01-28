@@ -5,17 +5,15 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
-import dev.skynomads.beerouter.osm.toDoubleLatitude
-import dev.skynomads.beerouter.osm.toDoubleLongitude
+import androidx.collection.MutableLongObjectMap
+import dev.skynomads.beerouter.osm.toOsmId
 import dev.skynomads.beerouter.util.ByteArrayUnifier
 import org.maplibre.spatialk.geojson.Position
 
 class OsmNodesMap {
-    private val hmap: MutableMap<OsmNode?, OsmNode> = HashMap(4096)
+    private val hmap: MutableLongObjectMap<OsmNode> = MutableLongObjectMap(4096)
 
     val byteArrayUnifier: ByteArrayUnifier = ByteArrayUnifier(16384, false)
-
-    private val testKey = OsmNode()
 
     @JvmField
     var nodesCreated: Int = 0
@@ -199,8 +197,8 @@ class OsmNodesMap {
     fun collectOutreachers() {
         nodes2check = ArrayList(nodesCreated)
         nodesCreated = 0
-        for (n in hmap.values) {
-            addActiveNode(nodes2check!!, n)
+        hmap.forEach { _, node ->
+            addActiveNode(nodes2check!!, node)
         }
 
         lastVisitID++
@@ -236,19 +234,20 @@ class OsmNodesMap {
      *
      * @return the node for the given id if exist, else null
      */
+    @Deprecated("use get(position: Position)")
     fun get(ilon: Int, ilat: Int): OsmNode? {
-        testKey.position = Position(
-            ilon.toDoubleLongitude(),
-            ilat.toDoubleLatitude(),
-            0.0
-        )
-        return hmap[testKey]
+        val id = (ilon.toLong()) shl 32 or ilat.toLong()
+        return hmap[id]
+    }
+
+    fun get(position: Position): OsmNode? {
+        return hmap[position.toOsmId()]
     }
 
 
-    fun remove(node: OsmNode?) {
+    fun remove(node: OsmNode) {
         if (node !== endNode1 && node !== endNode2) { // keep endnodes in hollow-map even when loaded
-            hmap.remove(node) // (needed for escape analysis)
+            hmap.remove(node.idFromPos)
         }
     }
 
@@ -257,54 +256,7 @@ class OsmNodesMap {
      *
      * @return the previous node if that id existed, else null
      */
-    fun put(node: OsmNode?): OsmNode? {
-        return hmap.put(node, node!!)
-    }
-
-    companion object {
-        // ********************** test cleanup **********************
-        private fun addLinks(nodes: List<OsmNode>, idx: Int, isBorder: Boolean, links: IntArray) {
-            val n = nodes[idx]
-            n.visitID = if (isBorder) 1 else 0
-            n.position = Position(n.position.longitude, n.position.latitude, idx.toDouble() / 4.0)
-            for (i in links) {
-                val t = nodes[i]
-                var link: OsmLink? =
-                    if (n.isLinkUnused) n else (if (t.isLinkUnused) t else null)
-                if (link == null) {
-                    link = OsmLink()
-                }
-                n.addLink(link, false, t)
-            }
-        }
-
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val nodes = (0..12).map { i -> OsmNode((i + 1000) * 1000, (i + 1000) * 1000) }
-
-            addLinks(nodes, 0, true, intArrayOf(1, 5)) // 0
-            addLinks(nodes, 1, true, intArrayOf()) // 1
-            addLinks(nodes, 2, false, intArrayOf(3, 4)) // 2
-            addLinks(nodes, 3, false, intArrayOf(4)) // 3
-            addLinks(nodes, 4, false, intArrayOf()) // 4
-            addLinks(nodes, 5, true, intArrayOf(6, 9)) // 5
-            addLinks(nodes, 6, false, intArrayOf(7, 8)) // 6
-            addLinks(nodes, 7, false, intArrayOf()) // 7
-            addLinks(nodes, 8, false, intArrayOf()) // 8
-            addLinks(nodes, 9, false, intArrayOf(10, 11)) // 9
-            addLinks(nodes, 10, false, intArrayOf(11)) // 10
-            addLinks(nodes, 11, false, intArrayOf()) // 11
-
-            val nm = OsmNodesMap()
-
-            nm.cleanupMode = 2
-
-            nm.cleanupAndCount(nodes)
-
-            println("nodesCreated=" + nm.nodesCreated)
-            nm.cleanupAndCount(nodes)
-
-            println("nodesCreated=" + nm.nodesCreated)
-        }
+    fun put(node: OsmNode): OsmNode? {
+        return hmap.put(node.idFromPos, node)
     }
 }
