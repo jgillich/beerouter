@@ -39,12 +39,12 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
     }
 
     fun write(sa: ByteArray) {
-        System.arraycopy(sa, 0, ab, aboffset, sa.size)
+        sa.copyInto(ab, aboffset, 0, sa.size)
         aboffset += sa.size
     }
 
     fun write(sa: ByteArray, offset: Int, len: Int) {
-        System.arraycopy(sa, offset, ab, aboffset, len)
+        sa.copyInto(ab, aboffset, offset, offset + len)
         aboffset += len
     }
 
@@ -70,7 +70,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
 
     fun toByteArray(): ByteArray {
         val c = ByteArray(aboffset)
-        System.arraycopy(ab, 0, c, 0, aboffset)
+        ab.copyInto(c, 0, 0, aboffset)
         return c
     }
 
@@ -95,7 +95,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
             size++
         } while (v != 0)
         if (size > 1) { // doesn't fit -> shift the data after the placeholder
-            System.arraycopy(ab, sizeoffset + 1, ab, sizeoffset + size, datasize)
+            ab.copyInto(ab, sizeoffset + size, sizeoffset + 1, sizeoffset + 1 + datasize)
         }
         aboffset = sizeoffset
         writeVarLengthUnsigned(datasize)

@@ -135,7 +135,7 @@ abstract class BExpressionContext protected constructor(
 
         val len = ctx.closeAndGetEncodedLength()
         val ab = ByteArray(len)
-        System.arraycopy(abBuf, 0, ab, 0, len)
+        abBuf.copyInto(ab, 0, 0, len)
 
 
         // crosscheck: decode and compare
@@ -322,7 +322,7 @@ abstract class BExpressionContext protected constructor(
             }
         }
         val nab = ByteArray(len)
-        System.arraycopy(ab, offset, nab, 0, len)
+        ab.copyInto(nab, 0, offset, offset + len)
         return nab
     }
 
@@ -483,7 +483,7 @@ abstract class BExpressionContext protected constructor(
             )
             lookupHistograms.add(IntArray(2))
             val ndata = IntArray(lookupData.size + 1)
-            System.arraycopy(lookupData, 0, ndata, 0, lookupData.size)
+            lookupData.copyInto(ndata, 0, 0, lookupData.size)
             lookupData = ndata
         }
 
@@ -626,8 +626,8 @@ abstract class BExpressionContext protected constructor(
             // unknown value, create
             val nvalues: Array<BExpressionLookupValue?> = arrayOfNulls(values.size + 1)
             val nhisto = IntArray(values.size + 1)
-            System.arraycopy(values, 0, nvalues, 0, values.size)
-            System.arraycopy(histo, 0, nhisto, 0, histo.size)
+            values.copyInto(nvalues, 0, 0, values.size)
+            histo.copyInto(nhisto, 0, 0, histo.size)
             values = nvalues
             histo = nhisto
             newValue = BExpressionLookupValue(value)
@@ -697,7 +697,7 @@ abstract class BExpressionContext protected constructor(
             }
         }
         val extended = IntArray(nBuildInVars + 1)
-        System.arraycopy(buildInVariableIdx, 0, extended, 0, nBuildInVars)
+        buildInVariableIdx.copyInto(extended, 0, 0, nBuildInVars)
         extended[nBuildInVars] = idx
         buildInVariableIdx = extended
         return nBuildInVars++
@@ -938,10 +938,9 @@ abstract class BExpressionContext protected constructor(
                                 if (nidx == -1) break
                                 val vidx = getLookupValueIdx(nidx, value)
                                 val tmp = IntArray(noStartWays.size + 2)
-                                if (noStartWays.isNotEmpty()) System.arraycopy(
-                                    noStartWays,
-                                    0,
+                                if (noStartWays.isNotEmpty()) noStartWays.copyInto(
                                     tmp,
+                                    0,
                                     0,
                                     noStartWays.size
                                 )

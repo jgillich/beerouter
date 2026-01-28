@@ -165,7 +165,7 @@ class DirectWeaver(
                     var geometry: ByteArray? = null
                     if (aboffset > 0) {
                         geometry = ByteArray(aboffset)
-                        System.arraycopy(ab, 0, geometry, 0, aboffset)
+                        ab.copyInto(geometry, 0, 0, aboffset)
                     }
 
                     if (nodeIdx != n) { // valid internal (forward-) link

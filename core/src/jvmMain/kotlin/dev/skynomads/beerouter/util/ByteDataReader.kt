@@ -121,7 +121,7 @@ open class ByteDataReader {
     }
 
     fun readFully(ta: ByteArray) {
-        System.arraycopy(ab, aboffset, ta, 0, ta.size)
+        ab.copyInto(ta, 0, aboffset, aboffset + ta.size)
         aboffset += ta.size
     }
 

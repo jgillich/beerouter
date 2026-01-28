@@ -1,11 +1,10 @@
+package dev.skynomads.beerouter.mapaccess
+
 /**
  * Container for link between two Osm nodes
  *
  * @author ab
  */
-package dev.skynomads.beerouter.mapaccess
-
-
 open class OsmLink {
     /**
      * The description bitmap contains the waytags (valid for both directions)

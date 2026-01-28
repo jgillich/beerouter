@@ -236,7 +236,7 @@ class Rd5DiffTool : ProgressListener {
                             /*                 // do some consistemcy checks on the encoding
 
                  byte[] bytes = new byte[len];
-                 System.arraycopy( abBuf1, 0, bytes, 0, len );
+                 abBuf1.copyInto(bytes, 0, 0, len);
 
                  // cross-check the encoding: decode again
                  MicroCache mcCheck = new MicroCache2( new StatCoderContext( bytes ), new DataBuffers( null ), 0, 0, 32, null, null );
@@ -254,7 +254,7 @@ class Rd5DiffTool : ProgressListener {
                  // .... so re-encode again
                  int len2 = mcCheck.encodeMicroCache( abBuf1 );
                  byte[] bytes2 = new byte[len2];
-                 System.arraycopy( abBuf1, 0, bytes2, 0, len2 );
+                 abBuf1.copyInto(bytes2, 0, 0, len2);
 
                  // and here we can compare byte-by-byte
                  if ( len != len2 )

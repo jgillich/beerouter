@@ -231,10 +231,10 @@ class MicroCache2 : MicroCache {
 
         startpos = 0
         for (n in 0..<sizeOld) {
-            val endpos = faposOld!![n]
+            val endpos = faposOld[n]
             if ((validBits[n shr 5] and (1 shl n)) != 0) {
                 val len = endpos - startpos
-                System.arraycopy(abOld, startpos, ab, aboffset, len)
+                abOld.copyInto(ab, aboffset, startpos, startpos + len)
                 //                if (MicroCache.debug) println("*** copied " + len + " bytes from " + aboffset + " for node " + n)
                 aboffset += len
 

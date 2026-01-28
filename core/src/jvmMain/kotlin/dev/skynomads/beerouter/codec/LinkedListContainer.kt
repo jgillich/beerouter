@@ -73,7 +73,7 @@ class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
 
     private fun resize() {
         val ia2 = IntArray(2 * ia.size)
-        System.arraycopy(ia, 0, ia2, 0, ia.size)
+        ia.copyInto(ia2, 0, 0, ia.size)
         ia = ia2
     }
 }

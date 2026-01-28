@@ -30,7 +30,7 @@ class IntegerFifo3Pass(capacity: Int) {
         if (pass == 2) {
             if (size == a.size) {
                 val aa = IntArray(2 * size)
-                System.arraycopy(a, 0, aa, 0, size)
+                a.copyInto(aa, 0, 0, size)
                 a = aa
             }
             a[size++] = value

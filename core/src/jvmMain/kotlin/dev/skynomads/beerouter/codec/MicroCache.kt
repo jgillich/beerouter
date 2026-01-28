@@ -6,16 +6,13 @@ import dev.skynomads.beerouter.util.ByteDataWriter
  * a micro-cache is a data cache for an area of some square kilometers or some
  * hundreds or thousands nodes
  *
- *
  * This is the basic io-unit: always a full microcache is loaded from the
  * data-file if a node is requested at a position not yet covered by the caches
  * already loaded
  *
- *
  * The nodes are represented in a compact way (typical 20-50 bytes per node),
  * but in a way that they do not depend on each other, and garbage collection is
  * supported to remove the nodes already consumed from the cache.
- *
  *
  * The cache-internal data representation is different from that in the
  * data-files, where a cache is encoded as a whole, allowing more
@@ -45,8 +42,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     }
 
     fun finishNode(id: Long) {
-        fapos!![size] = aboffset
-        faid!![size] = shrinkId(id)
+        fapos[size] = aboffset
+        faid[size] = shrinkId(id)
         size++
     }
 
@@ -55,7 +52,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     }
 
     val dataSize: Int
-        get() = ab?.size ?: 0
+        get() = ab.size
 
     /**
      * Set the internal reader (aboffset, aboffsetEnd) to the body data for the given id
@@ -84,16 +81,16 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
 
         while (offset > 0) {
             val nn = n + offset
-            if (nn < size && a!![nn] <= id) {
+            if (nn < size && a[nn] <= id) {
                 n = nn
             }
             offset = offset shr 1
         }
-        if (a!![n] == id) {
-            if ((fapos!![n] and -0x80000000) == 0) {
+        if (a[n] == id) {
+            if ((fapos[n] and -0x80000000) == 0) {
                 aboffset = startPos(n)
-                aboffsetEnd = fapos!![n]
-                fapos!![n] = fapos!![n] or -0x80000000 // mark deleted
+                aboffsetEnd = fapos[n]
+                fapos[n] = fapos[n] or -0x80000000 // mark deleted
                 delbytes += aboffsetEnd - aboffset
                 delcount++
                 return true
@@ -106,7 +103,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     }
 
     protected fun startPos(n: Int): Int {
-        return if (n > 0) fapos!![n - 1] and 0x7fffffff else 0
+        return if (n > 0) fapos[n - 1] and 0x7fffffff else 0
     }
 
     fun collect(threshold: Int): Int {
@@ -128,13 +125,13 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
             val nab = ByteArray(ab.size - delbytes)
             var nabOff = 0
             for (i in 0..<size) {
-                val pos = fapos!![i]
+                val pos = fapos[i]
                 if ((pos and -0x80000000) == 0) {
                     val start = startPos(i)
-                    val end = fapos!![i]
+                    val end = fapos[i]
                     val len = end - start
-                    System.arraycopy(ab, start, nab, nabOff, len)
-                    nfaid[idx] = faid!![i]
+                    ab.copyInto(nab, nabOff, start, start + len)
+                    nfaid[idx] = faid[i]
                     nabOff += len
                     nfapos[idx] = nabOff
                     idx++
@@ -154,7 +151,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         delcount = 0
         delbytes = 0
         for (i in 0..<size) {
-            fapos!![i] = fapos!![i] and 0x7fffffff // clear deleted flags
+            fapos[i] = fapos[i] and 0x7fffffff // clear deleted flags
         }
     }
 
@@ -162,7 +159,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      * @return the 64-bit global id for the given cache-position
      */
     fun getIdForIndex(i: Int): Long {
-        val id32 = faid!![i]
+        val id32 = faid[i]
         return expandId(id32)
     }
 
@@ -220,7 +217,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     private fun summary(): String {
         val sb = StringBuilder("size=$size aboffset=$aboffset")
         for (i in 0..<size) {
-            sb.append("\nidx=" + i + " faid=" + faid!![i] + " fapos=" + fapos!![i])
+            sb.append("\nidx=" + i + " faid=" + faid[i] + " fapos=" + fapos[i])
         }
         return sb.toString()
     }
@@ -230,11 +227,11 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
             return "size mismatch: " + size + "->" + mc.size
         }
         for (i in 0..<size) {
-            if (faid!![i] != mc.faid!![i]) {
-                return "faid mismatch at index " + i + ":" + faid!![i] + "->" + mc.faid!![i]
+            if (faid[i] != mc.faid[i]) {
+                return "faid mismatch at index " + i + ":" + faid[i] + "->" + mc.faid[i]
             }
-            val start = if (i > 0) fapos!![i - 1] else 0
-            val end = if (fapos!![i] < mc.fapos!![i]) fapos!![i] else mc.fapos!![i]
+            val start = if (i > 0) fapos[i - 1] else 0
+            val end = if (fapos[i] < mc.fapos[i]) fapos[i] else mc.fapos[i]
             val len = end - start
             for (offset in 0..<len) {
                 if (mc.ab.size <= start + offset) {
@@ -244,8 +241,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
                     return "data mismatch at index $i offset=$offset"
                 }
             }
-            if (fapos!![i] != mc.fapos!![i]) {
-                return "fapos mismatch at index " + i + ":" + fapos!![i] + "->" + mc.fapos!![i]
+            if (fapos[i] != mc.fapos[i]) {
+                return "fapos mismatch at index " + i + ":" + fapos[i] + "->" + mc.fapos[i]
             }
         }
         if (aboffset != mc.aboffset) {
@@ -259,18 +256,18 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         var idx2 = 0
 
         while (idx1 < mc1.size || idx2 < mc2.size) {
-            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.MAX_VALUE
-            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.MAX_VALUE
+            val id1 = if (idx1 < mc1.size) mc1.faid[idx1] else Int.MAX_VALUE
+            val id2 = if (idx2 < mc2.size) mc2.faid[idx2] else Int.MAX_VALUE
             val id: Int
             if (id1 >= id2) {
                 id = id2
-                val start2 = if (idx2 > 0) mc2.fapos!![idx2 - 1] else 0
-                val len2 = mc2.fapos!![idx2++] - start2
+                val start2 = if (idx2 > 0) mc2.fapos[idx2 - 1] else 0
+                val len2 = mc2.fapos[idx2++] - start2
 
                 if (id1 == id2) {
                     // id exists in both caches, compare data
-                    val start1 = if (idx1 > 0) mc1.fapos!![idx1 - 1] else 0
-                    val len1 = mc1.fapos!![idx1++] - start1
+                    val start1 = if (idx1 > 0) mc1.fapos[idx1 - 1] else 0
+                    val len1 = mc1.fapos[idx1++] - start1
                     if (len1 == len2) {
                         var i = 0
                         while (i < len1) {
@@ -289,8 +286,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
                 idx1++
                 id = id1 // deleted node
             }
-            fapos!![size] = aboffset
-            faid!![size] = id
+            fapos[size] = aboffset
+            faid[size] = id
             size++
         }
     }
@@ -300,26 +297,26 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         var idx2 = 0
 
         while (idx1 < mc1.size || idx2 < mc2.size) {
-            val id1 = if (idx1 < mc1.size) mc1.faid!![idx1] else Int.MAX_VALUE
-            val id2 = if (idx2 < mc2.size) mc2.faid!![idx2] else Int.MAX_VALUE
+            val id1 = if (idx1 < mc1.size) mc1.faid[idx1] else Int.MAX_VALUE
+            val id2 = if (idx2 < mc2.size) mc2.faid[idx2] else Int.MAX_VALUE
             if (id1 >= id2) { // data from diff file wins
-                val start2 = if (idx2 > 0) mc2.fapos!![idx2 - 1] else 0
-                val len2 = mc2.fapos!![idx2++] - start2
+                val start2 = if (idx2 > 0) mc2.fapos[idx2 - 1] else 0
+                val len2 = mc2.fapos[idx2++] - start2
                 if (keepEmptyNodes || len2 > 0) {
                     write(mc2.ab, start2, len2)
-                    fapos!![size] = aboffset
-                    faid!![size++] = id2
+                    fapos[size] = aboffset
+                    faid[size++] = id2
                 }
                 if (id1 == id2) { // // id exists in both caches
                     idx1++
                 }
             } else  // use data from base file
             {
-                val start1 = if (idx1 > 0) mc1.fapos!![idx1 - 1] else 0
-                val len1 = mc1.fapos!![idx1++] - start1
+                val start1 = if (idx1 > 0) mc1.fapos[idx1 - 1] else 0
+                val len1 = mc1.fapos[idx1++] - start1
                 write(mc1.ab, start1, len1)
-                fapos!![size] = aboffset
-                faid!![size++] = id1
+                fapos[size] = aboffset
+                faid[size++] = id1
             }
         }
     }

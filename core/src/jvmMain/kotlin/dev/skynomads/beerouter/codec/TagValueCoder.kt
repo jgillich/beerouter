@@ -129,7 +129,7 @@ class TagValueCoder {
         val len = ctx.closeAndGetEncodedLength()
         if (validator == null) {
             res = ByteArray(len)
-            System.arraycopy(buffer, 0, res, 0, len)
+            buffer.copyInto(res, 0, 0, len)
         } else {
             res = validator.unify(buffer, 0, len)
         }

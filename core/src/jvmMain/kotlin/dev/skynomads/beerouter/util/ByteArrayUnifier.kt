@@ -41,7 +41,7 @@ class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : I
             crcCrosscheck!![idx] = crc
         }
         val nab = ByteArray(len)
-        System.arraycopy(ab, offset, nab, 0, len)
+        ab.copyInto(nab, 0, offset, offset + len)
         byteArrayCache[idx] = nab
         return nab
     }
