@@ -13,10 +13,6 @@ import org.maplibre.spatialk.geojson.Position
 interface OsmPos {
     val position: Position
 
-    val sElev: Short
-
-    val elev: Double
-
     fun calcDistance(p: OsmPos): Int
 
     val idFromPos: Long

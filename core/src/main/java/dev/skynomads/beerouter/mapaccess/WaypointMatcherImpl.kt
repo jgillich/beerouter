@@ -162,17 +162,20 @@ class WaypointMatcherImpl(
                     val newLat = (ym / dlat2m + wp.iLat).toInt()
                     mwp.crosspoint!!.position = Position(
                         newLon.toDoubleLongitude(),
-                        newLat.toDoubleLatitude()
+                        newLat.toDoubleLatitude(),
+                        0.0
                     )
                 } else if (s1 > s2) {
                     mwp.crosspoint!!.position = Position(
                         lon2.toDoubleLongitude(),
-                        lat2.toDoubleLatitude()
+                        lat2.toDoubleLatitude(),
+                        0.0
                     )
                 } else {
                     mwp.crosspoint!!.position = Position(
                         lon1.toDoubleLongitude(),
-                        lat1.toDoubleLatitude()
+                        lat1.toDoubleLatitude(),
+                        0.0
                     )
                 }
             }

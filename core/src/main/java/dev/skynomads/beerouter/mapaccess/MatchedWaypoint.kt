@@ -90,19 +90,23 @@ class MatchedWaypoint {
 
             mwp.node1!!.position = Position(
                 node1Lon.toDoubleLongitude(),
-                node1Lat.toDoubleLatitude()
+                node1Lat.toDoubleLatitude(),
+                0.0
             )
             mwp.node2!!.position = Position(
                 node2Lon.toDoubleLongitude(),
-                node2Lat.toDoubleLatitude()
+                node2Lat.toDoubleLatitude(),
+                0.0
             )
             mwp.crosspoint!!.position = Position(
                 crosspointLon.toDoubleLongitude(),
-                crosspointLat.toDoubleLatitude()
+                crosspointLat.toDoubleLatitude(),
+                0.0
             )
             mwp.waypoint!!.position = Position(
                 waypointLon.toDoubleLongitude(),
-                waypointLat.toDoubleLatitude()
+                waypointLat.toDoubleLatitude(),
+                0.0
             )
             mwp.radius = dis.readDouble()
             return mwp

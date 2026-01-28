@@ -133,7 +133,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         val centerLon = cx.toDoubleLongitude()
         val centerLat = cy.toDoubleLatitude()
 
-        position = Position(centerLon, centerLat)
+        position = Position(centerLon, centerLat, 0.0)
         radius =
             rad * 1.001 + 1.0 // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
     }

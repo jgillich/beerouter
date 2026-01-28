@@ -239,7 +239,8 @@ class OsmNodesMap {
     fun get(ilon: Int, ilat: Int): OsmNode? {
         testKey.position = Position(
             ilon.toDoubleLongitude(),
-            ilat.toDoubleLatitude()
+            ilat.toDoubleLatitude(),
+            0.0
         )
         return hmap[testKey]
     }
@@ -265,7 +266,7 @@ class OsmNodesMap {
         private fun addLinks(nodes: List<OsmNode>, idx: Int, isBorder: Boolean, links: IntArray) {
             val n = nodes[idx]
             n.visitID = if (isBorder) 1 else 0
-            n.sElev = idx.toShort()
+            n.position = Position(n.position.longitude, n.position.latitude, idx.toDouble() / 4.0)
             for (i in links) {
                 val t = nodes[i]
                 var link: OsmLink? =

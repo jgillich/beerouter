@@ -7,6 +7,7 @@ import dev.skynomads.beerouter.codec.TagValueCoder
 import dev.skynomads.beerouter.codec.TagValueValidator
 import dev.skynomads.beerouter.codec.WaypointMatcher
 import dev.skynomads.beerouter.util.ByteDataWriter
+import org.maplibre.spatialk.geojson.Position
 
 /**
  * DirectWeaver does the same decoding as MicroCache2, but decodes directly
@@ -97,7 +98,8 @@ class DirectWeaver(
             }
 
             selev += nodeEleDiff.decodeSignedValue()
-            node.sElev = selev.toShort()
+            node.position =
+                Position(node.position.longitude, node.position.latitude, selev.toDouble() / 4.0)
             val nodeTags = nodeTagCoder.decodeTagValueSet()
             node.nodeDescription = nodeTags?.data // TODO: unified?
 

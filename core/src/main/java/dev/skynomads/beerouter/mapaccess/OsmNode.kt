@@ -20,15 +20,14 @@ open class OsmNode : OsmLink, OsmPos {
      * The position
      */
     override var position: Position =
-        Position(0.0, 0.0)
+        Position(0.0, 0.0, 0.0)
 
     /**
      * The elevation
      */
-    override var sElev: Short = Short.MIN_VALUE
-
-    override val elev: Double
-        get() = sElev / 4.0
+    @Deprecated("Use position.altitude instead")
+    val sElev: Short
+        get() = (position.altitude ?: 0.0).times(4.0).toInt().toShort()
 
     /**
      * The node-tags, if any
@@ -54,7 +53,8 @@ open class OsmNode : OsmLink, OsmPos {
     constructor(ilon: Int, ilat: Int) {
         this.position = Position(
             ilon.toDoubleLongitude(),
-            ilat.toDoubleLatitude()
+            ilat.toDoubleLatitude(),
+            0.0
         )
     }
 
@@ -63,7 +63,8 @@ open class OsmNode : OsmLink, OsmPos {
         val lat = (id and 0xffffffffL).toInt()
         this.position = Position(
             lon.toDoubleLongitude(),
-            lat.toDoubleLatitude()
+            lat.toDoubleLatitude(),
+            0.0
         )
     }
 
@@ -124,7 +125,8 @@ open class OsmNode : OsmLink, OsmPos {
             addTurnRestriction(tr)
         }
 
-        sElev = mc.readShort()
+        val readSElev = mc.readShort()
+        position = Position(position.longitude, position.latitude, readSElev.toDouble() / 4.0)
         val nodeDescSize = mc.readVarLengthUnsigned()
         nodeDescription = if (nodeDescSize == 0) null else mc.readUnified(nodeDescSize, abUnifier)
 
@@ -199,10 +201,10 @@ open class OsmNode : OsmLink, OsmPos {
 
 
     val isHollow: Boolean
-        get() = sElev.toInt() == -12345
+        get() = (position.altitude ?: 0.0).times(4.0).toInt() == -12345
 
     fun setHollow() {
-        sElev = -12345
+        position = Position(position.longitude, position.latitude, (-12345).toDouble() / 4.0)
     }
 
     override val idFromPos: Long

@@ -238,7 +238,7 @@ class AreaReader {
                                         ) {
                                             ai.checkAreaInfo(
                                                 expctxWay,
-                                                node.elev,
+                                                node.position.altitude ?: 0.0,
                                                 nextNode.firstlink!!.descriptionBitmap!!
                                             )
                                             break

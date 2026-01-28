@@ -17,17 +17,15 @@ import kotlin.math.roundToInt
  * @author ab
  */
 class OsmPathElement protected constructor() : OsmPos {
-    // interface OsmPos
-    override var position: Position = Position(0.0, 0.0)
+    override var position: Position = Position(0.0, 0.0, 0.0)
 
-    override var sElev: Short = 0 // longitude
+    @Deprecated("Use position.altitude instead")
+    val sElev: Short
+        get() = (position.altitude ?: 0.0).times(4.0).toInt().toShort()
 
     public var message: MessageData? = null // description
 
     var cost: Int = 0
-
-    override val elev: Double
-        get() = this.sElev / 4.0
 
     var time: Float
         get() = if (message == null) 0f else message!!.time
@@ -95,9 +93,9 @@ class OsmPathElement protected constructor() : OsmPos {
             val pe = OsmPathElement()
             pe.position = Position(
                 ilon.toDoubleLongitude(),
-                ilat.toDoubleLatitude()
+                ilat.toDoubleLatitude(),
+                selev.toDouble() / 4.0
             )
-            pe.sElev = selev
             pe.origin = origin
             return pe
         }
@@ -107,11 +105,12 @@ class OsmPathElement protected constructor() : OsmPos {
             val pe = OsmPathElement()
             val lat = dis.readInt()
             val lon = dis.readInt()
+            val selev = dis.readShort()
             pe.position = Position(
                 lon.toDoubleLongitude(),
-                lat.toDoubleLatitude()
+                lat.toDoubleLatitude(),
+                selev.toDouble() / 4.0
             )
-            pe.sElev = dis.readShort()
             pe.cost = dis.readInt()
             return pe
         }

@@ -112,7 +112,8 @@ open class OsmNodeNamed : OsmNode {
             n.isNogo = true
             n.position = Position(
                 lon.toDoubleLongitude(),
-                lat.toDoubleLatitude()
+                lat.toDoubleLatitude(),
+                0.0
             )
             return n
         }

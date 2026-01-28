@@ -8,6 +8,7 @@ package dev.skynomads.beerouter.router
 import androidx.collection.MutableLongObjectMap
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint.Companion.readFromStream
+import org.maplibre.spatialk.geojson.Position
 import dev.skynomads.beerouter.mapaccess.OsmPos
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -160,8 +161,8 @@ class OsmTrack {
         i = 0
         while (i < t.nodes.size) {
             val e = t.nodes[i]
-            if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.MIN_VALUE) nodes[ourSize - 1].sElev =
-                e.sElev
+            if (i == 0 && ourSize > 0 && nodes[ourSize - 1].sElev == Short.MIN_VALUE) nodes[ourSize - 1].position =
+                Position(nodes[ourSize - 1].position.longitude, nodes[ourSize - 1].position.latitude, e.sElev.toDouble() / 4.0)
             if (i > 0 || ourSize == 0) {
                 e.time += t0
                 e.energy += e0
