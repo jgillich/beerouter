@@ -5,7 +5,10 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
 import dev.skynomads.beerouter.util.ByteArrayUnifier
+import org.maplibre.spatialk.geojson.Position
 
 class OsmNodesMap {
     private val hmap: MutableMap<OsmNode?, OsmNode> = HashMap(4096)
@@ -118,7 +121,7 @@ class OsmNodesMap {
 
 
     fun isInMemoryBounds(npaths: Int, extend: Boolean): Boolean {
-//    long total = nodesCreated * 76L + linksCreated * 48L;
+        //    long total = nodesCreated * 76L + linksCreated * 48L;
         var total = nodesCreated * 95L + npaths * 200L
 
         if (extend) {
@@ -234,8 +237,10 @@ class OsmNodesMap {
      * @return the node for the given id if exist, else null
      */
     fun get(ilon: Int, ilat: Int): OsmNode? {
-        testKey.iLon = ilon
-        testKey.iLat = ilat
+        testKey.position = Position(
+            ilon.toDoubleLongitude(),
+            ilat.toDoubleLatitude()
+        )
         return hmap[testKey]
     }
 

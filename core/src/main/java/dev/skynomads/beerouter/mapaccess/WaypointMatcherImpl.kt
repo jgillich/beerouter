@@ -1,9 +1,14 @@
 package dev.skynomads.beerouter.mapaccess
 
 import dev.skynomads.beerouter.codec.WaypointMatcher
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
+import dev.skynomads.beerouter.osm.toIntLatitude
+import dev.skynomads.beerouter.osm.toIntLongitude
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDifferenceFromDirection
 import dev.skynomads.beerouter.util.CheapAngleMeter.Companion.getDirection
 import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
+import org.maplibre.spatialk.geojson.Position
 import java.util.Collections
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -110,8 +115,7 @@ class WaypointMatcherImpl(
             ) {
                 if (mwp.crosspoint == null) {
                     mwp.crosspoint = OsmNode()
-                    mwp.crosspoint!!.iLon = mwp.waypoint!!.iLon
-                    mwp.crosspoint!!.iLat = mwp.waypoint!!.iLat
+                    mwp.crosspoint!!.position = mwp.waypoint!!.position
                     mwp.hasUpdate = true
                     anyUpdate = true
                 }
@@ -119,10 +123,12 @@ class WaypointMatcherImpl(
             }
 
             val wp = mwp.waypoint!!
-            val x1 = (lon1 - wp.iLon) * dlon2m
-            val y1 = (lat1 - wp.iLat) * dlat2m
-            val x2 = (lon2 - wp.iLon) * dlon2m
-            val y2 = (lat2 - wp.iLat) * dlat2m
+            val wpLon = wp.position.longitude.toIntLongitude()
+            val wpLat = wp.position.latitude.toIntLatitude()
+            val x1 = (lon1 - wpLon) * dlon2m
+            val y1 = (lat1 - wpLat) * dlat2m
+            val x2 = (lon2 - wpLon) * dlon2m
+            val y2 = (lat2 - wpLat) * dlat2m
             val r12 = x1 * x1 + y1 * y1
             val r22 = x2 * x2 + y2 * y2
             var radius = abs(if (r12 < r22) y1 * dx - x1 * dy else y2 * dx - x2 * dy) / d
@@ -152,14 +158,22 @@ class WaypointMatcherImpl(
                     val wayfraction = -s2 / (d * d)
                     val xm = x2 - wayfraction * dx
                     val ym = y2 - wayfraction * dy
-                    mwp.crosspoint!!.iLon = (xm / dlon2m + wp.iLon).toInt()
-                    mwp.crosspoint!!.iLat = (ym / dlat2m + wp.iLat).toInt()
+                    val newLon = (xm / dlon2m + wp.iLon).toInt()
+                    val newLat = (ym / dlat2m + wp.iLat).toInt()
+                    mwp.crosspoint!!.position = Position(
+                        newLon.toDoubleLongitude(),
+                        newLat.toDoubleLatitude()
+                    )
                 } else if (s1 > s2) {
-                    mwp.crosspoint!!.iLon = lon2
-                    mwp.crosspoint!!.iLat = lat2
+                    mwp.crosspoint!!.position = Position(
+                        lon2.toDoubleLongitude(),
+                        lat2.toDoubleLatitude()
+                    )
                 } else {
-                    mwp.crosspoint!!.iLon = lon1
-                    mwp.crosspoint!!.iLat = lat1
+                    mwp.crosspoint!!.position = Position(
+                        lon1.toDoubleLongitude(),
+                        lat1.toDoubleLatitude()
+                    )
                 }
             }
         }
@@ -208,11 +222,9 @@ class WaypointMatcherImpl(
 
                     var mw = MatchedWaypoint()
                     mw.waypoint = OsmNode()
-                    mw.waypoint!!.iLon = mwp.waypoint!!.iLon
-                    mw.waypoint!!.iLat = mwp.waypoint!!.iLat
+                    mw.waypoint!!.position = mwp.waypoint!!.position
                     mw.crosspoint = OsmNode()
-                    mw.crosspoint!!.iLon = mwp.crosspoint!!.iLon
-                    mw.crosspoint!!.iLat = mwp.crosspoint!!.iLat
+                    mw.crosspoint!!.position = mwp.crosspoint!!.position
                     mw.node1 = OsmNode(lonStart, latStart)
                     mw.node2 = OsmNode(lonTarget, latTarget)
                     mw.name = mwp.name + "_w_" + mwp.crosspoint.hashCode()
@@ -227,11 +239,9 @@ class WaypointMatcherImpl(
                     diff = getDifferenceFromDirection(mwp.directionToNext, angle)
                     mw = MatchedWaypoint()
                     mw.waypoint = OsmNode()
-                    mw.waypoint!!.iLon = mwp.waypoint!!.iLon
-                    mw.waypoint!!.iLat = mwp.waypoint!!.iLat
+                    mw.waypoint!!.position = mwp.waypoint!!.position
                     mw.crosspoint = OsmNode()
-                    mw.crosspoint!!.iLon = mwp.crosspoint!!.iLon
-                    mw.crosspoint!!.iLat = mwp.crosspoint!!.iLat
+                    mw.crosspoint!!.position = mwp.crosspoint!!.position
                     mw.node1 = OsmNode(lonTarget, latTarget)
                     mw.node2 = OsmNode(lonStart, latStart)
                     mw.name = mwp.name + "_w2_" + mwp.crosspoint.hashCode()
@@ -242,10 +252,9 @@ class WaypointMatcherImpl(
                     updateWayList(mwp.wayNearest, mw)
 
                     val way = mwp.wayNearest[0]
-                    mwp.crosspoint!!.iLon = way.crosspoint!!.iLon
-                    mwp.crosspoint!!.iLat = way.crosspoint!!.iLat
-                    mwp.node1 = OsmNode(way.node1!!.iLon, way.node1!!.iLat)
-                    mwp.node2 = OsmNode(way.node2!!.iLon, way.node2!!.iLat)
+                    mwp.crosspoint!!.position = way.crosspoint!!.position
+                    mwp.node1 = OsmNode(way.node1!!.position)
+                    mwp.node2 = OsmNode(way.node2!!.position)
                     mwp.directionDiff = way.directionDiff
                     mwp.radius = way.radius
                 }

@@ -8,8 +8,11 @@
  */
 package dev.skynomads.beerouter.router
 
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
 import dev.skynomads.beerouter.util.CheapRuler.distance
 import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
+import org.maplibre.spatialk.geojson.Position
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -45,6 +48,8 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
      * actual routing algoritm.
      */
     fun calcBoundingCircle() {
+        TODO("this does not work right, see testCalcBoundingCircle")
+
         var cxmin: Int
         var cxmax: Int
         var cymin: Int
@@ -124,8 +129,11 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
             iMax = -1
         } while (true)
 
-        iLon = cx
-        iLat = cy
+        // Convert the integer coordinates to Position coordinates
+        val centerLon = cx.toDoubleLongitude()
+        val centerLat = cy.toDoubleLatitude()
+
+        position = Position(centerLon, centerLat)
         radius =
             rad * 1.001 + 1.0 // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
     }

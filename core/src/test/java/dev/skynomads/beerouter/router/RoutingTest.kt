@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.maplibre.spatialk.geojson.Position
 import java.io.File
 import java.net.URL
 import java.nio.file.Files
@@ -22,8 +23,7 @@ class RoutingTest {
     fun createWaypoint(name: String, lat: Double, lon: Double): OsmNodeNamed {
         val n = OsmNodeNamed()
         n.name = name
-        n.iLon = 180000000 + (lon * 1000000 + 0.5).toInt()
-        n.iLat = 90000000 + (lat * 1000000 + 0.5).toInt()
+        n.position = Position(lon, lat)
         return n
     }
 

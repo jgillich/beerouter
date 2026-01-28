@@ -5,6 +5,9 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
+import org.maplibre.spatialk.geojson.Position
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
@@ -76,14 +79,31 @@ class MatchedWaypoint {
             mwp.crosspoint = OsmNode()
             mwp.waypoint = OsmNode()
 
-            mwp.node1!!.iLat = dis.readInt()
-            mwp.node1!!.iLon = dis.readInt()
-            mwp.node2!!.iLat = dis.readInt()
-            mwp.node2!!.iLon = dis.readInt()
-            mwp.crosspoint!!.iLat = dis.readInt()
-            mwp.crosspoint!!.iLon = dis.readInt()
-            mwp.waypoint!!.iLat = dis.readInt()
-            mwp.waypoint!!.iLon = dis.readInt()
+            val node1Lat = dis.readInt()
+            val node1Lon = dis.readInt()
+            val node2Lat = dis.readInt()
+            val node2Lon = dis.readInt()
+            val crosspointLat = dis.readInt()
+            val crosspointLon = dis.readInt()
+            val waypointLat = dis.readInt()
+            val waypointLon = dis.readInt()
+
+            mwp.node1!!.position = Position(
+                node1Lon.toDoubleLongitude(),
+                node1Lat.toDoubleLatitude()
+            )
+            mwp.node2!!.position = Position(
+                node2Lon.toDoubleLongitude(),
+                node2Lat.toDoubleLatitude()
+            )
+            mwp.crosspoint!!.position = Position(
+                crosspointLon.toDoubleLongitude(),
+                crosspointLat.toDoubleLatitude()
+            )
+            mwp.waypoint!!.position = Position(
+                waypointLon.toDoubleLongitude(),
+                waypointLat.toDoubleLatitude()
+            )
             mwp.radius = dis.readDouble()
             return mwp
         }

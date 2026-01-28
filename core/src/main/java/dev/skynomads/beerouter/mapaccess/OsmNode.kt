@@ -1,27 +1,26 @@
+package dev.skynomads.beerouter.mapaccess
+
+import dev.skynomads.beerouter.codec.MicroCache
+import dev.skynomads.beerouter.codec.MicroCache2
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
+import dev.skynomads.beerouter.util.CheapRuler.distance
+import dev.skynomads.beerouter.util.IByteArrayUnifier
+import org.maplibre.spatialk.geojson.Position
+import kotlin.math.max
+import kotlin.math.roundToInt
+
 /**
  * Container for an osm node
  *
  * @author ab
  */
-package dev.skynomads.beerouter.mapaccess
-
-import dev.skynomads.beerouter.codec.MicroCache
-import dev.skynomads.beerouter.codec.MicroCache2
-import dev.skynomads.beerouter.util.CheapRuler.distance
-import dev.skynomads.beerouter.util.IByteArrayUnifier
-import kotlin.math.max
-import kotlin.math.roundToInt
-
 open class OsmNode : OsmLink, OsmPos {
     /**
-     * The latitude
+     * The position
      */
-    override var iLat: Int = 0
-
-    /**
-     * The longitude
-     */
-    override var iLon: Int = 0
+    override var position: Position =
+        Position(0.0, 0.0)
 
     /**
      * The elevation
@@ -53,13 +52,23 @@ open class OsmNode : OsmLink, OsmPos {
     constructor()
 
     constructor(ilon: Int, ilat: Int) {
-        this.iLon = ilon
-        this.iLat = ilat
+        this.position = Position(
+            ilon.toDoubleLongitude(),
+            ilat.toDoubleLatitude()
+        )
     }
 
     constructor(id: Long) {
-        iLon = (id shr 32).toInt()
-        iLat = (id and 0xffffffffL).toInt()
+        val lon = (id shr 32).toInt()
+        val lat = (id and 0xffffffffL).toInt()
+        this.position = Position(
+            lon.toDoubleLongitude(),
+            lat.toDoubleLatitude()
+        )
+    }
+
+    constructor(position: Position) {
+        this.position = position
     }
 
 

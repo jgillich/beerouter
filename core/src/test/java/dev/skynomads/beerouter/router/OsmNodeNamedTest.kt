@@ -1,10 +1,12 @@
 package dev.skynomads.beerouter.router
 
-import dev.skynomads.beerouter.util.CheapRuler
+import dev.skynomads.beerouter.osm.toIntLatitude
+import dev.skynomads.beerouter.osm.toIntLongitude
 import dev.skynomads.beerouter.util.CheapRuler.destination
 import dev.skynomads.beerouter.util.CheapRuler.distance
 import org.junit.Assert
 import org.junit.Test
+import org.maplibre.spatialk.geojson.Position
 
 class OsmNodeNamedTest {
     @Test
@@ -16,17 +18,16 @@ class OsmNodeNamedTest {
         // Circle definition
         val node = OsmNodeNamed()
         // Center
-        node.iLon = toOsmLon(2.334243)
-        node.iLat = toOsmLat(48.824017)
+        node.position = Position(2.334243, 48.824017)
         // Radius
         node.radius = 30.0
 
         // Check distance within radius is correctly computed if the segment passes through the center
-        lon1 = toOsmLon(2.332559)
-        lat1 = toOsmLat(48.823822)
+        lon1 = 2.332559.toIntLongitude()
+        lat1 = 48.823822.toIntLatitude()
         // Segment ends
-        lon2 = toOsmLon(2.335018)
-        lat2 = toOsmLat(48.824105)
+        lon2 = 2.335018.toIntLongitude()
+        lat2 = 48.824105.toIntLatitude()
         var totalSegmentLength = distance(lon1, lat1, lon2, lat2)
         Assert.assertEquals(
             "Works for segment aligned with the nogo center",
@@ -36,8 +37,7 @@ class OsmNodeNamedTest {
         )
 
         // Check distance within radius is correctly computed for a given circle
-        node.iLon = toOsmLon(2.33438)
-        node.iLat = toOsmLat(48.824275)
+        node.position = Position(2.33438, 48.824275)
         Assert.assertEquals(
             "Works for a segment with no particular properties",
             27.5,
@@ -54,8 +54,8 @@ class OsmNodeNamedTest {
         )
 
         // Check distance within radius is correctly computed if a point is inside the circle
-        lon2 = toOsmLon(2.334495)
-        lat2 = toOsmLat(48.824045)
+        lon2 = 2.334495.toIntLongitude()
+        lat2 = 48.824045.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
         Assert.assertEquals(
             "Works if last point is within the circle",
@@ -64,10 +64,10 @@ class OsmNodeNamedTest {
             0.1 * 17
         )
 
-        lon1 = toOsmLon(2.334495)
-        lat1 = toOsmLat(48.824045)
-        lon2 = toOsmLon(2.335018)
-        lat2 = toOsmLat(48.824105)
+        lon1 = 2.334495.toIntLongitude()
+        lat1 = 48.824045.toIntLatitude()
+        lon2 = 2.335018.toIntLongitude()
+        lat2 = 48.824105.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
         Assert.assertEquals(
             "Works if first point is within the circle",
@@ -76,10 +76,10 @@ class OsmNodeNamedTest {
             0.1 * 9
         )
 
-        lon1 = toOsmLon(2.33427)
-        lat1 = toOsmLat(48.82402)
-        lon2 = toOsmLon(2.334587)
-        lat2 = toOsmLat(48.824061)
+        lon1 = 2.33427.toIntLongitude()
+        lat1 = 48.82402.toIntLatitude()
+        lon2 = 2.334587.toIntLongitude()
+        lat2 = 48.824061.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
         Assert.assertEquals(
             "Works if both points are within the circle",
@@ -93,10 +93,10 @@ class OsmNodeNamedTest {
         // Note: the only such case possible is with one point outside and one
         // point within the circle, as we expect the segment to have a non-empty
         // intersection with the circle.
-        lon1 = toOsmLon(2.332559)
-        lat1 = toOsmLat(48.823822)
-        lon2 = toOsmLon(2.33431)
-        lat2 = toOsmLat(48.824027)
+        lon1 = 2.332559.toIntLongitude()
+        lat1 = 48.823822.toIntLatitude()
+        lon2 = 2.33431.toIntLongitude()
+        lat2 = 48.824027.toIntLatitude()
         totalSegmentLength = distance(lon1, lat1, lon2, lat2)
         Assert.assertEquals(
             "Works if both points are on the same side of the circle center",
@@ -116,8 +116,7 @@ class OsmNodeNamedTest {
         // Circle definition
         val node = OsmNodeNamed()
         // Center
-        node.iLon = toOsmLon(0.0)
-        node.iLat = toOsmLat(0.0)
+        node.position = Position(0.0, 0.0)
         val startDist = 1000.0
 
         var i = 0
@@ -129,16 +128,6 @@ class OsmNodeNamedTest {
                 dist - 1 < startDist && dist + 1 > startDist
             )
             i += 45
-        }
-    }
-
-    companion object {
-        fun toOsmLon(lon: Double): Int {
-            return ((lon + 180.0) / CheapRuler.ILATLNG_TO_LATLNG + 0.5).toInt()
-        }
-
-        fun toOsmLat(lat: Double): Int {
-            return ((lat + 90.0) / CheapRuler.ILATLNG_TO_LATLNG + 0.5).toInt()
         }
     }
 }

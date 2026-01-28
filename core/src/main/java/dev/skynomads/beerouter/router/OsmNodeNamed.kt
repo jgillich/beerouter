@@ -7,8 +7,11 @@ package dev.skynomads.beerouter.router
 
 import dev.skynomads.beerouter.mapaccess.MatchedWaypoint
 import dev.skynomads.beerouter.mapaccess.OsmNode
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
 import dev.skynomads.beerouter.util.CheapRuler.distance
 import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
+import org.maplibre.spatialk.geojson.Position
 import kotlin.math.sqrt
 
 open class OsmNodeNamed : OsmNode {
@@ -95,9 +98,9 @@ open class OsmNodeNamed : OsmNode {
         fun decodeNogo(s: String): OsmNodeNamed {
             val n = OsmNodeNamed()
             val idx1 = s.indexOf(',')
-            n.iLon = s.take(idx1).toInt()
+            val lon = s.take(idx1).toInt()
             val idx2 = s.indexOf(',', idx1 + 1)
-            n.iLat = s.substring(idx1 + 1, idx2).toInt()
+            val lat = s.substring(idx1 + 1, idx2).toInt()
             val idx3 = s.indexOf(',', idx2 + 1)
             if (idx3 == -1) {
                 n.name = s.substring(idx2 + 1)
@@ -107,6 +110,10 @@ open class OsmNodeNamed : OsmNode {
                 n.nogoWeight = s.substring(idx3 + 1).toDouble()
             }
             n.isNogo = true
+            n.position = Position(
+                lon.toDoubleLongitude(),
+                lat.toDoubleLatitude()
+            )
             return n
         }
     }

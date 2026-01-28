@@ -17,7 +17,6 @@ import kotlinx.coroutines.ensureActive
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.Collections
 import java.util.SortedSet
 import java.util.TreeSet
 import kotlin.math.abs
@@ -64,14 +63,21 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         try {
             if (routingContext.allowSamewayback) {
                 if (waypoints.size == 2) {
-                    val onn = OsmNodeNamed(OsmNode(waypoints[0].iLon, waypoints[0].iLat)).apply { name = "to" }
+                    val onn = OsmNodeNamed(OsmNode(waypoints[0].iLon, waypoints[0].iLat)).apply {
+                        name = "to"
+                    }
                     waypoints.add(onn)
                 } else {
                     waypoints[waypoints.size - 1].name = "via${waypoints.size - 1}_center"
                     val newpoints = mutableListOf<OsmNodeNamed>()
                     for (i in waypoints.size - 2 downTo 0) {
                         // System.out.println("back " + waypoints.get(i));
-                        val onn = OsmNodeNamed(OsmNode(waypoints[i].iLon, waypoints[i].iLat)).apply { name = "via" }
+                        val onn = OsmNodeNamed(
+                            OsmNode(
+                                waypoints[i].iLon,
+                                waypoints[i].iLat
+                            )
+                        ).apply { name = "via" }
                         newpoints.add(onn)
                     }
                     newpoints[newpoints.size - 1].name = "to"
@@ -190,7 +196,7 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         val n = OsmNodeNamed(listOne[0].crosspoint!!).apply {
             name = wpt1.name
             sElev = if (minIdx != -1) (minSElev + diff.toInt()).toShort() else Short.MIN_VALUE
-            nodeDescription = start1?.firstlink?.descriptionBitmap
+            nodeDescription = start1.firstlink?.descriptionBitmap
         }
         t.pois.add(n)
         t.matchedWaypoints = listOne
@@ -204,7 +210,8 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
         routingContext.global.useDynamicDistance = true
         val searchRadius = (routingContext.roundTripDistance ?: 1500).toDouble()
         var direction = (routingContext.startDirection ?: -1).toDouble()
-        if (direction == -1.0) direction = getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
+        if (direction == -1.0) direction =
+            getRandomDirectionFromData(waypoints[0], searchRadius).toDouble()
 
         if (routingContext.allowSamewayback) {
             val pos = destination(
@@ -1295,7 +1302,9 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
             logger.info("second check for way points")
             resetCache(false)
             range = -maxDynamicRange.toDouble()
-            val tmp = unmatchedWaypoints.filter { it.crosspoint == null || it.radius >= routingContext.global.waypointCatchingRange }.toMutableList()
+            val tmp =
+                unmatchedWaypoints.filter { it.crosspoint == null || it.radius >= routingContext.global.waypointCatchingRange }
+                    .toMutableList()
             ok = nodesCache!!.matchWaypointsToNodes(tmp, range, islandNodePairs)
         }
         if (!ok) {
@@ -1340,10 +1349,12 @@ public class RoutingEngine(private val routingContext: RoutingContext) : Thread(
                         if (wp.name?.startsWith("via") == true) {
                             wp.type = MatchedWaypoint.Type.DIRECT
                             val emw = MatchedWaypoint().apply {
-                                val onn2 = OsmNodeNamed(wp.crosspoint!!).apply { name = "${wp.name}_2" }
+                                val onn2 =
+                                    OsmNodeNamed(wp.crosspoint!!).apply { name = "${wp.name}_2" }
                                 this.name = onn2.name
                                 this.waypoint = onn2
-                                this.crosspoint = OsmNode(nmw.crosspoint!!.iLon, nmw.crosspoint!!.iLat)
+                                this.crosspoint =
+                                    OsmNode(nmw.crosspoint!!.iLon, nmw.crosspoint!!.iLat)
                                 this.node1 = OsmNode(nmw.node1!!.iLon, nmw.node1!!.iLat)
                                 this.node2 = OsmNode(nmw.node2!!.iLon, nmw.node2!!.iLat)
                                 this.type = MatchedWaypoint.Type.SHAPING

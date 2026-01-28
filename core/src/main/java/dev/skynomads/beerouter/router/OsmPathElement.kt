@@ -1,7 +1,10 @@
 package dev.skynomads.beerouter.router
 
 import dev.skynomads.beerouter.mapaccess.OsmPos
+import dev.skynomads.beerouter.osm.toDoubleLatitude
+import dev.skynomads.beerouter.osm.toDoubleLongitude
 import dev.skynomads.beerouter.util.CheapRuler.distance
+import org.maplibre.spatialk.geojson.Position
 import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
@@ -15,10 +18,8 @@ import kotlin.math.roundToInt
  */
 class OsmPathElement protected constructor() : OsmPos {
     // interface OsmPos
-    override var iLat: Int = 0 // latitude
-        private set
-    override var iLon: Int = 0 // longitude
-        private set
+    override var position: Position = Position(0.0, 0.0)
+
     override var sElev: Short = 0 // longitude
 
     public var message: MessageData? = null // description
@@ -92,8 +93,10 @@ class OsmPathElement protected constructor() : OsmPos {
 
         fun create(ilon: Int, ilat: Int, selev: Short, origin: OsmPathElement?): OsmPathElement {
             val pe = OsmPathElement()
-            pe.iLon = ilon
-            pe.iLat = ilat
+            pe.position = Position(
+                ilon.toDoubleLongitude(),
+                ilat.toDoubleLatitude()
+            )
             pe.sElev = selev
             pe.origin = origin
             return pe
@@ -102,8 +105,12 @@ class OsmPathElement protected constructor() : OsmPos {
         @Throws(IOException::class)
         fun readFromStream(dis: DataInput): OsmPathElement {
             val pe = OsmPathElement()
-            pe.iLat = dis.readInt()
-            pe.iLon = dis.readInt()
+            val lat = dis.readInt()
+            val lon = dis.readInt()
+            pe.position = Position(
+                lon.toDoubleLongitude(),
+                lat.toDoubleLatitude()
+            )
             pe.sElev = dis.readShort()
             pe.cost = dis.readInt()
             return pe
