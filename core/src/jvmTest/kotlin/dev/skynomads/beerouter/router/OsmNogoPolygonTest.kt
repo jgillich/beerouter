@@ -5,7 +5,8 @@ package dev.skynomads.beerouter.router
 
 import dev.skynomads.beerouter.router.OsmNogoPolygon.Companion.isOnLine
 import dev.skynomads.beerouter.util.CheapRuler.distance
-import kotlin.test.AfterTest
+import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
+import kotlin.math.sqrt
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,38 +14,36 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class OsmNogoPolygonTest {
-    // TODO broken since moving to spatialk position
-    //@Test
-    //fun testCalcBoundingCircle() {
-    //    val lonlat2m = getLonLatToMeterScales(polygon!!.iLat)
-    //    val dlon2m = lonlat2m!![0]
-    //    val dlat2m = lonlat2m[1]
-    //
-    //    polygon!!.calcBoundingCircle()
-    //    var r: Double = polygon!!.radius
-    //    for (i in lons.indices) {
-    //        val testLon = toOsmLon(lons[i], OFFSET_X)
-    //        val testLat = toOsmLat(lats[i], OFFSET_Y)
-    //        val dpx: Double = (testLon - polygon!!.iLon) * dlon2m
-    //        val dpy: Double = (testLat - polygon!!.iLat) * dlat2m
-    //        val r1 = sqrt(dpx * dpx + dpy * dpy)
-    //        val diff = r - r1
-    //        // Allow for some tolerance due to floating point precision and coordinate conversion
-    //        Assert.assertTrue("i: $i r($r) >= r1($r1)", diff >= -10.0)
-    //    }
-    //    polyline!!.calcBoundingCircle()
-    //    r = polyline!!.radius
-    //    for (i in lons.indices) {
-    //        val testLon = toOsmLon(lons[i], OFFSET_X)
-    //        val testLat = toOsmLat(lats[i], OFFSET_Y)
-    //        val dpx: Double = (testLon - polyline!!.iLon) * dlon2m
-    //        val dpy: Double = (testLat - polyline!!.iLat) * dlat2m
-    //        val r1 = sqrt(dpx * dpx + dpy * dpy)
-    //        val diff = r - r1
-    //        // Allow for some tolerance due to floating point precision and coordinate conversion
-    //        Assert.assertTrue("i: $i r($r) >= r1($r1)", diff >= -10.0)
-    //    }
-    //}
+    @Test
+    fun testCalcBoundingCircle() {
+        polygon!!.calcBoundingCircle()
+
+        val lonlat2m = getLonLatToMeterScales(polygon!!.iLat)
+        val dlon2m = lonlat2m!![0]
+        val dlat2m = lonlat2m[1]
+
+        var r: Double = polygon!!.radius
+        for (i in lons.indices) {
+            val testLon = toOsmLon(lons[i], OFFSET_X)
+            val testLat = toOsmLat(lats[i], OFFSET_Y)
+            val dpx: Double = (testLon - polygon!!.iLon) * dlon2m
+            val dpy: Double = (testLat - polygon!!.iLat) * dlat2m
+            val r1 = sqrt(dpx * dpx + dpy * dpy)
+            val diff = r - r1
+            assertTrue(diff >= 0, "i: $i r($r) >= r1($r1)")
+        }
+        polyline!!.calcBoundingCircle()
+        r = polyline!!.radius
+        for (i in lons.indices) {
+            val testLon = toOsmLon(lons[i], OFFSET_X)
+            val testLat = toOsmLat(lats[i], OFFSET_Y)
+            val dpx: Double = (testLon - polyline!!.iLon) * dlon2m
+            val dpy: Double = (testLat - polyline!!.iLat) * dlat2m
+            val r1 = sqrt(dpx * dpx + dpy * dpy)
+            val diff = r - r1
+            assertTrue(diff >= 0, "i: $i r($r) >= r1($r1)")
+        }
+    }
 
     @Test
     fun testIsWithin() {

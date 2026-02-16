@@ -48,8 +48,6 @@ public class OsmNogoPolygon(public val isClosed: Boolean) : OsmNodeNamed() {
      * actual routing algoritm.
      */
     public fun calcBoundingCircle() {
-        TODO("this does not work right, see testCalcBoundingCircle")
-
         var cxmin: Int
         var cxmax: Int
         var cymin: Int
@@ -329,7 +327,14 @@ public class OsmNogoPolygon(public val isClosed: Boolean) : OsmNodeNamed() {
 
     public companion object {
         @JvmStatic
-        public fun isOnLine(px: Long, py: Long, p0x: Long, p0y: Long, p1x: Long, p1y: Long): Boolean {
+        public fun isOnLine(
+            px: Long,
+            py: Long,
+            p0x: Long,
+            p0y: Long,
+            p1x: Long,
+            p1y: Long
+        ): Boolean {
             val v10x = (px - p0x).toDouble()
             val v10y = (py - p0y).toDouble()
             val v12x = (p1x - p0x).toDouble()
