@@ -9,7 +9,7 @@ import java.io.DataInputStream
 import java.io.IOException
 import java.io.InputStream
 
-class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputStream) {
+public class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputStream) {
     private var lastValue = 0
     private var repCount = 0
     private var diffshift = 0
@@ -18,7 +18,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
     private var b = 0 // buffer word
 
     @Throws(IOException::class)
-    fun readMixed(): Int {
+    public fun readMixed(): Int {
         if (repCount == 0) {
             val negative = decodeBit()
             val d = decodeVarBits() + diffshift
@@ -31,7 +31,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
     }
 
     @Throws(IOException::class)
-    fun decodeBit(): Boolean {
+    public fun decodeBit(): Boolean {
         fillBuffer()
         val value = ((b and 1) != 0)
         b = b ushr 1
@@ -40,7 +40,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
     }
 
     @Throws(IOException::class)
-    fun decodeVarBits2(): Int {
+    public fun decodeVarBits2(): Int {
         var range = 0
         while (!decodeBit()) {
             range = 2 * range + 1
@@ -54,7 +54,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
      * @see .encodeBounded
      */
     @Throws(IOException::class)
-    fun decodeBounded(max: Int): Int {
+    public fun decodeBounded(max: Int): Int {
         var value = 0
         var im = 1 // integer mask
         while ((value or im) <= max) {
@@ -71,7 +71,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
      * @see .encodeVarBits
      */
     @Throws(IOException::class)
-    fun decodeVarBits(): Int {
+    public fun decodeVarBits(): Int {
         fillBuffer()
         val b12 = b and 0xfff
         val len: Int = vlLength[b12]
@@ -119,7 +119,7 @@ class MixCoderDataInputStream(inputStream: InputStream) : DataInputStream(inputS
         }
     }
 
-    companion object {
+    public companion object {
         private val vlValues = BitCoderContext.vlValues
         private val vlLength = BitCoderContext.vlLength
     }

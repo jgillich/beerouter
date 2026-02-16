@@ -6,15 +6,15 @@
 package dev.skynomads.beerouter.util
 
 
-open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(byteArray) {
-    fun writeInt(v: Int) {
+public open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(byteArray) {
+    public fun writeInt(v: Int) {
         ab[aboffset++] = ((v shr 24) and 0xff).toByte()
         ab[aboffset++] = ((v shr 16) and 0xff).toByte()
         ab[aboffset++] = ((v shr 8) and 0xff).toByte()
         ab[aboffset++] = ((v) and 0xff).toByte()
     }
 
-    fun writeLong(v: Long) {
+    public fun writeLong(v: Long) {
         ab[aboffset++] = ((v shr 56) and 0xffL).toByte()
         ab[aboffset++] = ((v shr 48) and 0xffL).toByte()
         ab[aboffset++] = ((v shr 40) and 0xffL).toByte()
@@ -25,30 +25,30 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
         ab[aboffset++] = ((v) and 0xffL).toByte()
     }
 
-    fun writeBoolean(v: Boolean) {
+    public fun writeBoolean(v: Boolean) {
         ab[aboffset++] = (if (v) 1 else 0).toByte()
     }
 
-    fun writeByte(v: Int) {
+    public fun writeByte(v: Int) {
         ab[aboffset++] = ((v) and 0xff).toByte()
     }
 
-    fun writeShort(v: Int) {
+    public fun writeShort(v: Int) {
         ab[aboffset++] = ((v shr 8) and 0xff).toByte()
         ab[aboffset++] = ((v) and 0xff).toByte()
     }
 
-    fun write(sa: ByteArray) {
+    public fun write(sa: ByteArray) {
         sa.copyInto(ab, aboffset, 0, sa.size)
         aboffset += sa.size
     }
 
-    fun write(sa: ByteArray, offset: Int, len: Int) {
+    public fun write(sa: ByteArray, offset: Int, len: Int) {
         sa.copyInto(ab, aboffset, offset, offset + len)
         aboffset += len
     }
 
-    fun writeVarBytes(sa: ByteArray?) {
+    public fun writeVarBytes(sa: ByteArray?) {
         if (sa == null) {
             writeVarLengthUnsigned(0)
         } else {
@@ -58,7 +58,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
         }
     }
 
-    fun writeModeAndDesc(isReverse: Boolean, sa: ByteArray?) {
+    public fun writeModeAndDesc(isReverse: Boolean, sa: ByteArray?) {
         val len = sa?.size ?: 0
         val sizecode = len shl 1 or (if (isReverse) 1 else 0)
         writeVarLengthUnsigned(sizecode)
@@ -68,7 +68,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
     }
 
 
-    fun toByteArray(): ByteArray {
+    public fun toByteArray(): ByteArray {
         val c = ByteArray(aboffset)
         ab.copyInto(c, 0, 0, aboffset)
         return c
@@ -82,11 +82,11 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
      *
      * @return the offset of the placeholder
      */
-    fun writeSizePlaceHolder(): Int {
+    public fun writeSizePlaceHolder(): Int {
         return aboffset++
     }
 
-    fun injectSize(sizeoffset: Int) {
+    public fun injectSize(sizeoffset: Int) {
         var size = 0
         val datasize = aboffset - sizeoffset - 1
         var v = datasize
@@ -102,11 +102,11 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
         aboffset = sizeoffset + size + datasize
     }
 
-    fun writeVarLengthSigned(v: Int) {
+    public fun writeVarLengthSigned(v: Int) {
         writeVarLengthUnsigned(if (v < 0) ((-v) shl 1) or 1 else v shl 1)
     }
 
-    fun writeVarLengthUnsigned(v: Int) {
+    public fun writeVarLengthUnsigned(v: Int) {
         var v = v
         var i7 = v and 0x7f
         if ((7.let { v = v ushr it; v }) == 0) {
@@ -139,7 +139,7 @@ open class ByteDataWriter(byteArray: ByteArray = ByteArray(0)) : ByteDataReader(
         ab[aboffset++] = (v).toByte()
     }
 
-    fun size(): Int {
+    public fun size(): Int {
         return aboffset
     }
 }

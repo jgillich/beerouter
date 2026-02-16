@@ -6,16 +6,16 @@
 package dev.skynomads.beerouter.mapaccess
 
 
-class OsmTransferNode {
+public class OsmTransferNode {
     @JvmField
-    var next: OsmTransferNode? = null
+    public var next: OsmTransferNode? = null
 
     @JvmField
-    var ilon: Int = 0
+    public var ilon: Int = 0
 
     @JvmField
-    var ilat: Int = 0
+    public var ilat: Int = 0
 
     @JvmField
-    var selev: Short = 0
+    public var selev: Short = 0
 }

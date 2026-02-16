@@ -9,33 +9,33 @@ package dev.skynomads.beerouter.router
 import kotlin.math.abs
 
 public class VoiceHint {
-    var ilon: Int = 0
-    var ilat: Int = 0
-    var selev: Short = 0
-    var command: Int = 0
-    var oldWay: MessageData? = null
-    var goodWay: MessageData? = null
-    var badWays: MutableList<MessageData>? = null
-    var distanceToNext: Double = 0.0
-    var indexInTrack: Int = 0
+    public var ilon: Int = 0
+    public var ilat: Int = 0
+    public var selev: Short = 0
+    public var command: Int = 0
+    public var oldWay: MessageData? = null
+    public var goodWay: MessageData? = null
+    public var badWays: MutableList<MessageData>? = null
+    public var distanceToNext: Double = 0.0
+    public var indexInTrack: Int = 0
 
-    val time: Float
+    public val time: Float
         get() = if (oldWay == null) 0f else oldWay!!.time
 
-    var angle: Float = Float.MAX_VALUE
-    var lowerBadWayAngle: Float = -181f
-    var higherBadWayAngle: Float = 181f
+    public var angle: Float = Float.MAX_VALUE
+    public var lowerBadWayAngle: Float = -181f
+    public var higherBadWayAngle: Float = 181f
 
-    var turnAngleConsumed: Boolean = false
-    var needsRealTurn: Boolean = false
-    var maxBadPrio: Int = -1
+    public var turnAngleConsumed: Boolean = false
+    public var needsRealTurn: Boolean = false
+    public var maxBadPrio: Int = -1
 
-    var exitNumber: Int = 0
+    public var exitNumber: Int = 0
 
-    val isRoundabout: Boolean
+    public val isRoundabout: Boolean
         get() = this.exitNumber != 0
 
-    fun addBadWay(badWay: MessageData?) {
+    public fun addBadWay(badWay: MessageData?) {
         if (badWay == null) {
             return
         }
@@ -45,7 +45,7 @@ public class VoiceHint {
         badWays!!.add(badWay)
     }
 
-    fun getJsonCommandIndex(timode: Int): Int {
+    public fun getJsonCommandIndex(timode: Int): Int {
         when (this.command) {
             TLU -> return 10
             TU -> return 15
@@ -72,7 +72,7 @@ public class VoiceHint {
     /*
    * used by comment style, osmand style
    */
-    fun getCommandString(timode: Int): String {
+    public fun getCommandString(timode: Int): String {
         when (this.command) {
             TLU -> return "TU" // should be changed to TLU when osmand uses new voice hint constants
             TU -> return "TU"
@@ -100,7 +100,7 @@ public class VoiceHint {
     /*
    * used by trkpt/sym style
    */
-    fun getCommandString(c: Int, timode: Int): String {
+    public fun getCommandString(c: Int, timode: Int): String {
         when (c) {
             TLU -> return "TLU"
             TU -> return "TU"
@@ -127,7 +127,7 @@ public class VoiceHint {
     /*
    * used by gpsies style
    */
-    fun getSymbolString(timode: Int): String {
+    public fun getSymbolString(timode: Int): String {
         when (this.command) {
             TLU -> return "TU"
             TU -> return "TU"
@@ -151,7 +151,7 @@ public class VoiceHint {
         }
     }
 
-    val locusSymbolString: String
+    public val locusSymbolString: String
         /*
            * used by new locus trkpt style
            */
@@ -181,7 +181,7 @@ public class VoiceHint {
     /*
   * used by osmand style
   */
-    fun getMessageString(timode: Int): String {
+    public fun getMessageString(timode: Int): String {
         when (this.command) {
             TLU -> return "u-turn" // should be changed to u-turn-left when osmand uses new voice hint constants
             TU -> return "u-turn"
@@ -203,7 +203,7 @@ public class VoiceHint {
         }
     }
 
-    val locusAction: Int
+    public val locusAction: Int
         /*
            * used by old locus style
            */
@@ -229,7 +229,7 @@ public class VoiceHint {
             }
         }
 
-    val oruxAction: Int
+    public val oruxAction: Int
         /*
            * used by orux style
            */
@@ -255,7 +255,7 @@ public class VoiceHint {
             }
         }
 
-    val cruiserCommandString: String
+    public val cruiserCommandString: String
         /*
            * used by cruiser, equivalent to getCommandString() - osmand style - when osmand changes the voice hint  constants
            */
@@ -283,7 +283,7 @@ public class VoiceHint {
             }
         }
 
-    val cruiserMessageString: String
+    public val cruiserMessageString: String
         /*
            * used by cruiser, equivalent to getMessageString() - osmand style - when osmand changes the voice hint  constants
            */
@@ -311,7 +311,7 @@ public class VoiceHint {
             }
         }
 
-    fun calcCommand() {
+    public fun calcCommand() {
         if (badWays != null) {
             for (badWay in badWays) {
                 if (badWay.isBadOneway) {
@@ -425,7 +425,7 @@ public class VoiceHint {
         }
     }
 
-    fun formatGeometry(): String {
+    public fun formatGeometry(): String {
         val oldPrio = if (oldWay == null) 0f else oldWay!!.priorityclassifier.toFloat()
         val sb = StringBuilder(30)
         sb.append(' ').append(oldPrio.toInt())
@@ -444,7 +444,7 @@ public class VoiceHint {
             .append((msg.priorityclassifier))
     }
 
-    fun hasGiveWay(): Boolean {
+    public fun hasGiveWay(): Boolean {
         val tags = oldWay?.wayTags
         if (tags != null) {
             return if (tags["reversedirection"] == "yes") {
@@ -456,29 +456,29 @@ public class VoiceHint {
         return false
     }
 
-    companion object {
-        const val C: Int = 1 // continue (go straight)
-        const val TL: Int = 2 // turn left
-        const val TSLL: Int = 3 // turn slightly left
-        const val TSHL: Int = 4 // turn sharply left
-        const val TR: Int = 5 // turn right
-        const val TSLR: Int = 6 // turn slightly right
-        const val TSHR: Int = 7 // turn sharply right
-        const val KL: Int = 8 // keep left
-        const val KR: Int = 9 // keep right
-        const val TLU: Int = 10 // U-turn
-        const val TRU: Int = 11 // Right U-turn
-        const val OFFR: Int = 12 // Off route
-        const val RNDB: Int = 13 // Roundabout
-        const val RNLB: Int = 14 // Roundabout left
-        const val TU: Int = 15 // 180 degree u-turn
-        const val BL: Int = 16 // Beeline routing
-        const val EL: Int = 17 // exit left
-        const val ER: Int = 18 // exit right
+    public companion object {
+        public const val C: Int = 1 // continue (go straight)
+        public const val TL: Int = 2 // turn left
+        public const val TSLL: Int = 3 // turn slightly left
+        public const val TSHL: Int = 4 // turn sharply left
+        public const val TR: Int = 5 // turn right
+        public const val TSLR: Int = 6 // turn slightly right
+        public const val TSHR: Int = 7 // turn sharply right
+        public const val KL: Int = 8 // keep left
+        public const val KR: Int = 9 // keep right
+        public const val TLU: Int = 10 // U-turn
+        public const val TRU: Int = 11 // Right U-turn
+        public const val OFFR: Int = 12 // Off route
+        public const val RNDB: Int = 13 // Roundabout
+        public const val RNLB: Int = 14 // Roundabout left
+        public const val TU: Int = 15 // 180 degree u-turn
+        public const val BL: Int = 16 // Beeline routing
+        public const val EL: Int = 17 // exit left
+        public const val ER: Int = 18 // exit right
 
-        const val END: Int = 100 // end point
+        public const val END: Int = 100 // end point
 
-        fun is180DegAngle(angle: Float): Boolean {
+        public fun is180DegAngle(angle: Float): Boolean {
             return (abs(angle) in 179f..180f)
         }
     }

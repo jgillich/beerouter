@@ -12,18 +12,18 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 
-class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookupMinorVersion: Int) {
-    var ra: RandomAccessFile? = null
-    var fileIndex: LongArray = LongArray(25)
-    var fileHeaderCrcs: IntArray = IntArray(0)
+public class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookupMinorVersion: Int) {
+    public var ra: RandomAccessFile? = null
+    public var fileIndex: LongArray = LongArray(25)
+    public var fileHeaderCrcs: IntArray = IntArray(0)
 
-    var creationTime: Long = 0L
+    public var creationTime: Long = 0L
 
-    var fileName: String? = f.getName()
+    public var fileName: String? = f.getName()
 
     @JvmField
-    var divisor: Int = 80
-    var elevationType: Byte = 3
+    public var divisor: Int = 80
+    public var elevationType: Byte = 3
 
     init {
         val iobuffer = dataBuffers.iobuffer
@@ -82,7 +82,7 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
         }
     }
 
-    fun close() {
+    public fun close() {
         if (ra != null) {
             try {
                 ra!!.close()
@@ -91,8 +91,8 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
         }
     }
 
-    companion object {
-        fun checkVersionIntegrity(f: File): Int {
+    public companion object {
+        public fun checkVersionIntegrity(f: File): Int {
             var version = -1
             var raf: RandomAccessFile? = null
             try {
@@ -120,7 +120,7 @@ class PhysicalFile(f: File, dataBuffers: DataBuffers, lookupVersion: Int, lookup
          */
         @JvmStatic
         @Throws(IOException::class)
-        fun checkFileIntegrity(f: File): String? {
+        public fun checkFileIntegrity(f: File): String? {
             var pf: PhysicalFile? = null
             try {
                 val dataBuffers = DataBuffers()

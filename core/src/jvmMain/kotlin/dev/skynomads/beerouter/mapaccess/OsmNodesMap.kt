@@ -10,37 +10,37 @@ import dev.skynomads.beerouter.osm.toOsmId
 import dev.skynomads.beerouter.util.ByteArrayUnifier
 import org.maplibre.spatialk.geojson.Position
 
-class OsmNodesMap {
+public class OsmNodesMap {
     private val hmap: MutableLongObjectMap<OsmNode> = MutableLongObjectMap(4096)
 
-    val byteArrayUnifier: ByteArrayUnifier = ByteArrayUnifier(16384, false)
+    public val byteArrayUnifier: ByteArrayUnifier = ByteArrayUnifier(16384, false)
 
     @JvmField
-    var nodesCreated: Int = 0
-    var maxmem: Long = 0
+    public var nodesCreated: Int = 0
+    public var maxmem: Long = 0
     private var currentmaxmem: Long = 4000000 // start with 4 MB
-    var lastVisitID: Int = 1000
-    var baseID: Int = 1000
+    public var lastVisitID: Int = 1000
+    public var baseID: Int = 1000
 
     @JvmField
-    var destination: OsmNode? = null
+    public var destination: OsmNode? = null
 
     @JvmField
-    var currentPathCost: Int = 0
+    public var currentPathCost: Int = 0
 
     @JvmField
-    var currentMaxCost: Int = 1000000000
+    public var currentMaxCost: Int = 1000000000
 
     @JvmField
-    var endNode1: OsmNode? = null
+    public var endNode1: OsmNode? = null
 
     @JvmField
-    var endNode2: OsmNode? = null
+    public var endNode2: OsmNode? = null
 
     @JvmField
-    var cleanupMode: Int = 0
+    public var cleanupMode: Int = 0
 
-    fun cleanupAndCount(nodes: List<OsmNode>) {
+    public fun cleanupAndCount(nodes: List<OsmNode>) {
         if (cleanupMode == 0) {
             justCount(nodes)
         } else {
@@ -118,7 +118,7 @@ class OsmNodesMap {
     }
 
 
-    fun isInMemoryBounds(npaths: Int, extend: Boolean): Boolean {
+    public fun isInMemoryBounds(npaths: Int, extend: Boolean): Boolean {
         //    long total = nodesCreated * 76L + linksCreated * 48L;
         var total = nodesCreated * 95L + npaths * 200L
 
@@ -141,7 +141,7 @@ class OsmNodesMap {
 
     // is there an escape from this node
     // to a hollow node (or destination node) ?
-    fun canEscape(n0: OsmNode?): Boolean {
+    public fun canEscape(n0: OsmNode?): Boolean {
         var sawLowIDs = false
         lastVisitID++
         nodes2check!!.clear()
@@ -190,11 +190,11 @@ class OsmNodesMap {
         nodes2check.add(n)
     }
 
-    fun clearTemp() {
+    public fun clearTemp() {
         nodes2check = null
     }
 
-    fun collectOutreachers() {
+    public fun collectOutreachers() {
         nodes2check = ArrayList(nodesCreated)
         nodesCreated = 0
         hmap.forEach { _, node ->
@@ -235,17 +235,17 @@ class OsmNodesMap {
      * @return the node for the given id if exist, else null
      */
     @Deprecated("use get(position: Position)")
-    fun get(ilon: Int, ilat: Int): OsmNode? {
+    public fun get(ilon: Int, ilat: Int): OsmNode? {
         val id = (ilon.toLong()) shl 32 or ilat.toLong()
         return hmap[id]
     }
 
-    fun get(position: Position): OsmNode? {
+    public fun get(position: Position): OsmNode? {
         return hmap[position.toOsmId()]
     }
 
 
-    fun remove(node: OsmNode) {
+    public fun remove(node: OsmNode) {
         if (node !== endNode1 && node !== endNode2) { // keep endnodes in hollow-map even when loaded
             hmap.remove(node.idFromPos)
         }
@@ -256,7 +256,7 @@ class OsmNodesMap {
      *
      * @return the previous node if that id existed, else null
      */
-    fun put(node: OsmNode): OsmNode? {
+    public fun put(node: OsmNode): OsmNode? {
         return hmap.put(node.idFromPos, node)
     }
 }

@@ -9,7 +9,7 @@ import java.io.DataOutputStream
 import java.io.IOException
 import java.io.OutputStream
 
-class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
+public class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
     private var lastValue = 0
     private var lastLastValue = 0
     private var repCount = 0
@@ -19,7 +19,7 @@ class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
     private var b = 0
 
     @Throws(IOException::class)
-    fun writeMixed(v: Int) {
+    public fun writeMixed(v: Int) {
         if (v != lastValue && repCount > 0) {
             var d = lastValue - lastLastValue
             lastLastValue = lastValue
@@ -53,7 +53,7 @@ class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
     }
 
     @Throws(IOException::class)
-    fun encodeBit(value: Boolean) {
+    public fun encodeBit(value: Boolean) {
         if (bm == 0x100) {
             writeByte(b.toByte().toInt())
             bm = 1
@@ -66,7 +66,7 @@ class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
     }
 
     @Throws(IOException::class)
-    fun encodeVarBits(value: Int) {
+    public fun encodeVarBits(value: Int) {
         var value = value
         var range = 0
         while (value > range) {
@@ -79,7 +79,7 @@ class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
     }
 
     @Throws(IOException::class)
-    fun encodeBounded(max: Int, value: Int) {
+    public fun encodeBounded(max: Int, value: Int) {
         var max = max
         var im = 1 // integer mask
         while (im <= max) {
@@ -97,11 +97,11 @@ class MixCoderDataOutputStream(os: OutputStream?) : DataOutputStream(os) {
         }
     }
 
-    companion object {
-        var diffs: IntArray = IntArray(100)
-        var counts: IntArray = IntArray(100)
+    public companion object {
+        public var diffs: IntArray = IntArray(100)
+        public var counts: IntArray = IntArray(100)
 
-        fun stats() {
+        public fun stats() {
             for (i in 1..99) println("diff[" + i + "] = " + diffs[i])
             for (i in 1..99) println("counts[" + i + "] = " + counts[i])
         }

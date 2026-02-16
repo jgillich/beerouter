@@ -9,19 +9,19 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 
-class BExpressionMetaData {
-    var lookupVersion: Short = -1
-    var lookupMinorVersion: Short = -1
-    var minAppVersion: Short = -1
+public class BExpressionMetaData {
+    public var lookupVersion: Short = -1
+    public var lookupMinorVersion: Short = -1
+    public var minAppVersion: Short = -1
 
     private val listeners: MutableMap<String?, BExpressionContext> =
         HashMap()
 
-    fun registerListener(context: String?, ctx: BExpressionContext?) {
+    public fun registerListener(context: String?, ctx: BExpressionContext?) {
         listeners[context] = ctx!!
     }
 
-    fun readMetaData(lookupsFile: File) {
+    public fun readMetaData(lookupsFile: File) {
         try {
             val br = BufferedReader(FileReader(lookupsFile))
 
@@ -65,7 +65,7 @@ class BExpressionMetaData {
         }
     }
 
-    companion object {
+    public companion object {
         private const val CONTEXT_TAG = "---context:"
         private const val VERSION_TAG = "---lookupversion:"
         private const val MINOR_VERSION_TAG = "---minorversion:"

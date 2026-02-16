@@ -13,7 +13,7 @@ import org.maplibre.spatialk.geojson.Position
  * DirectWeaver does the same decoding as MicroCache2, but decodes directly
  * into the instance-graph, not into the intermediate nodes-cache
  */
-class DirectWeaver(
+public class DirectWeaver(
     bc: StatCoderContext,
     dataBuffers: DataBuffers,
     lonIdx: Int,
@@ -197,11 +197,11 @@ class DirectWeaver(
         hollowNodes.cleanupAndCount(nodes)
     }
 
-    fun expandId(id32: Int): Long {
+    public fun expandId(id32: Int): Long {
         return id64Base + id32_00[id32 and 1023] + id32_10[(id32 shr 10) and 1023] + id32_20[(id32 shr 20) and 1023]
     }
 
-    companion object {
+    public companion object {
         private val id32_00 = LongArray(1024)
         private val id32_10 = LongArray(1024)
         private val id32_20 = LongArray(1024)

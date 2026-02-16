@@ -12,8 +12,8 @@ import java.io.DataInput
 import java.io.DataOutput
 import java.io.IOException
 
-class MatchedWaypoint {
-    enum class Type {
+public class MatchedWaypoint {
+    public enum class Type {
         /** route next to this point */
         SHAPING,
 
@@ -25,39 +25,39 @@ class MatchedWaypoint {
     }
 
     @JvmField
-    var node1: OsmNode? = null
+    public var node1: OsmNode? = null
 
     @JvmField
-    var node2: OsmNode? = null
+    public var node2: OsmNode? = null
 
     @JvmField
-    var crosspoint: OsmNode? = null
+    public var crosspoint: OsmNode? = null
 
     @JvmField
-    var waypoint: OsmNode? = null
+    public var waypoint: OsmNode? = null
 
     @JvmField
-    var correctedpoint: OsmNode? = null
+    public var correctedpoint: OsmNode? = null
 
     @JvmField
-    var name: String? = null // waypoint name used in error messages
+    public var name: String? = null // waypoint name used in error messages
 
     @JvmField
-    var radius: Double = 0.0 // distance in meter between waypoint and crosspoint
+    public var radius: Double = 0.0 // distance in meter between waypoint and crosspoint
 
     @JvmField
-    var type: Type = Type.SHAPING
+    public var type: Type = Type.SHAPING
 
     @JvmField
-    var indexInTrack: Int = 0
-    var directionToNext: Double = -1.0
-    var directionDiff: Double = 361.0
+    public var indexInTrack: Int = 0
+    public var directionToNext: Double = -1.0
+    public var directionDiff: Double = 361.0
 
-    var wayNearest: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
-    var hasUpdate: Boolean = false
+    public var wayNearest: MutableList<MatchedWaypoint> = ArrayList<MatchedWaypoint>()
+    public var hasUpdate: Boolean = false
 
     @Throws(IOException::class)
-    fun writeToStream(dos: DataOutput) {
+    public fun writeToStream(dos: DataOutput) {
         dos.writeInt(node1!!.iLat)
         dos.writeInt(node1!!.iLon)
         dos.writeInt(node2!!.iLat)
@@ -69,10 +69,10 @@ class MatchedWaypoint {
         dos.writeDouble(radius)
     }
 
-    companion object {
+    public companion object {
         @JvmStatic
         @Throws(IOException::class)
-        fun readFromStream(dis: DataInput): MatchedWaypoint {
+        public fun readFromStream(dis: DataInput): MatchedWaypoint {
             val mwp = MatchedWaypoint()
             mwp.node1 = OsmNode()
             mwp.node2 = OsmNode()

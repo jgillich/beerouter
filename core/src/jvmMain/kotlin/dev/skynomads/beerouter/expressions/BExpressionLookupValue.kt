@@ -10,14 +10,14 @@
  */
 package dev.skynomads.beerouter.expressions
 
-class BExpressionLookupValue(var value: String) {
-    var aliases: MutableList<String>? = null
+public class BExpressionLookupValue(public var value: String) {
+    public var aliases: MutableList<String>? = null
 
     override fun toString(): String {
         return value
     }
 
-    fun addAlias(alias: String?) {
+    public fun addAlias(alias: String?) {
         if (aliases == null) aliases = ArrayList()
         aliases!!.add(alias!!)
     }
@@ -35,7 +35,7 @@ class BExpressionLookupValue(var value: String) {
         return false
     }
 
-    fun matches(s: String?): Boolean {
+    public fun matches(s: String?): Boolean {
         if (value == s) return true
         if (aliases != null) {
             for (alias in aliases) {

@@ -16,18 +16,18 @@ import kotlin.math.roundToInt
  *
  * @author ab
  */
-class OsmPathElement protected constructor() : OsmPos {
-    override var position: Position = Position(0.0, 0.0, 0.0)
+public class OsmPathElement protected constructor() : OsmPos {
+    override public var position: Position = Position(0.0, 0.0, 0.0)
 
     @Deprecated("Use position.altitude instead")
-    val sElev: Short
+    public val sElev: Short
         get() = (position.altitude ?: 0.0).times(4.0).toInt().toShort()
 
     public var message: MessageData? = null // description
 
-    var cost: Int = 0
+    public var cost: Int = 0
 
-    var time: Float
+    public var time: Float
         get() = if (message == null) 0f else message!!.time
         set(t) {
             if (message != null) {
@@ -35,7 +35,7 @@ class OsmPathElement protected constructor() : OsmPos {
             }
         }
 
-    var energy: Float
+    public var energy: Float
         get() = if (message == null) 0f else message!!.energy
         set(e) {
             if (message != null) {
@@ -43,16 +43,16 @@ class OsmPathElement protected constructor() : OsmPos {
             }
         }
 
-    fun setAngle(e: Float) {
+    public fun setAngle(e: Float) {
         if (message != null) {
             message!!.turnangle = e
         }
     }
 
-    override val idFromPos: Long
+    override public val idFromPos: Long
         get() = (iLon.toLong()) shl 32 or iLat.toLong()
 
-    override fun calcDistance(p: OsmPos): Int {
+    override public fun calcDistance(p: OsmPos): Int {
         return max(
             1.0, distance(
                 this.iLon,
@@ -61,25 +61,25 @@ class OsmPathElement protected constructor() : OsmPos {
         ).toInt()
     }
 
-    var origin: OsmPathElement? = null
+    public var origin: OsmPathElement? = null
 
-    override fun toString(): String {
+    override public fun toString(): String {
         return iLon.toString() + "_" + this.iLat
     }
 
-    fun positionEquals(e: OsmPathElement): Boolean {
+    public fun positionEquals(e: OsmPathElement): Boolean {
         return this.iLat == e.iLat && this.iLon == e.iLon
     }
 
     @Throws(IOException::class)
-    fun writeToStream(dos: DataOutput) {
+    public fun writeToStream(dos: DataOutput) {
         dos.writeInt(this.iLat)
         dos.writeInt(this.iLon)
         dos.writeShort(sElev.toInt())
         dos.writeInt(cost)
     }
 
-    companion object {
+    public companion object {
         // construct a path element from a path
         internal fun create(path: OsmPath): OsmPathElement {
             val n = path.targetNode!!
@@ -89,7 +89,7 @@ class OsmPathElement protected constructor() : OsmPos {
             return pe
         }
 
-        fun create(ilon: Int, ilat: Int, selev: Short, origin: OsmPathElement?): OsmPathElement {
+        public fun create(ilon: Int, ilat: Int, selev: Short, origin: OsmPathElement?): OsmPathElement {
             val pe = OsmPathElement()
             pe.position = Position(
                 ilon.toDoubleLongitude(),
@@ -101,7 +101,7 @@ class OsmPathElement protected constructor() : OsmPos {
         }
 
         @Throws(IOException::class)
-        fun readFromStream(dis: DataInput): OsmPathElement {
+        public fun readFromStream(dis: DataInput): OsmPathElement {
             val pe = OsmPathElement()
             val lat = dis.readInt()
             val lon = dis.readInt()

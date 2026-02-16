@@ -16,10 +16,10 @@ import dev.skynomads.beerouter.util.Crc32.crc
 import java.io.IOException
 import java.io.RandomAccessFile
 
-class OsmFile(
+public class OsmFile(
     rafile: PhysicalFile?,
-    var lonDegree: Int,
-    var latDegree: Int,
+    public var lonDegree: Int,
+    public var latDegree: Int,
     dataBuffers: DataBuffers
 ) {
     private var `is`: RandomAccessFile? = null
@@ -28,12 +28,12 @@ class OsmFile(
     private var posIdx: IntArray = IntArray(0)
     private var microCaches: Array<MicroCache?>? = null
 
-    var filename: String? = null
+    public var filename: String? = null
 
     private var divisor = 0
     private var cellsize = 0
     private var indexsize = 0
-    var elevationType: Byte = 3
+    public var elevationType: Byte = 3
 
     init {
         val lonMod5 = lonDegree % 5
@@ -73,11 +73,11 @@ class OsmFile(
         }
     }
 
-    fun hasData(): Boolean {
+    public fun hasData(): Boolean {
         return microCaches != null
     }
 
-    fun getMicroCache(ilon: Int, ilat: Int): MicroCache? {
+    public fun getMicroCache(ilon: Int, ilat: Int): MicroCache? {
         val lonIdx = ilon / cellsize
         val latIdx = ilat / cellsize
         val subIdx = (latIdx - divisor * latDegree) * divisor + (lonIdx - divisor * lonDegree)
@@ -85,7 +85,7 @@ class OsmFile(
     }
 
     @Throws(Exception::class)
-    fun createMicroCache(
+    public fun createMicroCache(
         ilon: Int,
         ilat: Int,
         dataBuffers: DataBuffers,
@@ -114,7 +114,7 @@ class OsmFile(
     }
 
     @Throws(IOException::class)
-    fun getDataInputForSubIdx(subIdx: Int, iobuffer: ByteArray): Int {
+    public fun getDataInputForSubIdx(subIdx: Int, iobuffer: ByteArray): Int {
         val startPos = getPosIdx(subIdx - 1)
         val endPos = getPosIdx(subIdx)
         val size = endPos - startPos
@@ -128,7 +128,7 @@ class OsmFile(
     }
 
     @Throws(IOException::class)
-    fun createMicroCache(
+    public fun createMicroCache(
         lonIdx: Int, latIdx: Int, dataBuffers: DataBuffers, wayValidator: TagValueValidator?,
         waypointMatcher: WaypointMatcher?, reallyDecode: Boolean, hollowNodes: OsmNodesMap?
     ): MicroCache {
@@ -190,7 +190,7 @@ class OsmFile(
     }
 
     // set this OsmFile to ghost-state:
-    fun setGhostState(): Long {
+    public fun setGhostState(): Long {
         var sum: Long = 0
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
@@ -206,7 +206,7 @@ class OsmFile(
         return sum
     }
 
-    fun collectAll(): Long {
+    public fun collectAll(): Long {
         var deleted: Long = 0
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
@@ -218,7 +218,7 @@ class OsmFile(
         return deleted
     }
 
-    fun cleanGhosts(): Long {
+    public fun cleanGhosts(): Long {
         val deleted: Long = 0
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
@@ -230,7 +230,7 @@ class OsmFile(
         return deleted
     }
 
-    fun clean(all: Boolean) {
+    public fun clean(all: Boolean) {
         val nc = if (microCaches == null) 0 else microCaches!!.size
         for (i in 0..<nc) {
             val mc = microCaches!![i]

@@ -8,14 +8,14 @@ package dev.skynomads.beerouter.router
 import dev.skynomads.beerouter.mapaccess.OsmLink
 import dev.skynomads.beerouter.mapaccess.OsmNode
 
-abstract class OsmPrePath {
+public abstract class OsmPrePath {
     protected var sourceNode: OsmNode? = null
     protected var targetNode: OsmNode? = null
     protected var link: OsmLink? = null
 
-    var next: OsmPrePath? = null
+    public var next: OsmPrePath? = null
 
-    fun init(origin: OsmPath, link: OsmLink, rc: RoutingContext) {
+    public fun init(origin: OsmPath, link: OsmLink, rc: RoutingContext) {
         this.link = link
         this.sourceNode = origin.targetNode!!
         this.targetNode = link.getTarget(sourceNode)

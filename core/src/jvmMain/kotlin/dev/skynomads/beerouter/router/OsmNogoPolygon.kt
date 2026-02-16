@@ -16,17 +16,17 @@ import org.maplibre.spatialk.geojson.Position
 import kotlin.math.min
 import kotlin.math.sqrt
 
-class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
-    class Point internal constructor(val x: Int, val y: Int)
+public class OsmNogoPolygon(public val isClosed: Boolean) : OsmNodeNamed() {
+    public class Point internal constructor(public val x: Int, public val y: Int)
 
-    val points: MutableList<Point> = ArrayList<Point>()
+    public val points: MutableList<Point> = ArrayList<Point>()
 
     init {
         this.isNogo = true
         this.name = ""
     }
 
-    fun addVertex(lon: Int, lat: Int) {
+    public fun addVertex(lon: Int, lat: Int) {
         points.add(Point(lon, lat))
     }
 
@@ -47,7 +47,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
      * overall usage of cpu is neglegible in comparism to the cpu-usage of the
      * actual routing algoritm.
      */
-    fun calcBoundingCircle() {
+    public fun calcBoundingCircle() {
         TODO("this does not work right, see testCalcBoundingCircle")
 
         var cxmin: Int
@@ -151,7 +151,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
      * @param lat1 latitude of start point
      * @return true if segment or any of it's points are 'inside' of polygon
      */
-    fun intersects(lon0: Int, lat0: Int, lon1: Int, lat1: Int): Boolean {
+    public fun intersects(lon0: Int, lat0: Int, lon1: Int, lat1: Int): Boolean {
         val p0 = Point(lon0, lat0)
         val p1 = Point(lon1, lat1)
         val iLast = points.size - 1
@@ -167,7 +167,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         return false
     }
 
-    fun isOnPolyline(px: Long, py: Long): Boolean {
+    public fun isOnPolyline(px: Long, py: Long): Boolean {
         val iLast = points.size - 1
         var p1 = points[0]
         for (i in 1..iLast) {
@@ -193,7 +193,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
      * @param py latitude of the point to check
      * @return a boolean whether the point is within the polygon or not.
      */
-    fun isWithin(px: Long, py: Long): Boolean {
+    public fun isWithin(px: Long, py: Long): Boolean {
         var wn = 0 // the winding number counter
 
         // loop through all edges of the polygon
@@ -242,7 +242,7 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
      * @return The length, in meters, of the portion of the segment which is
      * included in the polygon.
      */
-    fun distanceWithinPolygon(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
+    public fun distanceWithinPolygon(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
         var distance = 0.0
 
         // Extremities of the segments
@@ -327,9 +327,9 @@ class OsmNogoPolygon(val isClosed: Boolean) : OsmNodeNamed() {
         return distance
     }
 
-    companion object {
+    public companion object {
         @JvmStatic
-        fun isOnLine(px: Long, py: Long, p0x: Long, p0y: Long, p1x: Long, p1y: Long): Boolean {
+        public fun isOnLine(px: Long, py: Long, p0x: Long, p0y: Long, p1x: Long, p1y: Long): Boolean {
             val v10x = (px - p0x).toDouble()
             val v10y = (py - p0y).toDouble()
             val v12x = (p1x - p0x).toDouble()

@@ -20,7 +20,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 
-class Rd5DiffTool : ProgressListener {
+public class Rd5DiffTool : ProgressListener {
     override fun updateProgress(task: String?, progress: Int) {
         println("$task: $progress%")
     }
@@ -35,7 +35,7 @@ class Rd5DiffTool : ProgressListener {
         private var skips: Short = 0
 
         @Throws(Exception::class)
-        fun writeMC(mc: MicroCache): Int {
+        public fun writeMC(mc: MicroCache): Int {
             if (mc.size == 0) {
                 skips++
                 return 0
@@ -50,7 +50,7 @@ class Rd5DiffTool : ProgressListener {
         }
 
         @Throws(Exception::class)
-        fun finish() {
+        public fun finish() {
             if (skips > 0) {
                 dos.writeShort(skips.toInt())
                 skips = 0
@@ -66,7 +66,7 @@ class Rd5DiffTool : ProgressListener {
         private val empty: MicroCache = MicroCache.emptyCache()
 
         @Throws(IOException::class)
-        fun readMC(): MicroCache {
+        public fun readMC(): MicroCache {
             if (skips < 0) {
                 skips = dis.readShort()
             }
@@ -82,15 +82,15 @@ class Rd5DiffTool : ProgressListener {
             return mc
         }
 
-        fun finish() {
+        public fun finish() {
             skips = -1
         }
     }
 
-    companion object {
+    public companion object {
         @Throws(Exception::class)
         @JvmStatic
-        fun main(args: Array<String>) {
+        public fun main(args: Array<String>) {
             if (args.size == 2) {
                 reEncode(File(args[0]), File(args[1]))
                 return
@@ -181,7 +181,7 @@ class Rd5DiffTool : ProgressListener {
          * show statistics on the expected size of the delta file
          */
         @Throws(Exception::class)
-        fun diff2files(f1: File, f2: File, outFile: File) {
+        public fun diff2files(f1: File, f2: File, outFile: File) {
             val abBuf1 = ByteArray(10 * 1024 * 1024)
             val abBuf2 = ByteArray(10 * 1024 * 1024)
 
@@ -308,7 +308,7 @@ class Rd5DiffTool : ProgressListener {
 
 
         @Throws(IOException::class)
-        fun recoverFromDelta(
+        public fun recoverFromDelta(
             f1: File,
             f2: File,
             outFile: File,
@@ -480,7 +480,7 @@ class Rd5DiffTool : ProgressListener {
         }
 
         @Throws(IOException::class)
-        fun copyFile(f1: File, outFile: File, progress: ProgressListener) {
+        public fun copyFile(f1: File, outFile: File, progress: ProgressListener) {
             var canceled = false
             val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))
             val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(outFile)))
@@ -526,7 +526,7 @@ class Rd5DiffTool : ProgressListener {
         }
 
         @Throws(Exception::class)
-        fun addDeltas(f1: File, f2: File, outFile: File) {
+        public fun addDeltas(f1: File, f2: File, outFile: File) {
             val abBuf1 = ByteArray(10 * 1024 * 1024)
             val abBuf2 = ByteArray(10 * 1024 * 1024)
 
@@ -605,7 +605,7 @@ class Rd5DiffTool : ProgressListener {
 
 
         @Throws(Exception::class)
-        fun reEncode(f1: File, outFile: File) {
+        public fun reEncode(f1: File, outFile: File) {
             val abBuf1 = ByteArray(10 * 1024 * 1024)
 
             val dis1 = DataInputStream(BufferedInputStream(FileInputStream(f1)))

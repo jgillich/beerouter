@@ -7,10 +7,10 @@ package dev.skynomads.beerouter.mapaccess
 
 import java.io.File
 
-object Rd5DiffValidator {
+public object Rd5DiffValidator {
     @Throws(Exception::class)
     @JvmStatic
-    fun main(args: Array<String>) {
+    public fun main(args: Array<String>) {
         validateDiffs(File(args[0]), File(args[1]))
     }
 
@@ -18,7 +18,7 @@ object Rd5DiffValidator {
      * Validate diffs for all DF5 files
      */
     @Throws(Exception::class)
-    fun validateDiffs(oldDir: File?, newDir: File) {
+    public fun validateDiffs(oldDir: File?, newDir: File) {
         val oldDiffDir = File(oldDir, "diff")
         val newDiffDir = File(newDir, "diff")
 

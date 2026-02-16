@@ -7,79 +7,79 @@ package dev.skynomads.beerouter.expressions
 
 import dev.skynomads.beerouter.codec.TagValueValidator
 
-class BExpressionContextWay : BExpressionContext, TagValueValidator {
-    private var decodeForbidden = true
+public class BExpressionContextWay : BExpressionContext, TagValueValidator {
+    private var decodeForbidden = false
 
     override val buildInVariableNames: Array<String?> = buildInVariables
 
-    val costfactor: Float
+    public val costfactor: Float
         get() = getBuildInVariable(0)
 
-    val turncost: Float
+    public val turncost: Float
         get() = getBuildInVariable(1)
 
-    val uphillCostfactor: Float
+    public val uphillCostfactor: Float
         get() = getBuildInVariable(2)
 
-    val downhillCostfactor: Float
+    public val downhillCostfactor: Float
         get() = getBuildInVariable(3)
 
-    val initialcost: Float
+    public val initialcost: Float
         get() = getBuildInVariable(4)
 
-    val nodeAccessGranted: Float
+    public val nodeAccessGranted: Float
         get() = getBuildInVariable(5)
 
-    val initialClassifier: Float
+    public val initialClassifier: Float
         get() = getBuildInVariable(6)
 
-    val trafficSourceDensity: Float
+    public val trafficSourceDensity: Float
         get() = getBuildInVariable(7)
 
-    val isTrafficBackbone: Float
+    public val isTrafficBackbone: Float
         get() = getBuildInVariable(8)
 
-    val priorityClassifier: Float
+    public val priorityClassifier: Float
         get() = getBuildInVariable(9)
 
-    val classifierMask: Float
+    public val classifierMask: Float
         get() = getBuildInVariable(10)
 
-    val maxspeed: Float
+    public val maxspeed: Float
         get() = getBuildInVariable(11)
 
-    val uphillcost: Float
+    public val uphillcost: Float
         get() = getBuildInVariable(12)
 
-    val downhillcost: Float
+    public val downhillcost: Float
         get() = getBuildInVariable(13)
 
-    val uphillcutoff: Float
+    public val uphillcutoff: Float
         get() = getBuildInVariable(14)
 
-    val downhillcutoff: Float
+    public val downhillcutoff: Float
         get() = getBuildInVariable(15)
 
-    val uphillmaxslope: Float
+    public val uphillmaxslope: Float
         get() = getBuildInVariable(16)
 
-    val downhillmaxslope: Float
+    public val downhillmaxslope: Float
         get() = getBuildInVariable(17)
 
-    val uphillmaxslopecost: Float
+    public val uphillmaxslopecost: Float
         get() = getBuildInVariable(18)
 
-    val downhillmaxslopecost: Float
+    public val downhillmaxslopecost: Float
         get() = getBuildInVariable(19)
 
-    constructor(meta: BExpressionMetaData) : super("way", meta)
+    public constructor(meta: BExpressionMetaData) : super("way", meta)
 
     /**
      * Create an Expression-Context for way context
      *
      * @param hashSize size of hashmap for result caching
      */
-    constructor(hashSize: Int, meta: BExpressionMetaData) : super("way", hashSize, meta)
+    public constructor(hashSize: Int, meta: BExpressionMetaData) : super("way", hashSize, meta)
 
     override fun accessType(description: ByteArray?): Int {
         evaluate(false, description!!)
@@ -99,7 +99,7 @@ class BExpressionContextWay : BExpressionContext, TagValueValidator {
     }
 
 
-    companion object {
+    public companion object {
         private val buildInVariables = arrayOf<String?>(
             "costfactor",
             "turncost",

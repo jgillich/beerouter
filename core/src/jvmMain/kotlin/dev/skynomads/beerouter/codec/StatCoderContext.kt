@@ -3,7 +3,7 @@ package dev.skynomads.beerouter.codec
 import dev.skynomads.beerouter.util.BitCoderContext
 import java.util.TreeMap
 
-class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
+public class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
     private var lastbitpos: Long = 0
 
 
@@ -13,7 +13,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .getBitReport
      */
-    fun assignBits(name: String?) {
+    public fun assignBits(name: String?) {
         val bitpos = writingBitPosition.toLong()
         if (statsPerName == null) {
             statsPerName = TreeMap()
@@ -34,7 +34,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .decodeNoisyNumber
      */
-    fun encodeNoisyNumber(value: Int, noisybits: Int) {
+    public fun encodeNoisyNumber(value: Int, noisybits: Int) {
         var value = value
         require(value >= 0) { "encodeVarBits expects positive value" }
         if (noisybits > 0) {
@@ -51,7 +51,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .encodeNoisyNumber
      */
-    fun decodeNoisyNumber(noisybits: Int): Int {
+    public fun decodeNoisyNumber(noisybits: Int): Int {
         val value = decodeBits(noisybits)
         return value or (decodeVarBits() shl noisybits)
     }
@@ -62,7 +62,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .decodeNoisyDiff
      */
-    fun encodeNoisyDiff(value: Int, noisybits: Int) {
+    public fun encodeNoisyDiff(value: Int, noisybits: Int) {
         var value = value
         if (noisybits > 0) {
             value += 1 shl (noisybits - 1)
@@ -82,7 +82,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .encodeNoisyDiff
      */
-    fun decodeNoisyDiff(noisybits: Int): Int {
+    public fun decodeNoisyDiff(noisybits: Int): Int {
         var value = 0
         if (noisybits > 0) {
             value = decodeBits(noisybits) - (1 shl (noisybits - 1))
@@ -102,7 +102,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .decodePredictedValue
      */
-    fun encodePredictedValue(value: Int, predictor: Int) {
+    public fun encodePredictedValue(value: Int, predictor: Int) {
         var p = if (predictor < 0) -predictor else predictor
         var noisybits = 0
 
@@ -119,7 +119,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      *
      * @see .encodePredictedValue
      */
-    fun decodePredictedValue(predictor: Int): Int {
+    public fun decodePredictedValue(predictor: Int): Int {
         var p = if (predictor < 0) -predictor else predictor
         var noisybits = 0
         while (p > 1023) {
@@ -142,7 +142,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      * @param nextbit bitmask with the most significant bit set to 1
      * @param mask    should be 0
      */
-    fun encodeSortedArray(values: IntArray, offset: Int, subsize: Int, nextbit: Int, mask: Int) {
+    public fun encodeSortedArray(values: IntArray, offset: Int, subsize: Int, nextbit: Int, mask: Int) {
         var nextbit = nextbit
         var mask = mask
         if (subsize == 1) { // last-choice shortcut
@@ -187,7 +187,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
      * @param value   should be 0
      * @see .encodeSortedArray
      */
-    fun decodeSortedArray(
+    public fun decodeSortedArray(
         values: IntArray,
         offset: Int,
         subsize: Int,
@@ -228,7 +228,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
         }
     }
 
-    companion object {
+    public companion object {
         private var statsPerName: MutableMap<String?, LongArray>? = null
         private val noisyBits = IntArray(1024)
 
@@ -246,7 +246,7 @@ class StatCoderContext(ab: ByteArray) : BitCoderContext(ab) {
         }
 
 
-        val bitReport: String
+        public val bitReport: String
             /**
              * Get a textual report on the bit-statistics
              *

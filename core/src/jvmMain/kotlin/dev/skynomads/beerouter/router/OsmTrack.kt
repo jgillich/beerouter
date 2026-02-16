@@ -20,44 +20,44 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import kotlin.math.abs
 
-class OsmTrack {
-    var endPoint: MatchedWaypoint? = null
-    lateinit var nogoChecksums: LongArray
-    var profileTimestamp: Long = 0
-    var isDirty: Boolean = false
+public class OsmTrack {
+    public var endPoint: MatchedWaypoint? = null
+    public lateinit var nogoChecksums: LongArray
+    public var profileTimestamp: Long = 0
+    public var isDirty: Boolean = false
 
-    var showspeed: Boolean = false
-    var showSpeedProfile: Boolean = false
-    var showTime: Boolean = false
+    public var showspeed: Boolean = false
+    public var showSpeedProfile: Boolean = false
+    public var showTime: Boolean = false
 
-    var params: MutableMap<String, String>? = null
+    public var params: MutableMap<String, String>? = null
 
-    var pois: MutableList<OsmNodeNamed> = ArrayList()
+    public var pois: MutableList<OsmNodeNamed> = ArrayList()
 
-    class OsmPathElementHolder {
-        var node: OsmPathElement? = null
-        var nextHolder: OsmPathElementHolder? = null
+    public class OsmPathElementHolder {
+        public var node: OsmPathElement? = null
+        public var nextHolder: OsmPathElementHolder? = null
     }
 
-    var nodes: MutableList<OsmPathElement> = ArrayList()
+    public var nodes: MutableList<OsmPathElement> = ArrayList()
 
     private var nodesMap: MutableLongObjectMap<OsmPathElementHolder> = MutableLongObjectMap()
 
     private var detourMap: MutableLongObjectMap<OsmPathElementHolder> = MutableLongObjectMap()
 
-    var voiceHints: VoiceHintList = VoiceHintList()
+    public var voiceHints: VoiceHintList = VoiceHintList()
 
-    var name: String = "unset"
+    public var name: String = "unset"
 
-    var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
-    var exportWaypoints: Boolean = false
-    var exportCorrectedWaypoints: Boolean = false
+    public var matchedWaypoints: MutableList<MatchedWaypoint> = mutableListOf()
+    public var exportWaypoints: Boolean = false
+    public var exportCorrectedWaypoints: Boolean = false
 
-    fun addNode(node: OsmPathElement?) {
+    public fun addNode(node: OsmPathElement?) {
         nodes.add(0, node!!)
     }
 
-    fun registerDetourForId(id: Long, detour: OsmPathElement?) {
+    public fun registerDetourForId(id: Long, detour: OsmPathElement?) {
         val nh = OsmPathElementHolder()
         nh.node = detour
         var h = detourMap[id]
@@ -71,7 +71,7 @@ class OsmTrack {
         }
     }
 
-    fun replaceDetours(source: OsmTrack) {
+    public fun replaceDetours(source: OsmTrack) {
         val newMap = MutableLongObjectMap<OsmPathElementHolder>()
         source.detourMap.forEach { key, value ->
             newMap[key] = value
@@ -79,15 +79,15 @@ class OsmTrack {
         detourMap = newMap
     }
 
-    fun addDetours(source: OsmTrack) {
+    public fun addDetours(source: OsmTrack) {
         source.detourMap.forEach { id, value ->
             detourMap.put(id, value)
         }
     }
 
-    var lastorigin: OsmPathElement? = null
+    public var lastorigin: OsmPathElement? = null
 
-    fun buildMap() {
+    public fun buildMap() {
         for (node in nodes) {
             val id = node.idFromPos
             val nh = OsmPathElementHolder()
@@ -110,7 +110,7 @@ class OsmTrack {
      * @param filename the filename to write to
      */
     @Throws(Exception::class)
-    fun writeBinary(filename: String) {
+    public fun writeBinary(filename: String) {
         val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(filename)))
 
         endPoint!!.writeToStream(dos)
@@ -126,16 +126,16 @@ class OsmTrack {
         dos.close()
     }
 
-    fun addNodes(t: OsmTrack) {
+    public fun addNodes(t: OsmTrack) {
         for (n in t.nodes) addNode(n)
         buildMap()
     }
 
-    fun containsNode(node: OsmPos): Boolean {
+    public fun containsNode(node: OsmPos): Boolean {
         return nodesMap!!.contains(node.idFromPos)
     }
 
-    fun getLink(n1: Long, n2: Long): OsmPathElement? {
+    public fun getLink(n1: Long, n2: Long): OsmPathElement? {
         var h = nodesMap!![n2]
         while (h != null) {
             val e1 = h.node!!.origin
@@ -147,7 +147,7 @@ class OsmTrack {
         return null
     }
 
-    fun appendTrack(t: OsmTrack) {
+    public fun appendTrack(t: OsmTrack) {
         var i: Int
 
         val ourSize = nodes.size
@@ -204,14 +204,14 @@ class OsmTrack {
         showSpeedProfile = showSpeedProfile or t.showSpeedProfile
     }
 
-    var distance: Int = 0
-    var ascend: Int = 0
-    var plainAscend: Int = 0
-    var cost: Int = 0
-    var energy: Int = 0
-    var iternity: MutableList<String?>? = null
+    public var distance: Int = 0
+    public var ascend: Int = 0
+    public var plainAscend: Int = 0
+    public var cost: Int = 0
+    public var energy: Int = 0
+    public var iternity: MutableList<String?>? = null
 
-    fun getVoiceHint(i: Int): VoiceHint? {
+    public fun getVoiceHint(i: Int): VoiceHint? {
         for (hint in voiceHints) {
             if (hint.indexInTrack == i) {
                 return hint
@@ -220,7 +220,7 @@ class OsmTrack {
         return null
     }
 
-    fun getMatchedWaypoint(idx: Int): MatchedWaypoint? {
+    public fun getMatchedWaypoint(idx: Int): MatchedWaypoint? {
         for (wp in matchedWaypoints) {
             if (idx == wp.indexInTrack) {
                 return wp
@@ -237,14 +237,14 @@ class OsmTrack {
         return if (vnode0 < vnode1) vnode0 else vnode1
     }
 
-    val totalSeconds: Int
+    public val totalSeconds: Int
         get() {
             val s =
                 if (nodes.size < 2) 0f else nodes[nodes.size - 1].time - nodes[0].time
             return (s + 0.5).toInt()
         }
 
-    fun equalsTrack(t: OsmTrack): Boolean {
+    public fun equalsTrack(t: OsmTrack): Boolean {
         if (nodes.size != t.nodes.size) return false
         for (i in nodes.indices) {
             val e1 = nodes[i]
@@ -254,16 +254,16 @@ class OsmTrack {
         return true
     }
 
-    fun getFromDetourMap(id: Long): OsmPathElementHolder? {
+    public fun getFromDetourMap(id: Long): OsmPathElementHolder? {
         if (detourMap == null) return null
         return detourMap!![id]
     }
 
-    fun prepareSpeedProfile(rc: RoutingContext?) {
+    public fun prepareSpeedProfile(rc: RoutingContext?) {
         // sendSpeedProfile = rc.keyValues != null && rc.keyValues.containsKey( "vmax" );
     }
 
-    fun processVoiceHints(rc: RoutingContext) {
+    public fun processVoiceHints(rc: RoutingContext) {
         voiceHints = VoiceHintList()
         voiceHints.setTransportMode(rc.global.carMode, rc.global.bikeMode)
         voiceHints.turnInstructionMode = rc.global.turnInstructionMode
@@ -348,7 +348,7 @@ class OsmTrack {
         }
     }
 
-    val minDistance: Int
+    public val minDistance: Int
         get() {
             if (voiceHints.isNotEmpty()) {
                 return when (voiceHints.transportMode) {
@@ -361,7 +361,7 @@ class OsmTrack {
             return 2
         }
 
-    fun getVoiceHintTime(i: Int): Float {
+    public fun getVoiceHintTime(i: Int): Float {
         if (voiceHints.list.isEmpty()) {
             return 0f
         }
@@ -374,7 +374,7 @@ class OsmTrack {
         return nodes[nodes.size - 1].time
     }
 
-    fun removeVoiceHint(i: Int): Boolean {
+    public fun removeVoiceHint(i: Int): Boolean {
         for (vh in voiceHints) {
             if (vh.indexInTrack == i) {
                 return voiceHints.remove(vh)
@@ -396,8 +396,8 @@ class OsmTrack {
         return null
     }
 
-    companion object {
-        fun readBinary(
+    public companion object {
+        public fun readBinary(
             filename: String?,
             newEp: OsmNodeNamed,
             nogoChecksums: LongArray,

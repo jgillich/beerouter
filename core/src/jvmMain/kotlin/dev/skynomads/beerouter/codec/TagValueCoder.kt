@@ -14,14 +14,14 @@ import java.util.Queue
  * Adapted for 3-pass encoding (counters -&gt; statistics -&gt; encoding )
  * but doesn't do anything at pass1
  */
-class TagValueCoder {
+public class TagValueCoder {
     private var identityMap: MutableMap<TagValueSet?, TagValueSet?>? = null
     private var tree: Any? = null
     private var bc: BitCoderContext? = null
     private var pass = 0
     private var nextTagValueSetId = 0
 
-    fun encodeTagValueSet(data: ByteArray?) {
+    public fun encodeTagValueSet(data: ByteArray?) {
         if (pass == 1) {
             return
         }
@@ -40,7 +40,7 @@ class TagValueCoder {
         }
     }
 
-    fun decodeTagValueSet(): TagValueWrapper? {
+    public fun decodeTagValueSet(): TagValueWrapper? {
         var node = tree
         while (node is TreeNode) {
             val tn = node
@@ -50,7 +50,7 @@ class TagValueCoder {
         return node as TagValueWrapper?
     }
 
-    fun encodeDictionary(bc: BitCoderContext) {
+    public fun encodeDictionary(bc: BitCoderContext) {
         if (++pass == 3) {
             if (identityMap!!.isEmpty()) {
                 val dummy = TagValueSet(nextTagValueSetId++)
@@ -72,12 +72,12 @@ class TagValueCoder {
         this.bc = bc
     }
 
-    constructor(bc: BitCoderContext, buffers: DataBuffers, validator: TagValueValidator?) {
+    public constructor(bc: BitCoderContext, buffers: DataBuffers, validator: TagValueValidator?) {
         tree = decodeTree(bc, buffers, validator)
         this.bc = bc
     }
 
-    constructor() {
+    public constructor() {
         identityMap = HashMap<TagValueSet?, TagValueSet?>()
     }
 
@@ -144,22 +144,22 @@ class TagValueCoder {
         return null
     }
 
-    class TreeNode {
-        var child1: Any? = null
-        var child2: Any? = null
+    public class TreeNode {
+        public var child1: Any? = null
+        public var child2: Any? = null
     }
 
-    class TagValueSet( // serial number to make the comparator well defined in case of equal frequencies
+    public class TagValueSet( // serial number to make the comparator well defined in case of equal frequencies
         private val id: Int
     ) {
-        var data: ByteArray? = null
-        var frequency: Int = 0
-        var code: Int = 0
-        var range: Int = 0
-        var child1: TagValueSet? = null
-        var child2: TagValueSet? = null
+        public var data: ByteArray? = null
+        public var frequency: Int = 0
+        public var code: Int = 0
+        public var range: Int = 0
+        public var child1: TagValueSet? = null
+        public var child2: TagValueSet? = null
 
-        fun encode(bc: BitCoderContext, range: Int, code: Int) {
+        public fun encode(bc: BitCoderContext, range: Int, code: Int) {
             this.range = range
             this.code = code
             val isNode = child1 != null
@@ -197,7 +197,7 @@ class TagValueCoder {
             return data?.contentHashCode() ?: 0
         }
 
-        class FrequencyComparator : Comparator<TagValueSet> {
+        public class FrequencyComparator : Comparator<TagValueSet> {
             override fun compare(tvs1: TagValueSet, tvs2: TagValueSet): Int {
                 if (tvs1.frequency < tvs2.frequency) return -1
                 if (tvs1.frequency > tvs2.frequency) return 1

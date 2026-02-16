@@ -3,9 +3,9 @@ package dev.skynomads.beerouter.expressions
 import java.io.File
 import java.util.Random
 
-object ProfileComparator {
+public object ProfileComparator {
     @JvmStatic
-    fun main(args: Array<String>) {
+    public fun main(args: Array<String>) {
         if (args.size != 4) {
             println("usage: java ProfileComparator <lookup-file> <profile1> <profile2> <nsamples>")
             return

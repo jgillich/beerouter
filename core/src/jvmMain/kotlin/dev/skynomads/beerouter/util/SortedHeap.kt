@@ -5,10 +5,10 @@ package dev.skynomads.beerouter.util
  *
  * @author ab
  */
-class SortedHeap<V> {
-    var size: Int = 0
+public class SortedHeap<V> {
+    public var size: Int = 0
         private set
-    var peakSize: Int = 0
+    public var peakSize: Int = 0
         private set
 
     private var first: SortedBin = SortedBin(4, this)
@@ -18,7 +18,7 @@ class SortedHeap<V> {
     /**
      * @return the lowest key value, or null if none
      */
-    fun popLowestKeyValue(): V? {
+    public fun popLowestKeyValue(): V? {
         val bin = firstNonEmpty ?: return null
 
         size--
@@ -33,7 +33,7 @@ class SortedHeap<V> {
      * @param key   the key to insert
      * @param value the value to insert object
      */
-    fun add(key: Int, value: V?) {
+    public fun add(key: Int, value: V?) {
         size++
 
         // Both bins full?
@@ -60,7 +60,7 @@ class SortedHeap<V> {
         }
     }
 
-    fun clear() {
+    public fun clear() {
         size = 0
         peakSize = 0
         first = SortedBin(4, this)

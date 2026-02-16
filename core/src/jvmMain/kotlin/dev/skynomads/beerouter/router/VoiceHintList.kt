@@ -7,19 +7,19 @@
 package dev.skynomads.beerouter.router
 
 public class VoiceHintList(
-    val list: MutableList<VoiceHint> = ArrayList()
+    public val list: MutableList<VoiceHint> = ArrayList()
 ) : MutableList<VoiceHint> by list {
-    var transportMode: Int = TRANS_MODE_BIKE
+    public var transportMode: Int = TRANS_MODE_BIKE
         private set
 
-    var turnInstructionMode: Int = 0
+    public var turnInstructionMode: Int = 0
 
-    fun setTransportMode(isCar: Boolean, isBike: Boolean) {
+    public fun setTransportMode(isCar: Boolean, isBike: Boolean) {
         transportMode =
             if (isCar) TRANS_MODE_CAR else (if (isBike) TRANS_MODE_BIKE else TRANS_MODE_FOOT)
     }
 
-    fun getTransportMode(): String {
+    public fun getTransportMode(): String {
         return when (transportMode) {
             TRANS_MODE_FOOT -> "foot"
             TRANS_MODE_CAR -> "car"
@@ -28,7 +28,7 @@ public class VoiceHintList(
         }
     }
 
-    val locusRouteType: Int
+    public val locusRouteType: Int
         get() {
             if (transportMode == TRANS_MODE_CAR) {
                 return 0
@@ -39,10 +39,10 @@ public class VoiceHintList(
             return 3 // foot
         }
 
-    companion object {
-        const val TRANS_MODE_NONE: Int = 0
-        const val TRANS_MODE_FOOT: Int = 1
-        const val TRANS_MODE_BIKE: Int = 2
-        const val TRANS_MODE_CAR: Int = 3
+    public companion object {
+        public const val TRANS_MODE_NONE: Int = 0
+        public const val TRANS_MODE_FOOT: Int = 1
+        public const val TRANS_MODE_BIKE: Int = 2
+        public const val TRANS_MODE_CAR: Int = 3
     }
 }

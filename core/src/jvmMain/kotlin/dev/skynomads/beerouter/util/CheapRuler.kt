@@ -4,7 +4,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-object CheapRuler {
+public object CheapRuler {
     /**
      * Cheap-Ruler Java implementation
      * See
@@ -19,11 +19,11 @@ object CheapRuler {
      * values across all the code.
      */
     // Conversion constants
-    const val ILATLNG_TO_LATLNG: Double = 1e-6 // From integer to degrees
-    const val KILOMETERS_TO_METERS: Int = 1000
+    public const val ILATLNG_TO_LATLNG: Double = 1e-6 // From integer to degrees
+    public const val KILOMETERS_TO_METERS: Int = 1000
 
     @JvmField
-    val DEG_TO_RAD: Double = kotlin.math.PI / 180.0
+    public val DEG_TO_RAD: Double = kotlin.math.PI / 180.0
 
     // Scale cache constants
     private const val SCALE_CACHE_LENGTH = 1800
@@ -65,7 +65,7 @@ object CheapRuler {
      * @return [lon-&gt;meter,lat-&gt;meter]
      */
     @JvmStatic
-    fun getLonLatToMeterScales(ilat: Int): DoubleArray? {
+    public fun getLonLatToMeterScales(ilat: Int): DoubleArray? {
         return SCALE_CACHE[ilat / SCALE_CACHE_INCREMENT]
     }
 
@@ -85,7 +85,7 @@ object CheapRuler {
      * Integer latitude is ((latitude in degrees) + 90) * 1e6.
      */
     @JvmStatic
-    fun distance(ilon1: Int, ilat1: Int, ilon2: Int, ilat2: Int): Double {
+    public fun distance(ilon1: Int, ilat1: Int, ilon2: Int, ilat2: Int): Double {
         val kxky = getLonLatToMeterScales((ilat1 + ilat2) shr 1)!!
         val dlon = (ilon1 - ilon2) * kxky[0]
         val dlat = (ilat1 - ilat2) * kxky[1]
@@ -93,7 +93,7 @@ object CheapRuler {
     }
 
     @JvmStatic
-    fun destination(lon1: Int, lat1: Int, distance: Double, angle: Double): IntArray {
+    public fun destination(lon1: Int, lat1: Int, distance: Double, angle: Double): IntArray {
         val lonlat2m = getLonLatToMeterScales(lat1)!!
         val lon2m = lonlat2m[0]
         val lat2m = lonlat2m[1]

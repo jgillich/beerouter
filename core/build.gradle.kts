@@ -14,6 +14,8 @@ repositories {
 }
 
 kotlin {
+    explicitApi()
+
     jvm {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)

@@ -8,19 +8,19 @@ package dev.skynomads.beerouter.mapaccess
 import androidx.collection.MutableLongObjectMap
 
 
-class OsmNodePairSet(maxTempNodeCount: Int) {
+public class OsmNodePairSet(maxTempNodeCount: Int) {
     private val n1a: LongArray
     private val n2a: LongArray
     private var tempNodes = 0
-    var maxTmpNodes: Int = 0
+    public var maxTmpNodes: Int = 0
         private set
     private var npairs = 0
-    var freezeCount: Int = 0
+    public var freezeCount: Int = 0
         private set
 
     private class OsmNodePair {
-        var node2: Long = 0
-        var next: OsmNodePair? = null
+        public var node2: Long = 0
+        public var next: OsmNodePair? = null
     }
 
     private var map: MutableLongObjectMap<OsmNodePair> = MutableLongObjectMap()
@@ -31,7 +31,7 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         n2a = LongArray(this.maxTmpNodes)
     }
 
-    fun addTempPair(n1: Long, n2: Long) {
+    public fun addTempPair(n1: Long, n2: Long) {
         if (tempNodes < this.maxTmpNodes) {
             n1a[tempNodes] = n1
             n2a[tempNodes] = n2
@@ -39,7 +39,7 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         }
     }
 
-    fun freezeTempPairs() {
+    public fun freezeTempPairs() {
         this.freezeCount++
         for (i in 0..<tempNodes) {
             addPair(n1a[i], n2a[i])
@@ -47,7 +47,7 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         tempNodes = 0
     }
 
-    fun clearTempPairs() {
+    public fun clearTempPairs() {
         tempNodes = 0
     }
 
@@ -71,11 +71,11 @@ class OsmNodePairSet(maxTempNodeCount: Int) {
         }
     }
 
-    fun size(): Int {
+    public fun size(): Int {
         return npairs
     }
 
-    fun hasPair(n1: Long, n2: Long): Boolean {
+    public fun hasPair(n1: Long, n2: Long): Boolean {
         return getElement(n1, n2) != null || getElement(n2, n1) != null
     }
 

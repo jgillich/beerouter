@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
  *
  * @author ab
  */
-open class OsmNode : OsmLink, OsmPos {
+public open class OsmNode : OsmLink, OsmPos {
     /**
      * The position
      */
@@ -27,19 +27,19 @@ open class OsmNode : OsmLink, OsmPos {
      * The elevation
      */
     @Deprecated("Use position.altitude instead")
-    val sElev: Short
+    public val sElev: Short
         get() = (position.altitude ?: 0.0).times(4.0).toInt().toShort()
 
     /**
      * The node-tags, if any
      */
-    var nodeDescription: ByteArray? = null
+    public var nodeDescription: ByteArray? = null
 
-    var firstRestriction: TurnRestriction? = null
+    public var firstRestriction: TurnRestriction? = null
 
-    var visitID: Int = 0
+    public var visitID: Int = 0
 
-    fun addTurnRestriction(tr: TurnRestriction) {
+    public fun addTurnRestriction(tr: TurnRestriction) {
         tr.next = firstRestriction
         firstRestriction = tr
     }
@@ -47,11 +47,11 @@ open class OsmNode : OsmLink, OsmPos {
     /**
      * The links to other nodes
      */
-    var firstlink: OsmLink? = null
+    public var firstlink: OsmLink? = null
 
-    constructor()
+    public constructor()
 
-    constructor(ilon: Int, ilat: Int) {
+    public constructor(ilon: Int, ilat: Int) {
         this.position = Position(
             ilon.toDoubleLongitude(),
             ilat.toDoubleLatitude(),
@@ -59,7 +59,7 @@ open class OsmNode : OsmLink, OsmPos {
         )
     }
 
-    constructor(id: Long) {
+    public constructor(id: Long) {
         val lon = (id shr 32).toInt()
         val lat = (id and 0xffffffffL).toInt()
         this.position = Position(
@@ -69,12 +69,12 @@ open class OsmNode : OsmLink, OsmPos {
         )
     }
 
-    constructor(position: Position) {
+    public constructor(position: Position) {
         this.position = position
     }
 
 
-    fun addLink(link: OsmLink, isReverse: Boolean, tn: OsmNode) {
+    public fun addLink(link: OsmLink, isReverse: Boolean, tn: OsmNode) {
         require(link !== firstlink) { "UUUUPS" }
 
         if (isReverse) {
@@ -105,13 +105,13 @@ open class OsmNode : OsmLink, OsmPos {
         return "n_" + (iLon - 180000000) + "_" + (iLat - 90000000)
     }
 
-    fun parseNodeBody(mc: MicroCache, hollowNodes: OsmNodesMap, expCtxWay: IByteArrayUnifier) {
+    public fun parseNodeBody(mc: MicroCache, hollowNodes: OsmNodesMap, expCtxWay: IByteArrayUnifier) {
         if (mc is MicroCache2) {
             parseNodeBody2(mc, hollowNodes, expCtxWay)
         } else throw IllegalArgumentException("unknown cache version: " + mc.javaClass)
     }
 
-    fun parseNodeBody2(mc: MicroCache2, hollowNodes: OsmNodesMap, expCtxWay: IByteArrayUnifier) {
+    public fun parseNodeBody2(mc: MicroCache2, hollowNodes: OsmNodesMap, expCtxWay: IByteArrayUnifier) {
         val abUnifier = hollowNodes.byteArrayUnifier
 
         // read turn restrictions
@@ -150,7 +150,7 @@ open class OsmNode : OsmLink, OsmPos {
         hollowNodes.remove(this)
     }
 
-    fun addLink(
+    public fun addLink(
         linklon: Int,
         linklat: Int,
         description: ByteArray?,
@@ -201,17 +201,17 @@ open class OsmNode : OsmLink, OsmPos {
     }
 
 
-    val isHollow: Boolean
+    public val isHollow: Boolean
         get() = (position.altitude ?: 0.0).times(4.0).toInt() == -12345
 
-    fun setHollow() {
+    public fun setHollow() {
         position = Position(position.longitude, position.latitude, (-12345).toDouble() / 4.0)
     }
 
     override val idFromPos: Long
         get() = position.toOsmId()
 
-    fun vanish() {
+    public fun vanish() {
         if (!this.isHollow) {
             var l = firstlink
             while (l != null) {
@@ -228,7 +228,7 @@ open class OsmNode : OsmLink, OsmPos {
         }
     }
 
-    fun unlinkLink(link: OsmLink) {
+    public fun unlinkLink(link: OsmLink) {
         val n = link.clear(this)
 
         if (link === firstlink) {

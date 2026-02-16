@@ -5,8 +5,8 @@ package dev.skynomads.beerouter.codec
  * from the decoder to find the closest
  * matches to the waypoints
  */
-interface WaypointMatcher {
-    fun start(
+public interface WaypointMatcher {
+    public fun start(
         ilonStart: Int,
         ilatStart: Int,
         ilonTarget: Int,
@@ -14,9 +14,9 @@ interface WaypointMatcher {
         useAsStartWay: Boolean
     ): Boolean
 
-    fun transferNode(ilon: Int, ilat: Int)
+    public fun transferNode(ilon: Int, ilat: Int)
 
-    fun end()
+    public fun end()
 
-    fun hasMatch(lon: Int, lat: Int): Boolean
+    public fun hasMatch(lon: Int, lat: Int): Boolean
 }

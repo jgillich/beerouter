@@ -14,32 +14,32 @@ import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
 import kotlin.math.cos
 import kotlin.math.sin
 
-abstract class OsmPath : OsmLinkHolder {
+public abstract class OsmPath : OsmLinkHolder {
     /**
      * The cost of that path (a modified distance)
      */
-    var cost: Int = 0
+    public var cost: Int = 0
 
     // the elevation assumed for that path can have a value
     // if the corresponding node has not
-    var selev: Short = 0
+    public var selev: Short = 0
 
-    var airdistance: Int = 0 // distance to endpos
+    public var airdistance: Int = 0 // distance to endpos
 
-    var sourceNode: OsmNode? = null
-    var targetNode: OsmNode? = null
+    public var sourceNode: OsmNode? = null
+    public var targetNode: OsmNode? = null
 
-    var link: OsmLink? = null
+    public var link: OsmLink? = null
         protected set
-    var originElement: OsmPathElement? = null
-    var myElement: OsmPathElement? = null
+    public var originElement: OsmPathElement? = null
+    public var myElement: OsmPathElement? = null
 
-    var treedepth: Int = 0
+    public var treedepth: Int = 0
 
     // the position of the waypoint just before
     // this path position (for angle calculation)
-    var originLon: Int = 0
-    var originLat: Int = 0
+    public var originLon: Int = 0
+    public var originLat: Int = 0
 
     // the classifier of the segment just before this paths position
     protected var lastClassifier: Float = 0f
@@ -59,13 +59,13 @@ abstract class OsmPath : OsmLinkHolder {
         }
     }
 
-    fun didEnterDestinationArea(): Boolean {
+    public fun didEnterDestinationArea(): Boolean {
         return !getBit(HAD_DESTINATION_START_BIT) && getBit(IS_ON_DESTINATION_BIT)
     }
 
-    var message: MessageData? = null
+    public var message: MessageData? = null
 
-    fun init(link: OsmLink) {
+    public fun init(link: OsmLink) {
         this.link = link
         targetNode = link.getTarget(null)
         selev = targetNode!!.sElev
@@ -74,7 +74,7 @@ abstract class OsmPath : OsmLinkHolder {
         originLat = -1
     }
 
-    fun init(
+    public fun init(
         origin: OsmPath,
         link: OsmLink,
         refTrack: OsmTrack?,
@@ -437,7 +437,7 @@ abstract class OsmPath : OsmLinkHolder {
     }
 
 
-    fun interpolateEle(e1: Short, e2: Short, fraction: Double): Short {
+    public fun interpolateEle(e1: Short, e2: Short, fraction: Double): Short {
         if (e1 == Short.MIN_VALUE || e2 == Short.MIN_VALUE) {
             return Short.MIN_VALUE
         }
@@ -466,21 +466,21 @@ abstract class OsmPath : OsmLinkHolder {
     ) {
     }
 
-    abstract fun elevationCorrection(): Int
+    public abstract fun elevationCorrection(): Int
 
-    abstract fun definitlyWorseThan(p: OsmPath?): Boolean
+    public abstract fun definitlyWorseThan(p: OsmPath?): Boolean
 
-    open val totalTime: Double
+    public open val totalTime: Double
         get() = 0.0
 
-    open val totalEnergy: Double
+    public open val totalEnergy: Double
         get() = 0.0
 
-    companion object {
+    public companion object {
         private const val PATH_START_BIT = 1
         private const val CAN_LEAVE_DESTINATION_BIT = 2
         private const val IS_ON_DESTINATION_BIT = 4
         private const val HAD_DESTINATION_START_BIT = 8
-        var seg: Int = 1
+        public var seg: Int = 1
     }
 }

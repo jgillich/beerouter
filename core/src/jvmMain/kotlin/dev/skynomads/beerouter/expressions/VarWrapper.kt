@@ -1,10 +1,10 @@
 package dev.skynomads.beerouter.expressions
 
-class VarWrapper {
-    var vars: FloatArray? = null
+public class VarWrapper {
+    public var vars: FloatArray? = null
 
     @JvmField
-    var hash: Int = 0
+    public var hash: Int = 0
 
     override fun hashCode(): Int {
         return hash

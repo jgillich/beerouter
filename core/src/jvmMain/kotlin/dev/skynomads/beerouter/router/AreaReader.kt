@@ -25,12 +25,12 @@ import java.util.TreeMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-class AreaReader {
+public class AreaReader {
     private val logger: Logger = LoggerFactory.getLogger(AreaReader::class.java)
 
-    var segmentFolder: File? = null
+    public var segmentFolder: File? = null
 
-    fun getDirectAllData(
+    public fun getDirectAllData(
         folder: File,
         rc: RoutingContext,
         wp: OsmNodeNamed,
@@ -182,7 +182,7 @@ class AreaReader {
         }
     }
 
-    fun getDirectData(
+    public fun getDirectData(
         pf: PhysicalFile,
         dataBuffers: DataBuffers,
         inlon: Int,
@@ -259,7 +259,7 @@ class AreaReader {
         return false
     }
 
-    fun ignoreCenter(maxscale: Int, idxLon: Int, idxLat: Int): Boolean {
+    public fun ignoreCenter(maxscale: Int, idxLon: Int, idxLat: Int): Boolean {
         val centerScale = (maxscale * .2).roundToInt() - 1
         if (centerScale < 0) return false
         return idxLon >= -centerScale && idxLon <= centerScale && idxLat >= -centerScale && idxLat <= centerScale
@@ -268,13 +268,13 @@ class AreaReader {
     /*
     in this case the polygon is 'only' a rectangle
   */
-    fun containsRect(searchRect: OsmNogoPolygon, p1x: Int, p1y: Int, p2x: Int, p2y: Int): Boolean {
+    public fun containsRect(searchRect: OsmNogoPolygon, p1x: Int, p1y: Int, p2x: Int, p2y: Int): Boolean {
         return searchRect.isWithin(p1x.toLong(), p1y.toLong()) &&
                 searchRect.isWithin(p2x.toLong(), p2y.toLong())
     }
 
     @Throws(Exception::class)
-    fun writeAreaInfo(filename: String, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
+    public fun writeAreaInfo(filename: String, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
         val dos = DataOutputStream(BufferedOutputStream(FileOutputStream(filename)))
 
         wp.writeToStream(dos)
@@ -289,7 +289,7 @@ class AreaReader {
         dos.close()
     }
 
-    fun readAreaInfo(fai: File, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
+    public fun readAreaInfo(fai: File, wp: MatchedWaypoint, ais: MutableList<AreaInfo>) {
         var dis: DataInputStream? = null
         var ep: MatchedWaypoint?
         try {

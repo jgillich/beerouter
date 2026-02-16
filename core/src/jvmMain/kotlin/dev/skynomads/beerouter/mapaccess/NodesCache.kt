@@ -12,7 +12,7 @@ import dev.skynomads.beerouter.expressions.BExpressionContextWay
 import java.io.File
 import java.io.IOException
 
-class NodesCache(
+public class NodesCache(
     private var segmentDir: File,
     private val ctxWay: BExpressionContextWay,
     forceSecondaryData: Boolean,
@@ -23,7 +23,7 @@ class NodesCache(
     private val MAX_DYNAMIC_CATCHES = 20 // used with RoutingEngine MAX_DYNAMIC_RANGE = 60000m
 
     @JvmField
-    var nodesMap: OsmNodesMap = OsmNodesMap()
+    public var nodesMap: OsmNodesMap = OsmNodesMap()
     private val lookupVersion: Int
     private val lookupMinorVersion: Int
     private val forceSecondaryData: Boolean
@@ -34,10 +34,10 @@ class NodesCache(
 
     private var fileRows: Array<Array<OsmFile?>?>
 
-    var waypointMatcher: WaypointMatcher? = null
+    public var waypointMatcher: WaypointMatcher? = null
 
-    var firstFileAccessFailed: Boolean = false
-    var firstFileAccessName: String?
+    public var firstFileAccessFailed: Boolean = false
+    public var firstFileAccessName: String?
 
     private var cacheSum: Long = 0
     private var maxmemtiles: Long = maxmem / 8
@@ -53,7 +53,7 @@ class NodesCache(
 
     private val directWeaving = true //!Boolean.getBoolean("disableDirectWeaving")
 
-    fun formatStatus(): String {
+    public fun formatStatus(): String {
         return "collecting=$garbageCollectionEnabled noGhosts=$ghostCleaningDone cacheSum=$cacheSum cacheSumClean=$cacheSumClean ghostSum=$ghostSum ghostWakeup=$ghostWakeup"
     }
 
@@ -95,7 +95,7 @@ class NodesCache(
         ghostSum = cacheSum
     }
 
-    fun clean(all: Boolean) {
+    public fun clean(all: Boolean) {
         for (fileRow in fileRows) {
             if (fileRow == null) continue
             for (osmf in fileRow) {
@@ -134,12 +134,12 @@ class NodesCache(
         }
     }
 
-    fun loadSegmentFor(ilon: Int, ilat: Int): Int {
+    public fun loadSegmentFor(ilon: Int, ilat: Int): Int {
         val mc = getSegmentFor(ilon, ilat)
         return mc?.size ?: 0
     }
 
-    fun getSegmentFor(ilon: Int, ilat: Int): MicroCache? {
+    public fun getSegmentFor(ilon: Int, ilat: Int): MicroCache? {
         try {
             val lonDegree = ilon / 1000000
             val latDegree = ilat / 1000000
@@ -202,7 +202,7 @@ class NodesCache(
      *
      * @return true if successfull, false if node is still hollow
      */
-    fun obtainNonHollowNode(node: OsmNode): Boolean {
+    public fun obtainNonHollowNode(node: OsmNode): Boolean {
         if (!node.isHollow) return true
 
         val segment = getSegmentFor(node.iLon, node.iLat)
@@ -230,7 +230,7 @@ class NodesCache(
     /**
      * make sure all link targets of the given node are non-hollow
      */
-    fun expandHollowLinkTargets(n: OsmNode) {
+    public fun expandHollowLinkTargets(n: OsmNode) {
         var link = n.firstlink
         while (link != null) {
             obtainNonHollowNode(link.getTarget(n)!!)
@@ -241,7 +241,7 @@ class NodesCache(
     /**
      * make sure all link targets of the given node are non-hollow
      */
-    fun hasHollowLinkTargets(n: OsmNode): Boolean {
+    public fun hasHollowLinkTargets(n: OsmNode): Boolean {
         var link = n.firstlink
         while (link != null) {
             if (link.getTarget(n)!!.isHollow) {
@@ -263,7 +263,7 @@ class NodesCache(
      * @param id the id of the node to load
      * @return the fully expanded node for id, or null if it was not found
      */
-    fun getStartNode(id: Long): OsmNode? {
+    public fun getStartNode(id: Long): OsmNode? {
         // initialize the start-node
         val n = OsmNode(id)
         n.setHollow()
@@ -275,7 +275,7 @@ class NodesCache(
         return n
     }
 
-    fun getGraphNode(template: OsmNode): OsmNode {
+    public fun getGraphNode(template: OsmNode): OsmNode {
         val graphNode = OsmNode(template.iLon, template.iLat)
         graphNode.setHollow()
         val existing = nodesMap.put(graphNode)
@@ -286,7 +286,7 @@ class NodesCache(
         return existing
     }
 
-    fun matchWaypointsToNodes(
+    public fun matchWaypointsToNodes(
         unmatchedWaypoints: MutableList<MatchedWaypoint>,
         maxDistance: Double,
         islandNodePairs: OsmNodePairSet?
@@ -392,7 +392,7 @@ class NodesCache(
         return osmf
     }
 
-    fun close() {
+    public fun close() {
         for (f in fileCache!!.values) {
             try {
                 if (f != null) f.ra!!.close()
@@ -402,7 +402,7 @@ class NodesCache(
         }
     }
 
-    fun getElevationType(ilon: Int, ilat: Int): Int {
+    public fun getElevationType(ilon: Int, ilat: Int): Int {
         val lonDegree = ilon / 1000000
         val latDegree = ilat / 1000000
         val fileRow = fileRows[latDegree]
@@ -417,7 +417,7 @@ class NodesCache(
         return 3
     }
 
-    companion object {
-        const val RETRY_RANGE: Int = 250
+    public companion object {
+        public const val RETRY_RANGE: Int = 250
     }
 }

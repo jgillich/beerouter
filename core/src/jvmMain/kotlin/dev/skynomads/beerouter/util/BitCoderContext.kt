@@ -1,19 +1,19 @@
 package dev.skynomads.beerouter.util
 
 
-open class BitCoderContext(private var ab: ByteArray) {
+public open class BitCoderContext(private var ab: ByteArray) {
     private var idxMax: Int = ab.size - 1
     private var idx = -1
     private var bits = 0 // bits left in buffer
     private var b = 0 // buffer word
 
-    fun reset(ab: ByteArray) {
+    public fun reset(ab: ByteArray) {
         this.ab = ab
         idxMax = ab.size - 1
         reset()
     }
 
-    fun reset() {
+    public fun reset() {
         idx = -1
         bits = 0
         b = 0
@@ -29,7 +29,7 @@ open class BitCoderContext(private var ab: ByteArray) {
      *
      * @see .decodeVarBits
      */
-    fun encodeVarBits2(value: Int) {
+    public fun encodeVarBits2(value: Int) {
         var value = value
         var range = 0
         while (value > range) {
@@ -41,7 +41,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         encodeBounded(range, value)
     }
 
-    fun encodeVarBits(value: Int) {
+    public fun encodeVarBits(value: Int) {
         if ((value and 0xfff) == value) {
             flushBuffer()
             b = b or (vcValues[value] shl bits)
@@ -54,7 +54,7 @@ open class BitCoderContext(private var ab: ByteArray) {
     /**
      * @see .encodeVarBits
      */
-    fun decodeVarBits2(): Int {
+    public fun decodeVarBits2(): Int {
         var range = 0
         while (!decodeBit()) {
             range = 2 * range + 1
@@ -62,7 +62,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         return range + decodeBounded(range)
     }
 
-    fun decodeVarBits(): Int {
+    public fun decodeVarBits(): Int {
         fillBuffer()
         val b12 = b and 0xfff
         val len: Int = vlLength[b12]
@@ -98,7 +98,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         return decodeVarBits2() // no chance, use the slow one
     }
 
-    fun encodeBit(value: Boolean) {
+    public fun encodeBit(value: Boolean) {
         if (bits > 31) {
             ab[++idx] = (b and 0xff).toByte()
             b = b ushr 8
@@ -110,7 +110,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         bits++
     }
 
-    fun decodeBit(): Boolean {
+    public fun decodeBit(): Boolean {
         if (bits == 0) {
             bits = 8
             b = ab[++idx].toInt() and 0xff
@@ -127,7 +127,7 @@ open class BitCoderContext(private var ab: ByteArray) {
      * this is variable length encoding, with the shorter codes
      * for the central value range
      */
-    fun encodeBounded(max: Int, value: Int) {
+    public fun encodeBounded(max: Int, value: Int) {
         var max = max
         var im = 1 // integer mask
         while (im <= max) {
@@ -146,7 +146,7 @@ open class BitCoderContext(private var ab: ByteArray) {
      *
      * @see .encodeBounded
      */
-    fun decodeBounded(max: Int): Int {
+    public fun decodeBounded(max: Int): Int {
         var value = 0
         var im = 1 // integer mask
         while ((value or im) <= max) {
@@ -162,7 +162,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         return value
     }
 
-    fun decodeBits(count: Int): Int {
+    public fun decodeBits(count: Int): Int {
         fillBuffer()
         val mask = -0x1 ushr (32 - count)
         val value = b and mask
@@ -171,7 +171,7 @@ open class BitCoderContext(private var ab: ByteArray) {
         return value
     }
 
-    fun decodeBitsReverse(count: Int): Int {
+    public fun decodeBitsReverse(count: Int): Int {
         var count = count
         fillBuffer()
         var value = 0
@@ -210,7 +210,7 @@ open class BitCoderContext(private var ab: ByteArray) {
      *
      * @return the encoded length in bytes
      */
-    fun closeAndGetEncodedLength(): Int {
+    public fun closeAndGetEncodedLength(): Int {
         flushBuffer()
         if (bits > 0) {
             ab[++idx] = (b and 0xff).toByte()
@@ -218,13 +218,13 @@ open class BitCoderContext(private var ab: ByteArray) {
         return idx + 1
     }
 
-    val writingBitPosition: Int
+    public val writingBitPosition: Int
         /**
          * @return the encoded length in bits
          */
         get() = (idx shl 3) + 8 + bits
 
-    var readingBitPosition: Int
+    public var readingBitPosition: Int
         get() = (idx shl 3) + 8 - bits
         set(pos) {
             idx = pos ushr 3
@@ -233,12 +233,12 @@ open class BitCoderContext(private var ab: ByteArray) {
             b = b ushr (8 - bits)
         }
 
-    companion object {
+    public companion object {
         @JvmField
-        val vlValues: IntArray = IntArray(4096)
+        public val vlValues: IntArray = IntArray(4096)
 
         @JvmField
-        val vlLength: IntArray = IntArray(4096)
+        public val vlLength: IntArray = IntArray(4096)
 
         private val vcValues = IntArray(4096)
         private val vcLength = IntArray(4096)

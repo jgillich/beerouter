@@ -14,28 +14,28 @@ import dev.skynomads.beerouter.util.CheapRuler.getLonLatToMeterScales
 import org.maplibre.spatialk.geojson.Position
 import kotlin.math.sqrt
 
-open class OsmNodeNamed : OsmNode {
+public open class OsmNodeNamed : OsmNode {
     @JvmField
-    var name: String? = null
-
-    @JvmField
-    var radius: Double = 0.0 // radius of nogopoint (in meters)
-    var nogoWeight: Double = 0.0 // weight for nogopoint
-    var isNogo: Boolean = false
+    public var name: String? = null
 
     @JvmField
-    var type: MatchedWaypoint.Type = MatchedWaypoint.Type.SHAPING
+    public var radius: Double = 0.0 // radius of nogopoint (in meters)
+    public var nogoWeight: Double = 0.0 // weight for nogopoint
+    public var isNogo: Boolean = false
 
-    constructor()
+    @JvmField
+    public var type: MatchedWaypoint.Type = MatchedWaypoint.Type.SHAPING
 
-    constructor(n: OsmNode) : super(n.iLon, n.iLat)
+    public constructor()
+
+    public constructor(n: OsmNode) : super(n.iLon, n.iLat)
 
     override fun toString(): String {
         return if (nogoWeight.isNaN()) "$iLon,$iLat,$name"
         else "$iLon,$iLat,$name,$nogoWeight"
     }
 
-    fun distanceWithinRadius(
+    public fun distanceWithinRadius(
         lon1: Int,
         lat1: Int,
         lon2: Int,
@@ -94,8 +94,8 @@ open class OsmNodeNamed : OsmNode {
         }
     }
 
-    companion object {
-        fun decodeNogo(s: String): OsmNodeNamed {
+    public companion object {
+        public fun decodeNogo(s: String): OsmNodeNamed {
             val n = OsmNodeNamed()
             val idx1 = s.indexOf(',')
             val lon = s.take(idx1).toInt()

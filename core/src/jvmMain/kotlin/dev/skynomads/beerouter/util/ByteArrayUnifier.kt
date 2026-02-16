@@ -1,6 +1,6 @@
 package dev.skynomads.beerouter.util
 
-class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : IByteArrayUnifier {
+public class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : IByteArrayUnifier {
     private val byteArrayCache: Array<ByteArray?> = arrayOfNulls(size)
     private var crcCrosscheck: IntArray? = null
 
@@ -16,7 +16,7 @@ class ByteArrayUnifier(private val size: Int, validateImmutability: Boolean) : I
      * @param ab the byte array to unify
      * @return the cached instance or the input instanced if not cached
      */
-    fun unify(ab: ByteArray): ByteArray {
+    public fun unify(ab: ByteArray): ByteArray {
         return unify(ab, 0, ab.size)
     }
 

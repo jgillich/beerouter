@@ -21,7 +21,7 @@ import kotlin.math.sqrt
  * It matches these geometries against the list of waypoints to find the best
  * match for each waypoint
  */
-class WaypointMatcherImpl(
+public class WaypointMatcherImpl(
     waypoints: MutableList<MatchedWaypoint>,
     maxDistance: Double,
     islandPairs: OsmNodePairSet
@@ -36,10 +36,10 @@ class WaypointMatcherImpl(
     private var anyUpdate = false
     private var lonLast = 0
     private var latLast = 0
-    var useAsStartWay: Boolean = true
+    public var useAsStartWay: Boolean = true
     private val maxWptIdx: Int
     private var maxDistance: Double
-    var useDynamicRange: Boolean = false
+    public var useDynamicRange: Boolean = false
 
     private val comparator: Comparator<MatchedWaypoint>?
 
@@ -182,7 +182,7 @@ class WaypointMatcherImpl(
         }
     }
 
-    override fun start(
+    override public fun start(
         ilonStart: Int,
         ilatStart: Int,
         ilonTarget: Int,
@@ -207,13 +207,13 @@ class WaypointMatcherImpl(
         return true
     }
 
-    override fun transferNode(ilon: Int, ilat: Int) {
+    override public fun transferNode(ilon: Int, ilat: Int) {
         checkSegment(lonLast, latLast, ilon, ilat)
         lonLast = ilon
         latLast = ilat
     }
 
-    override fun end() {
+    override public fun end() {
         checkSegment(lonLast, latLast, lonTarget, latTarget)
         if (anyUpdate) {
             for (mwp in waypoints) {
@@ -265,7 +265,7 @@ class WaypointMatcherImpl(
         }
     }
 
-    override fun hasMatch(lon: Int, lat: Int): Boolean {
+    override public fun hasMatch(lon: Int, lat: Int): Boolean {
         for (mwp in waypoints) {
             if (mwp.waypoint!!.iLon == lon && mwp.waypoint!!.iLat == lat &&
                 (mwp.radius < this.maxDistance || mwp.crosspoint != null)
@@ -277,7 +277,7 @@ class WaypointMatcherImpl(
     }
 
     // check limit of list size (avoid long runs)
-    fun updateWayList(ways: MutableList<MatchedWaypoint>, mw: MatchedWaypoint?) {
+    public fun updateWayList(ways: MutableList<MatchedWaypoint>, mw: MatchedWaypoint?) {
         ways.add(mw!!)
         // use only shortest distances by smallest direction difference
         Collections.sort(ways, comparator)
@@ -285,7 +285,7 @@ class WaypointMatcherImpl(
     }
 
 
-    companion object {
+    public companion object {
         private const val MAX_POINTS = 5
     }
 }

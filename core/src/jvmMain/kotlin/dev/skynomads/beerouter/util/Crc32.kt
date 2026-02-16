@@ -5,9 +5,9 @@ package dev.skynomads.beerouter.util
  *
  * @author ab
  */
-object Crc32 {
+public object Crc32 {
     @JvmStatic
-    fun crc(ab: ByteArray, offset: Int, len: Int): Int {
+    public fun crc(ab: ByteArray, offset: Int, len: Int): Int {
         var crc = -0x1
         val end = offset + len
         for (j in offset..<end) {

@@ -3,19 +3,19 @@ package dev.skynomads.beerouter.router
 import dev.skynomads.beerouter.expressions.BExpressionContext
 import kotlin.math.abs
 
-class AreaInfo(var direction: Int) {
-    var numForest: Int = -1
-    var numRiver: Int = -1
+public class AreaInfo(public var direction: Int) {
+    public var numForest: Int = -1
+    public var numRiver: Int = -1
 
-    var polygon: OsmNogoPolygon? = null
+    public var polygon: OsmNogoPolygon? = null
 
-    var ways: Int = 0
-    var greenWays: Int = 0
-    var riverWays: Int = 0
-    var elevStart: Double = 0.0
-    var elev50: Int = 0
+    public var ways: Int = 0
+    public var greenWays: Int = 0
+    public var riverWays: Int = 0
+    public var elevStart: Double = 0.0
+    public var elev50: Int = 0
 
-    fun checkAreaInfo(expctxWay: BExpressionContext, elev: Double, ab: ByteArray) {
+    public fun checkAreaInfo(expctxWay: BExpressionContext, elev: Double, ab: ByteArray) {
         ways++
 
         val test = elevStart - elev
@@ -33,19 +33,19 @@ class AreaInfo(var direction: Int) {
         }
     }
 
-    val elev50Weight: Int
+    public val elev50Weight: Int
         get() {
             if (ways == 0) return 0
             return (elev50 * 100.0 / ways).toInt()
         }
 
-    val green: Int
+    public val green: Int
         get() {
             if (ways == 0) return 0
             return (greenWays * 100.0 / ways).toInt()
         }
 
-    val river: Int
+    public val river: Int
         get() {
             if (ways == 0) return 0
             return (riverWays * 100.0 / ways).toInt()
@@ -66,10 +66,10 @@ class AreaInfo(var direction: Int) {
         return sb.toString()
     }
 
-    companion object {
-        const val RESULT_TYPE_NONE: Int = 0
-        const val RESULT_TYPE_ELEV50: Int = 1
-        const val RESULT_TYPE_GREEN: Int = 4
-        const val RESULT_TYPE_RIVER: Int = 5
+    public companion object {
+        public const val RESULT_TYPE_NONE: Int = 0
+        public const val RESULT_TYPE_ELEV50: Int = 1
+        public const val RESULT_TYPE_GREEN: Int = 4
+        public const val RESULT_TYPE_RIVER: Int = 5
     }
 }

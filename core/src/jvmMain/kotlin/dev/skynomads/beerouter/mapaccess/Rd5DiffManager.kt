@@ -13,10 +13,10 @@ import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
-object Rd5DiffManager {
+public object Rd5DiffManager {
     @Throws(Exception::class)
     @JvmStatic
-    fun main(args: Array<String>) {
+    public fun main(args: Array<String>) {
         calcDiffs(File(args[0]), File(args[1]))
     }
 
@@ -24,7 +24,7 @@ object Rd5DiffManager {
      * Compute diffs for all RD5 files
      */
     @Throws(Exception::class)
-    fun calcDiffs(oldDir: File?, newDir: File) {
+    public fun calcDiffs(oldDir: File?, newDir: File) {
         val oldDiffDir = File(oldDir, "diff")
         val newDiffDir = File(newDir, "diff")
 
@@ -87,7 +87,7 @@ object Rd5DiffManager {
     }
 
     @Throws(IOException::class)
-    fun getMD5(f: File): String {
+    public fun getMD5(f: File): String {
         try {
             val md = MessageDigest.getInstance("MD5")
             val bis = BufferedInputStream(FileInputStream(f))

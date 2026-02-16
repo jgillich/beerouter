@@ -5,7 +5,7 @@ package dev.skynomads.beerouter.codec
  * TagValueWrapper wrapps a description bitmap
  * to add the access-type
  */
-class TagValueWrapper {
-    var data: ByteArray? = null
-    var accessType: Int = 0
+public class TagValueWrapper {
+    public var data: ByteArray? = null
+    public var accessType: Int = 0
 }

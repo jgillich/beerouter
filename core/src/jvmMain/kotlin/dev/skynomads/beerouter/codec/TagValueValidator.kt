@@ -1,18 +1,18 @@
 package dev.skynomads.beerouter.codec
 
 
-interface TagValueValidator {
+public interface TagValueValidator {
     /**
      * @param tagValueSet the way description to check
      * @return 0 = nothing, 1=no matching, 2=normal
      */
-    fun accessType(tagValueSet: ByteArray?): Int
+    public fun accessType(tagValueSet: ByteArray?): Int
 
-    fun unify(tagValueSet: ByteArray, offset: Int, len: Int): ByteArray?
+    public fun unify(tagValueSet: ByteArray, offset: Int, len: Int): ByteArray?
 
-    fun isLookupIdxUsed(idx: Int): Boolean
+    public fun isLookupIdxUsed(idx: Int): Boolean
 
-    fun setDecodeForbidden(decodeForbidden: Boolean)
+    public fun setDecodeForbidden(decodeForbidden: Boolean)
 
-    fun checkStartWay(ab: ByteArray?): Boolean
+    public fun checkStartWay(ab: ByteArray?): Boolean
 }

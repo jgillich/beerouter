@@ -5,7 +5,7 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
-interface OsmLinkHolder {
+public interface OsmLinkHolder {
     //    @JvmField
-    var nextForLink: OsmLinkHolder?
+    public var nextForLink: OsmLinkHolder?
 }

@@ -6,7 +6,7 @@
 package dev.skynomads.beerouter.util
 
 
-open class ByteDataReader {
+public open class ByteDataReader {
     @JvmField
     protected var ab: ByteArray = ByteArray(0)
 
@@ -16,25 +16,25 @@ open class ByteDataReader {
     @JvmField
     protected var aboffsetEnd: Int
 
-    constructor(byteArray: ByteArray = ByteArray(0)) {
+    public constructor(byteArray: ByteArray = ByteArray(0)) {
         ab = byteArray
         aboffsetEnd = ab.size
     }
 
-    constructor(byteArray: ByteArray, offset: Int) {
+    public constructor(byteArray: ByteArray, offset: Int) {
         ab = byteArray
         aboffset = offset
         aboffsetEnd = ab.size
     }
 
-    fun reset(byteArray: ByteArray) {
+    public fun reset(byteArray: ByteArray) {
         ab = byteArray
         aboffset = 0
         aboffsetEnd = ab.size
     }
 
 
-    fun readInt(): Int {
+    public fun readInt(): Int {
         val i3 = ab[aboffset++].toInt() and 0xff
         val i2 = ab[aboffset++].toInt() and 0xff
         val i1 = ab[aboffset++].toInt() and 0xff
@@ -42,7 +42,7 @@ open class ByteDataReader {
         return (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
     }
 
-    fun readLong(): Long {
+    public fun readLong(): Long {
         val i7 = (ab[aboffset++].toInt() and 0xff).toLong()
         val i6 = (ab[aboffset++].toInt() and 0xff).toLong()
         val i5 = (ab[aboffset++].toInt() and 0xff).toLong()
@@ -54,23 +54,23 @@ open class ByteDataReader {
         return (i7 shl 56) + (i6 shl 48) + (i5 shl 40) + (i4 shl 32) + (i3 shl 24) + (i2 shl 16) + (i1 shl 8) + i0
     }
 
-    fun readBoolean(): Boolean {
+    public fun readBoolean(): Boolean {
         val i0 = ab[aboffset++].toInt() and 0xff
         return i0 != 0
     }
 
-    fun readByte(): Byte {
+    public fun readByte(): Byte {
         val i0 = ab[aboffset++].toInt() and 0xff
         return (i0).toByte()
     }
 
-    fun readShort(): Short {
+    public fun readShort(): Short {
         val i1 = ab[aboffset++].toInt() and 0xff
         val i0 = ab[aboffset++].toInt() and 0xff
         return ((i1 shl 8) or i0).toShort()
     }
 
-    val endPointer: Int
+    public val endPointer: Int
         /**
          * Read a size value and return a pointer to the end of a data section of that size
          *
@@ -81,7 +81,7 @@ open class ByteDataReader {
             return aboffset + size
         }
 
-    fun readDataUntil(endPointer: Int): ByteArray? {
+    public fun readDataUntil(endPointer: Int): ByteArray? {
         val size = endPointer - aboffset
         if (size == 0) {
             return null
@@ -91,7 +91,7 @@ open class ByteDataReader {
         return data
     }
 
-    fun readVarBytes(): ByteArray? {
+    public fun readVarBytes(): ByteArray? {
         val len = readVarLengthUnsigned()
         if (len == 0) {
             return null
@@ -101,12 +101,12 @@ open class ByteDataReader {
         return bytes
     }
 
-    fun readVarLengthSigned(): Int {
+    public fun readVarLengthSigned(): Int {
         val v = readVarLengthUnsigned()
         return if ((v and 1) == 0) v shr 1 else -(v shr 1)
     }
 
-    fun readVarLengthUnsigned(): Int {
+    public fun readVarLengthUnsigned(): Int {
         var b: Byte
         var v = (ab[aboffset++].also { b = it }).toInt() and 0x7f
         if (b >= 0) return v
@@ -120,12 +120,12 @@ open class ByteDataReader {
         return v
     }
 
-    fun readFully(ta: ByteArray) {
+    public fun readFully(ta: ByteArray) {
         ab.copyInto(ta, 0, aboffset, aboffset + ta.size)
         aboffset += ta.size
     }
 
-    fun hasMoreData(): Boolean {
+    public fun hasMoreData(): Boolean {
         return aboffset < aboffsetEnd
     }
 

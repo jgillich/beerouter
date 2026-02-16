@@ -3,7 +3,7 @@ package dev.skynomads.beerouter.codec
 /**
  * Simple container for a list of lists of integers
  */
-class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
+public class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
     private var ia: IntArray // prev, data, prev, data, ...
     private var size = 0
     private val startpointer: IntArray // 0=void, odd=head-data-cell
@@ -30,7 +30,7 @@ class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
      * @param listNr the list to add the data to
      * @param data   the data value
      */
-    fun addDataElement(listNr: Int, data: Int) {
+    public fun addDataElement(listNr: Int, data: Int) {
         if (size + 2 > ia.size) {
             resize()
         }
@@ -45,7 +45,7 @@ class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
      * @param listNr the list to initialize
      * @return the number of entries in that list
      */
-    fun initList(listNr: Int): Int {
+    public fun initList(listNr: Int): Int {
         var cnt = 0
         listpointer = startpointer[listNr]
         var lp = listpointer
@@ -56,7 +56,7 @@ class LinkedListContainer(nlists: Int, defaultbuffer: IntArray?) {
         return cnt
     }
 
-    val dataElement: Int
+    public val dataElement: Int
         /**
          * Get a data element from the list previously initialized.
          * Data elements are return in reverse order (lifo)

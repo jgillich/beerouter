@@ -22,55 +22,55 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 public class RoutingContext(
-    val profile: File,
-    val segmentDir: File,
-    val lookupFile: File = File(profile.parentFile, "lookups.dat")
+    public val profile: File,
+    public val segmentDir: File,
+    public val lookupFile: File = File(profile.parentFile, "lookups.dat")
 ) {
-    class Global(ctx: BExpressionContext) {
-        val carMode: Boolean
-        val bikeMode: Boolean
-        val footMode: Boolean
-        val considerTurnRestrictions: Boolean
-        val processUnusedTags: Boolean
-        val forceSecondaryData: Boolean
-        val pass1coefficient: Double
-        val pass2coefficient: Double
-        val elevationpenaltybuffer: Int
-        val elevationmaxbuffer: Int
-        val elevationbufferreduce: Int
+    public class Global(ctx: BExpressionContext) {
+        public val carMode: Boolean
+        public val bikeMode: Boolean
+        public val footMode: Boolean
+        public val considerTurnRestrictions: Boolean
+        public val processUnusedTags: Boolean
+        public val forceSecondaryData: Boolean
+        public val pass1coefficient: Double
+        public val pass2coefficient: Double
+        public val elevationpenaltybuffer: Int
+        public val elevationmaxbuffer: Int
+        public val elevationbufferreduce: Int
 
-        val cost1speed: Double
-        val additionalcostfactor: Double
-        val changetime: Double
-        val buffertime: Double
-        val waittimeadjustment: Double
-        val inittimeadjustment: Double
-        val starttimeoffset: Double
-        val transitonly: Boolean
+        public val cost1speed: Double
+        public val additionalcostfactor: Double
+        public val changetime: Double
+        public val buffertime: Double
+        public val waittimeadjustment: Double
+        public val inittimeadjustment: Double
+        public val starttimeoffset: Double
+        public val transitonly: Boolean
 
-        var waypointCatchingRange: Double
-        var correctMisplacedViaPoints: Boolean
-        val correctMisplacedViaPointsDistance: Double
-        val continueStraight: Boolean
-        var useDynamicDistance: Boolean
-        val buildBeelineOnRange: Boolean
+        public var waypointCatchingRange: Double
+        public var correctMisplacedViaPoints: Boolean
+        public val correctMisplacedViaPointsDistance: Double
+        public val continueStraight: Boolean
+        public var useDynamicDistance: Boolean
+        public val buildBeelineOnRange: Boolean
 
-        var turnInstructionMode: Int   // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
-        val turnInstructionCatchingRange: Double
-        val turnInstructionRoundabouts: Boolean
+        public var turnInstructionMode: Int   // 0=none, 1=auto, 2=locus, 3=osmand, 4=comment-style, 5=gpsies-style
+        public val turnInstructionCatchingRange: Double
+        public val turnInstructionRoundabouts: Boolean
 
         // Speed computation model (for bikes)
-        val totalMass: Double
-        val maxSpeed: Double
-        val S_C_x: Double
-        val defaultC_r: Double
-        val bikerPower: Double
+        public val totalMass: Double
+        public val maxSpeed: Double
+        public val S_C_x: Double
+        public val defaultC_r: Double
+        public val bikerPower: Double
 
-        val showspeed: Boolean
-        val showSpeedProfile: Boolean
-        val inverseRouting: Boolean
-        val showTime: Boolean
-        var hasDirectRouting: Boolean = false
+        public val showspeed: Boolean
+        public val showSpeedProfile: Boolean
+        public val inverseRouting: Boolean
+        public val showTime: Boolean
+        public var hasDirectRouting: Boolean = false
 
         init {
             carMode = 0f != ctx.getVariableValue("validForCars", 0f)
@@ -154,26 +154,26 @@ public class RoutingContext(
         }
     }
 
-    var alternativeIdx: Int = 0
+    public var alternativeIdx: Int = 0
 
-    var profileTimestamp: Long = 0
+    public var profileTimestamp: Long = 0
 
     @JvmField
-    var keyValues: MutableMap<String, String>? = null
+    public var keyValues: MutableMap<String, String>? = null
 
-    var rawTrackPath: String? = null
-    var rawAreaPath: String? = null
+    public var rawTrackPath: String? = null
+    public var rawAreaPath: String? = null
 
-    val global: Global
-    val way: BExpressionContextWay
-    val node: BExpressionContextNode
+    public val global: Global
+    public val way: BExpressionContextWay
+    public val node: BExpressionContextNode
 
-    var geometryDecoder: GeometryDecoder = GeometryDecoder()
+    public var geometryDecoder: GeometryDecoder = GeometryDecoder()
 
-    var memoryclass: Int = 64
+    public var memoryclass: Int = 64
 
-    var ai: AreaInfo? = null
-    var pm: OsmPathModel? = null
+    public var ai: AreaInfo? = null
+    public var pm: OsmPathModel? = null
 
     init {
         val meta = BExpressionMetaData()
@@ -195,46 +195,46 @@ public class RoutingContext(
         }
     }
 
-    fun freeNoWays() {
+    public fun freeNoWays() {
         way.freeNoWays()
     }
 
-    var poipoints: MutableList<OsmNodeNamed> = mutableListOf()
-    var nogopoints: MutableList<OsmNodeNamed> = mutableListOf()
+    public var poipoints: MutableList<OsmNodeNamed> = mutableListOf()
+    public var nogopoints: MutableList<OsmNodeNamed> = mutableListOf()
 
     private var nogopoints_all: MutableList<OsmNodeNamed> =
         mutableListOf() // full list not filtered for wayoints-in-nogos
     private var keepnogopoints: MutableList<OsmNodeNamed> = mutableListOf()
     private var pendingEndpoint: OsmNodeNamed? = null
 
-    var startDirection: Int? = null
-    var startDirectionValid: Boolean = false
-    var forceUseStartDirection: Boolean = false
-    var roundTripDistance: Int? = null
-    var roundTripDirectionAdd: Int? = null
-    var roundTripPoints: Int? = null
-    var allowSamewayback: Boolean = false
+    public var startDirection: Int? = null
+    public var startDirectionValid: Boolean = false
+    public var forceUseStartDirection: Boolean = false
+    public var roundTripDistance: Int? = null
+    public var roundTripDirectionAdd: Int? = null
+    public var roundTripPoints: Int? = null
+    public var allowSamewayback: Boolean = false
 
-    var anglemeter: CheapAngleMeter = CheapAngleMeter()
+    public var anglemeter: CheapAngleMeter = CheapAngleMeter()
 
-    var nogoCost: Double = 0.0
-    var isEndpoint: Boolean = false
+    public var nogoCost: Double = 0.0
+    public var isEndpoint: Boolean = false
 
-    var shortestmatch: Boolean = false
-    var wayfraction: Double = 0.0
-    var ilatshortest: Int = 0
-    var ilonshortest: Int = 0
+    public var shortestmatch: Boolean = false
+    public var wayfraction: Double = 0.0
+    public var ilatshortest: Int = 0
+    public var ilonshortest: Int = 0
 
-    var inverseDirection: Boolean = false
+    public var inverseDirection: Boolean = false
 
-    var exportWaypoints: Boolean = false
+    public var exportWaypoints: Boolean = false
 
-    var firstPrePath: OsmPrePath? = null
+    public var firstPrePath: OsmPrePath? = null
 
     /**
      * restore the full nogolist previously saved by cleanNogoList
      */
-    fun restoreNogoList() {
+    public fun restoreNogoList() {
         nogopoints = nogopoints_all
     }
 
@@ -244,7 +244,7 @@ public class RoutingContext(
      *
      * @return true if all wayoints are all in the same (full-weigth) nogo area (triggering bee-line-mode)
      */
-    fun cleanNogoList(waypoints: MutableList<OsmNode>) {
+    public fun cleanNogoList(waypoints: MutableList<OsmNode>) {
         nogopoints_all = nogopoints
         val nogos: MutableList<OsmNodeNamed> = ArrayList()
         for (nogo in nogopoints) {
@@ -264,7 +264,7 @@ public class RoutingContext(
         nogopoints = nogos
     }
 
-    fun checkMatchedWaypointAgainstNogos(matchedWaypoints: MutableList<MatchedWaypoint>) {
+    public fun checkMatchedWaypointAgainstNogos(matchedWaypoints: MutableList<MatchedWaypoint>) {
         if (nogopoints.isEmpty()) return
         val theSize = matchedWaypoints.size
         if (theSize < 2) return
@@ -314,7 +314,7 @@ public class RoutingContext(
         }
     }
 
-    fun allInOneNogo(waypoints: MutableList<OsmNode>): Boolean {
+    public fun allInOneNogo(waypoints: MutableList<OsmNode>): Boolean {
         if (nogopoints.isEmpty()) return false
         var allInTotal = false
         for (nogo in nogopoints) {
@@ -336,7 +336,7 @@ public class RoutingContext(
         return allInTotal
     }
 
-    val nogoChecksums: LongArray
+    public val nogoChecksums: LongArray
         get() {
             val cs = LongArray(3)
             val n = if (nogopoints.isEmpty()) 0 else nogopoints.size
@@ -350,11 +350,11 @@ public class RoutingContext(
             return cs
         }
 
-    fun setWaypoint(wp: OsmNodeNamed?, endpoint: Boolean) {
+    public fun setWaypoint(wp: OsmNodeNamed?, endpoint: Boolean) {
         setWaypoint(wp, null, endpoint)
     }
 
-    fun setWaypoint(wp: OsmNodeNamed?, pendingEndpoint: OsmNodeNamed?, endpoint: Boolean) {
+    public fun setWaypoint(wp: OsmNodeNamed?, pendingEndpoint: OsmNodeNamed?, endpoint: Boolean) {
         keepnogopoints = nogopoints
         nogopoints = ArrayList()
         nogopoints.add(wp!!)
@@ -377,7 +377,7 @@ public class RoutingContext(
         pm!!.init(way, node, keyValues ?: mutableMapOf())
     }
 
-    fun checkPendingEndpoint(): Boolean {
+    public fun checkPendingEndpoint(): Boolean {
         if (pendingEndpoint != null) {
             isEndpoint = true
             nogopoints[0] = pendingEndpoint!!
@@ -387,13 +387,13 @@ public class RoutingContext(
         return false
     }
 
-    fun unsetWaypoint() {
+    public fun unsetWaypoint() {
         nogopoints = keepnogopoints
         pendingEndpoint = null
         isEndpoint = false
     }
 
-    fun calcDistance(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Int {
+    public fun calcDistance(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Int {
         var lon1 = lon1
         var lat1 = lat1
         var lon2 = lon2
@@ -511,19 +511,19 @@ public class RoutingContext(
     }
 
 
-    fun createPrePath(origin: OsmPath, link: OsmLink): OsmPrePath? {
+    public fun createPrePath(origin: OsmPath, link: OsmLink): OsmPrePath? {
         val p = pm!!.createPrePath()
         p?.init(origin, link, this)
         return p
     }
 
-    fun createPath(link: OsmLink): OsmPath {
+    public fun createPath(link: OsmLink): OsmPath {
         val p = pm!!.createPath()
         p.init(link)
         return p
     }
 
-    fun createPath(
+    public fun createPath(
         origin: OsmPath,
         link: OsmLink,
         refTrack: OsmTrack?,
@@ -534,8 +534,8 @@ public class RoutingContext(
         return p
     }
 
-    companion object {
-        fun prepareNogoPoints(nogos: MutableList<OsmNodeNamed>) {
+    public companion object {
+        public fun prepareNogoPoints(nogos: MutableList<OsmNodeNamed>) {
             for (nogo in nogos) {
                 if (nogo is OsmNogoPolygon) {
                     continue

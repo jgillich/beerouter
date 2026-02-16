@@ -8,12 +8,12 @@ package dev.skynomads.beerouter.router
 import dev.skynomads.beerouter.expressions.BExpressionContextNode
 import dev.skynomads.beerouter.expressions.BExpressionContextWay
 
-abstract class OsmPathModel {
-    abstract fun createPrePath(): OsmPrePath?
+public abstract class OsmPathModel {
+    public abstract fun createPrePath(): OsmPrePath?
 
-    abstract fun createPath(): OsmPath
+    public abstract fun createPath(): OsmPath
 
-    abstract fun init(
+    public abstract fun init(
         expctxWay: BExpressionContextWay?,
         expctxNode: BExpressionContextNode?,
         keyValues: MutableMap<String, String>

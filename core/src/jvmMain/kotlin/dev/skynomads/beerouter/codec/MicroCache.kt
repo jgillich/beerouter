@@ -18,10 +18,10 @@ import dev.skynomads.beerouter.util.ByteDataWriter
  * data-files, where a cache is encoded as a whole, allowing more
  * redundancy-removal for a more compact encoding
  */
-open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : ByteDataWriter(ab) {
+public open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : ByteDataWriter(ab) {
     protected var faid: IntArray = IntArray(0)
     protected var fapos: IntArray = IntArray(0)
-    var size: Int = 0
+    public var size: Int = 0
         protected set
 
     private var delcount = 0
@@ -30,8 +30,8 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
 
     // cache control: a virgin cache can be
     // put to ghost state for later recovery
-    var virgin: Boolean = true
-    var ghost: Boolean = false
+    public var virgin: Boolean = true
+    public var ghost: Boolean = false
 
     protected fun init(size: Int) {
         this.size = size
@@ -41,17 +41,17 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         while (p2size > size) p2size = p2size shr 1
     }
 
-    fun finishNode(id: Long) {
+    public fun finishNode(id: Long) {
         fapos[size] = aboffset
         faid[size] = shrinkId(id)
         size++
     }
 
-    fun discardNode() {
+    public fun discardNode() {
         aboffset = startPos(size)
     }
 
-    val dataSize: Int
+    public val dataSize: Int
         get() = ab.size
 
     /**
@@ -70,7 +70,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      *
      * @return true if id was found
      */
-    fun getAndClear(id64: Long): Boolean {
+    public fun getAndClear(id64: Long): Boolean {
         if (size == 0) {
             return false
         }
@@ -106,7 +106,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         return if (n > 0) fapos[n - 1] and 0x7fffffff else 0
     }
 
-    fun collect(threshold: Int): Int {
+    public fun collect(threshold: Int): Int {
         if (delcount <= threshold) {
             return 0
         }
@@ -146,7 +146,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         return deleted
     }
 
-    fun unGhost() {
+    public fun unGhost() {
         ghost = false
         delcount = 0
         delbytes = 0
@@ -158,7 +158,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
     /**
      * @return the 64-bit global id for the given cache-position
      */
-    fun getIdForIndex(i: Int): Long {
+    public fun getIdForIndex(i: Int): Long {
         val id32 = faid[i]
         return expandId(id32)
     }
@@ -168,7 +168,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      *
      * @see .shrinkId
      */
-    open fun expandId(id32: Int): Long {
+    public open fun expandId(id32: Int): Long {
         throw IllegalArgumentException("expandId for empty cache")
     }
 
@@ -177,14 +177,14 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      *
      * @see .expandId
      */
-    open fun shrinkId(id64: Long): Int {
+    public open fun shrinkId(id64: Long): Int {
         throw IllegalArgumentException("shrinkId for empty cache")
     }
 
     /**
      * @return true if the given lon/lat position is internal for that micro-cache
      */
-    open fun isInternal(ilon: Int, ilat: Int): Boolean {
+    public open fun isInternal(ilon: Int, ilat: Int): Boolean {
         throw IllegalArgumentException("isInternal for empty cache")
     }
 
@@ -194,7 +194,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      * @param buffer byte array to encode into (considered big enough)
      * @return the size of the encoded data
      */
-    open fun encodeMicroCache(buffer: ByteArray): Int {
+    public open fun encodeMicroCache(buffer: ByteArray): Int {
         throw IllegalArgumentException("encodeMicroCache for empty cache")
     }
 
@@ -203,7 +203,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
      *
      * @return null if equals, else a diff-report
      */
-    fun compareWith(mc: MicroCache): String? {
+    public fun compareWith(mc: MicroCache): String? {
         val msg = _compareWith(mc)
         if (msg != null) {
             val sb = StringBuilder(msg)
@@ -251,7 +251,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         return null
     }
 
-    fun calcDelta(mc1: MicroCache, mc2: MicroCache) {
+    public fun calcDelta(mc1: MicroCache, mc2: MicroCache) {
         var idx1 = 0
         var idx2 = 0
 
@@ -292,7 +292,7 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         }
     }
 
-    fun addDelta(mc1: MicroCache, mc2: MicroCache, keepEmptyNodes: Boolean) {
+    public fun addDelta(mc1: MicroCache, mc2: MicroCache, keepEmptyNodes: Boolean) {
         var idx1 = 0
         var idx2 = 0
 
@@ -321,14 +321,14 @@ open class MicroCache protected constructor(ab: ByteArray = ByteArray(0)) : Byte
         }
     }
 
-    companion object {
-        val emptyNonVirgin: MicroCache = MicroCache()
+    public companion object {
+        public val emptyNonVirgin: MicroCache = MicroCache()
 
         init {
             emptyNonVirgin.virgin = false
         }
 
-        fun emptyCache(): MicroCache {
+        public fun emptyCache(): MicroCache {
             return MicroCache() // TODO: singleton?
         }
     }

@@ -3,16 +3,16 @@ package dev.skynomads.beerouter.util
 /**
  * a median filter with additional edge reduction
  */
-class ReducedMedianFilter(size: Int) {
+public class ReducedMedianFilter(size: Int) {
     private var nsamples = 0
     private val weights: DoubleArray = DoubleArray(size)
     private val values: IntArray = IntArray(size)
 
-    fun reset() {
+    public fun reset() {
         nsamples = 0
     }
 
-    fun addSample(weight: Double, value: Int) {
+    public fun addSample(weight: Double, value: Int) {
         if (weight > 0.0) {
             for (i in 0..<nsamples) {
                 if (values[i] == value) {
@@ -26,7 +26,7 @@ class ReducedMedianFilter(size: Int) {
         }
     }
 
-    fun calcEdgeReducedMedian(fraction: Double): Double {
+    public fun calcEdgeReducedMedian(fraction: Double): Double {
         removeEdgeWeight((1.0 - fraction) / 2.0, true)
         removeEdgeWeight((1.0 - fraction) / 2.0, false)
 

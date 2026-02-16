@@ -5,23 +5,23 @@
  */
 package dev.skynomads.beerouter.mapaccess
 
-class TurnRestriction {
-    var isPositive: Boolean = false
-    var exceptions: Short = 0
+public class TurnRestriction {
+    public var isPositive: Boolean = false
+    public var exceptions: Short = 0
 
-    var fromLon: Int = 0
-    var fromLat: Int = 0
+    public var fromLon: Int = 0
+    public var fromLat: Int = 0
 
-    var toLon: Int = 0
-    var toLat: Int = 0
+    public var toLon: Int = 0
+    public var toLat: Int = 0
 
-    var next: TurnRestriction? = null
+    public var next: TurnRestriction? = null
 
-    fun exceptBikes(): Boolean {
+    public fun exceptBikes(): Boolean {
         return (exceptions.toInt() and 1) != 0
     }
 
-    fun exceptMotorcars(): Boolean {
+    public fun exceptMotorcars(): Boolean {
         return (exceptions.toInt() and 2) != 0
     }
 
@@ -29,9 +29,9 @@ class TurnRestriction {
         return "pos=$isPositive fromLon=$fromLon fromLat=$fromLat toLon=$toLon toLat=$toLat"
     }
 
-    companion object {
+    public companion object {
         @JvmStatic
-        fun isTurnForbidden(
+        public fun isTurnForbidden(
             first: TurnRestriction?,
             fromLon: Int,
             fromLat: Int,

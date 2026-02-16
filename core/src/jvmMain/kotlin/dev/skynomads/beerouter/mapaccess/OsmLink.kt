@@ -5,31 +5,31 @@ package dev.skynomads.beerouter.mapaccess
  *
  * @author ab
  */
-open class OsmLink {
+public open class OsmLink {
     /**
      * The description bitmap contains the waytags (valid for both directions)
      */
-    var descriptionBitmap: ByteArray? = null
+    public var descriptionBitmap: ByteArray? = null
 
     /**
      * The geometry contains intermediate nodes, null for none (valid for both directions)
      */
-    var geometry: ByteArray? = null
+    public var geometry: ByteArray? = null
 
     // a link logically knows only its target, but for the reverse link, source and target are swapped
-    var n1: OsmNode? = null
-    var n2: OsmNode? = null
+    public var n1: OsmNode? = null
+    public var n2: OsmNode? = null
 
     // same for the next-link-for-node pointer: previous applies to the reverse link
-    var previous: OsmLink? = null
-    var next: OsmLink? = null
+    public var previous: OsmLink? = null
+    public var next: OsmLink? = null
 
     private var reverselinkholder: OsmLinkHolder? = null
     private var firstlinkholder: OsmLinkHolder? = null
 
-    constructor()
+    public constructor()
 
-    constructor(source: OsmNode?, target: OsmNode?) {
+    public constructor(source: OsmNode?, target: OsmNode?) {
         n1 = source
         n2 = target
     }
@@ -37,21 +37,21 @@ open class OsmLink {
     /**
      * Get the relevant target-node for the given source
      */
-    fun getTarget(source: OsmNode?): OsmNode? {
+    public fun getTarget(source: OsmNode?): OsmNode? {
         return if (n2 !== source && n2 != null) n2 else n1
     }
 
     /**
      * Get the relevant next-pointer for the given source
      */
-    fun getNext(source: OsmNode?): OsmLink? {
+    public fun getNext(source: OsmNode?): OsmLink? {
         return if (n2 !== source && n2 != null) next else previous
     }
 
     /**
      * Reset this link for the given direction
      */
-    fun clear(source: OsmNode?): OsmLink? {
+    public fun clear(source: OsmNode?): OsmLink? {
         val n: OsmLink?
         if (n2 != null && n2 !== source) {
             n = next
@@ -73,7 +73,7 @@ open class OsmLink {
         return n
     }
 
-    fun setFirstLinkHolder(holder: OsmLinkHolder?, source: OsmNode?) {
+    public fun setFirstLinkHolder(holder: OsmLinkHolder?, source: OsmNode?) {
         if (n2 != null && n2 !== source) {
             firstlinkholder = holder
         } else if (n1 != null && n1 !== source) {
@@ -83,7 +83,7 @@ open class OsmLink {
         }
     }
 
-    fun getFirstLinkHolder(source: OsmNode?): OsmLinkHolder? {
+    public fun getFirstLinkHolder(source: OsmNode?): OsmLinkHolder? {
         return if (n2 != null && n2 !== source) {
             firstlinkholder
         } else if (n1 != null && n1 !== source) {
@@ -93,17 +93,17 @@ open class OsmLink {
         }
     }
 
-    fun isReverse(source: OsmNode?): Boolean {
+    public fun isReverse(source: OsmNode?): Boolean {
         return n1 !== source && n1 != null
     }
 
-    val isBidirectional: Boolean
+    public val isBidirectional: Boolean
         get() = n1 != null && n2 != null
 
-    val isLinkUnused: Boolean
+    public val isLinkUnused: Boolean
         get() = n1 == null && n2 == null
 
-    fun addLinkHolder(holder: OsmLinkHolder, source: OsmNode?) {
+    public fun addLinkHolder(holder: OsmLinkHolder, source: OsmNode?) {
         val firstHolder = getFirstLinkHolder(source)
         if (firstHolder != null) {
             holder.nextForLink = firstHolder

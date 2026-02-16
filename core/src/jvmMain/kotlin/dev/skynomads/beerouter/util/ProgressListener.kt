@@ -1,8 +1,8 @@
 package dev.skynomads.beerouter.util
 
 
-interface ProgressListener {
-    fun updateProgress(task: String?, progress: Int)
+public interface ProgressListener {
+    public fun updateProgress(task: String?, progress: Int)
 
-    val isCanceled: Boolean
+    public val isCanceled: Boolean
 }

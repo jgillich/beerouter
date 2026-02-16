@@ -8,11 +8,11 @@ import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
-class CheapAngleMeter {
-    var cosAngle: Double = 0.0
+public class CheapAngleMeter {
+    public var cosAngle: Double = 0.0
         private set
 
-    fun calcAngle(lon0: Int, lat0: Int, lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
+    public fun calcAngle(lon0: Int, lat0: Int, lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
         val lonlat2m = CheapRuler.getLonLatToMeterScales(lat1)!!
         val lon2m = lonlat2m[0]
         val lat2m = lonlat2m[1]
@@ -48,9 +48,9 @@ class CheapAngleMeter {
         return offset + sinp * (57.4539 + s2 * (9.57565 + s2 * (4.30904 + s2 * 2.56491)))
     }
 
-    companion object {
+    public companion object {
         @JvmStatic
-        fun getAngle(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
+        public fun getAngle(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
             var res: Double
             val xdiff = (lat2 - lat1).toDouble()
             val ydiff = (lon2 - lon1).toDouble()
@@ -59,13 +59,13 @@ class CheapAngleMeter {
         }
 
         @JvmStatic
-        fun getDirection(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
+        public fun getDirection(lon1: Int, lat1: Int, lon2: Int, lat2: Int): Double {
             val res: Double = getAngle(lon1, lat1, lon2, lat2)
             return normalize(res)
         }
 
         @JvmStatic
-        fun normalize(a: Double): Double {
+        public fun normalize(a: Double): Double {
             return if (a >= 360)
                 a - (360 * (a / 360).toInt())
             else
@@ -73,7 +73,7 @@ class CheapAngleMeter {
         }
 
         @JvmStatic
-        fun getDifferenceFromDirection(b1: Double, b2: Double): Double {
+        public fun getDifferenceFromDirection(b1: Double, b2: Double): Double {
             var r = (b2 - b1) % 360.0
             if (r < -180.0) r += 360.0
             if (r >= 180.0) r -= 360.0

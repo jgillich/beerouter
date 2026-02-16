@@ -7,7 +7,7 @@ package dev.skynomads.beerouter.mapaccess
 
 import dev.skynomads.beerouter.util.ByteDataReader
 
-class GeometryDecoder {
+public class GeometryDecoder {
     private val r = ByteDataReader()
     private val cachedNodes: Array<OsmTransferNode>
     private val nCachedNodes = 128
@@ -22,7 +22,7 @@ class GeometryDecoder {
         cachedNodes = (0 until nCachedNodes).map { OsmTransferNode() }.toTypedArray()
     }
 
-    fun decodeGeometry(
+    public fun decodeGeometry(
         geometry: ByteArray,
         sourceNode: OsmNode?,
         targetNode: OsmNode,

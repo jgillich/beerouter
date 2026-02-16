@@ -1,11 +1,11 @@
 package dev.skynomads.beerouter.expressions
 
-class CacheNode {
-    var ab: ByteArray? = null
-    var vars: FloatArray? = null
+public class CacheNode {
+    public var ab: ByteArray? = null
+    public var vars: FloatArray? = null
 
     @JvmField
-    var hash: Int = 0
+    public var hash: Int = 0
 
     override fun hashCode(): Int {
         return hash

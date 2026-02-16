@@ -10,18 +10,18 @@ import dev.skynomads.beerouter.osm.toIntLongitude
 import org.maplibre.spatialk.geojson.Position
 
 
-interface OsmPos {
-    val position: Position
+public interface OsmPos {
+    public val position: Position
 
-    fun calcDistance(p: OsmPos): Int
+    public fun calcDistance(p: OsmPos): Int
 
-    val idFromPos: Long
+    public val idFromPos: Long
 
     @Deprecated("use position instead")
-    val iLat: Int
+    public val iLat: Int
         get() = position.latitude.toIntLatitude()
 
     @Deprecated("use position instead")
-    val iLon: Int
+    public val iLon: Int
         get() = position.longitude.toIntLongitude()
 }

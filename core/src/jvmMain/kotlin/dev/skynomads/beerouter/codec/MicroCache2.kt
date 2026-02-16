@@ -7,12 +7,12 @@ import dev.skynomads.beerouter.util.IByteArrayUnifier
  * MicroCache2 is the new format that uses statistical encoding and
  * is able to do access filtering and waypoint matching during encoding
  */
-class MicroCache2 : MicroCache {
+public class MicroCache2 : MicroCache {
     private val lonBase: Int
     private val latBase: Int
     private val cellsize: Int
 
-    constructor(size: Int, databuffer: ByteArray, lonIdx: Int, latIdx: Int, divisor: Int) : super(
+    public constructor(size: Int, databuffer: ByteArray, lonIdx: Int, latIdx: Int, divisor: Int) : super(
         databuffer
     ) // sets ab=databuffer, aboffset=0
     {
@@ -24,13 +24,13 @@ class MicroCache2 : MicroCache {
         latBase = latIdx * cellsize
     }
 
-    fun readUnified(len: Int, u: IByteArrayUnifier): ByteArray? {
+    public fun readUnified(len: Int, u: IByteArrayUnifier): ByteArray? {
         val b = u.unify(ab, aboffset, len)
         aboffset += len
         return b
     }
 
-    constructor(
+    public constructor(
         bc: StatCoderContext,
         dataBuffers: DataBuffers,
         lonIdx: Int,
@@ -258,7 +258,7 @@ class MicroCache2 : MicroCache {
         init(size)
     }
 
-    override fun expandId(id32: Int): Long {
+    public override fun expandId(id32: Int): Long {
         var id32 = id32
         var dlon = 0
         var dlat = 0
@@ -277,7 +277,7 @@ class MicroCache2 : MicroCache {
         return (lon32.toLong()) shl 32 or lat32.toLong()
     }
 
-    override fun shrinkId(id64: Long): Int {
+    public override fun shrinkId(id64: Long): Int {
         val lon32 = (id64 shr 32).toInt()
         val lat32 = (id64 and 0xffffffffL).toInt()
         val dlon = lon32 - lonBase
@@ -294,11 +294,11 @@ class MicroCache2 : MicroCache {
         return id32
     }
 
-    override fun isInternal(ilon: Int, ilat: Int): Boolean {
+    public override fun isInternal(ilon: Int, ilat: Int): Boolean {
         return ilon >= lonBase && ilon < lonBase + cellsize && ilat >= latBase && ilat < latBase + cellsize
     }
 
-    override fun encodeMicroCache(buffer: ByteArray): Int {
+    public override fun encodeMicroCache(buffer: ByteArray): Int {
         val idMap: MutableMap<Long?, Int?> = HashMap()
         for (n in 0..<size) { // loop over nodes
             idMap[expandId(faid[n])] = n

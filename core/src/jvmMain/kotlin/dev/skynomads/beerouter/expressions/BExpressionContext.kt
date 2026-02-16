@@ -18,7 +18,7 @@ import java.util.Random
 import java.util.StringTokenizer
 import kotlin.math.abs
 
-abstract class BExpressionContext protected constructor(
+public abstract class BExpressionContext protected constructor(
     context: String?,
     hashSize: Int,
     meta: BExpressionMetaData
@@ -29,7 +29,7 @@ abstract class BExpressionContext protected constructor(
     private var _readerDone = false
 
     @JvmField
-    var _modelClass: String? = null
+    public var _modelClass: String? = null
 
     private val lookupNumbers: MutableMap<String?, Int?> = HashMap()
     private val lookupValues: MutableList<Array<BExpressionLookupValue?>?> =
@@ -51,10 +51,10 @@ abstract class BExpressionContext protected constructor(
     internal var lastAssignedExpression: MutableList<BExpression?>? = ArrayList()
 
     @JvmField
-    var skipConstantExpressionOptimizations: Boolean = false
+    public var skipConstantExpressionOptimizations: Boolean = false
 
     @JvmField
-    var expressionNodeCount: Int = 0
+    public var expressionNodeCount: Int = 0
 
     private var variableData: FloatArray? = null
 
@@ -65,7 +65,7 @@ abstract class BExpressionContext protected constructor(
     private var resultVarCache: LruCache<Int, VarWrapper>? = null
     private var expressionList: MutableList<BExpression?>? = null
 
-    var minWriteIdx: Int = 0
+    public var minWriteIdx: Int = 0
         private set
 
     // build-in variable indexes for fast access
@@ -77,21 +77,21 @@ abstract class BExpressionContext protected constructor(
 
     private var foreignContext: BExpressionContext? = null
 
-    var noStartWays: IntArray = IntArray(0)
+    public var noStartWays: IntArray = IntArray(0)
 
     protected fun setInverseVars() {
         currentVarOffset = nBuildInVars
     }
 
-    abstract val buildInVariableNames: Array<String?>
+    public abstract val buildInVariableNames: Array<String?>
 
-    fun getBuildInVariable(idx: Int): Float {
+    public fun getBuildInVariable(idx: Int): Float {
         return currentVars!![idx + currentVarOffset]
     }
 
     private var linenr = 0
 
-    var meta: BExpressionMetaData
+    public var meta: BExpressionMetaData
     private var lookupDataValid = false
 
     protected constructor(context: String?, meta: BExpressionMetaData) : this(context, 4096, meta)
@@ -99,12 +99,12 @@ abstract class BExpressionContext protected constructor(
     /**
      * encode internal lookup data to a byte array
      */
-    fun encode(): ByteArray? {
+    public fun encode(): ByteArray? {
         require(lookupDataValid) { "internal error: encoding undefined data?" }
         return encode(lookupData)
     }
 
-    fun encode(ld: IntArray): ByteArray? {
+    public fun encode(ld: IntArray): ByteArray? {
         val ctx = ctxEndode
         ctx.reset()
 
@@ -157,7 +157,7 @@ abstract class BExpressionContext protected constructor(
     /**
      * decode byte array to internal lookup data
      */
-    fun decode(ab: ByteArray) {
+    public fun decode(ab: ByteArray) {
         decode(lookupData, false, ab)
         lookupDataValid = true
     }
@@ -166,7 +166,7 @@ abstract class BExpressionContext protected constructor(
     /**
      * decode a byte-array into a lookup data array
      */
-    fun decode(ld: IntArray, inverseDirection: Boolean, ab: ByteArray) {
+    public fun decode(ld: IntArray, inverseDirection: Boolean, ab: ByteArray) {
         val ctx = ctxDecode
         ctx.reset(ab)
 
@@ -192,7 +192,7 @@ abstract class BExpressionContext protected constructor(
         while (inum < ld.size) ld[inum++] = 0
     }
 
-    fun getKeyValueDescription(inverseDirection: Boolean, ab: ByteArray): String {
+    public fun getKeyValueDescription(inverseDirection: Boolean, ab: ByteArray): String {
         val sb = StringBuilder(200)
         decode(lookupData, inverseDirection, ab)
         for (inum in lookupValues.indices) { // loop over lookup names
@@ -208,7 +208,7 @@ abstract class BExpressionContext protected constructor(
         return sb.toString()
     }
 
-    fun getMap(inverseDirection: Boolean, ab: ByteArray): Map<String, String> {
+    public fun getMap(inverseDirection: Boolean, ab: ByteArray): Map<String, String> {
         val res: MutableMap<String, String> = mutableMapOf()
         decode(lookupData, inverseDirection, ab)
         for (inum in lookupValues.indices) { // loop over lookup names
@@ -224,7 +224,7 @@ abstract class BExpressionContext protected constructor(
         return res
     }
 
-    fun getLookupKey(name: String?): Int {
+    public fun getLookupKey(name: String?): Int {
         var res = -1
         try {
             res = lookupNumbers[name]!!
@@ -233,7 +233,7 @@ abstract class BExpressionContext protected constructor(
         return res
     }
 
-    fun getLookupValue(key: Int): Float {
+    public fun getLookupValue(key: Int): Float {
         var res: Float
         val `val` = lookupData[key]
         if (`val` == 0) return Float.NaN
@@ -241,7 +241,7 @@ abstract class BExpressionContext protected constructor(
         return res
     }
 
-    fun getLookupValue(inverseDirection: Boolean, ab: ByteArray, key: Int): Float {
+    public fun getLookupValue(inverseDirection: Boolean, ab: ByteArray, key: Int): Float {
         var res: Float
         decode(lookupData, inverseDirection, ab)
         val `val` = lookupData[key]
@@ -253,7 +253,7 @@ abstract class BExpressionContext protected constructor(
     private var parsedLines = 0
     private var fixTagsWritten = false
 
-    fun parseMetaLine(line: String) {
+    public fun parseMetaLine(line: String) {
         parsedLines++
         val tk = StringTokenizer(line, " ")
         var name = tk.nextToken()
@@ -276,7 +276,7 @@ abstract class BExpressionContext protected constructor(
         while (newValue != null && tk.hasMoreTokens()) newValue.addAlias(tk.nextToken())
     }
 
-    fun finishMetaParsing() {
+    public fun finishMetaParsing() {
         require(!(parsedLines == 0 && "global" != context)) { "lookup table does not contain data for context $context (old version?)" }
 
         // post-process metadata:
@@ -285,7 +285,7 @@ abstract class BExpressionContext protected constructor(
         lookupIdxUsed = BooleanArray(lookupValues.size)
     }
 
-    fun evaluate(lookupData2: IntArray) {
+    public fun evaluate(lookupData2: IntArray) {
         lookupData = lookupData2
         evaluate()
     }
@@ -326,7 +326,7 @@ abstract class BExpressionContext protected constructor(
         return nab
     }
 
-    fun evaluate(inverseDirection: Boolean, ab: ByteArray) {
+    public fun evaluate(inverseDirection: Boolean, ab: ByteArray) {
         lookupDataValid = false // this is an assertion for a nasty pifall
 
         if (cache == null) {
@@ -402,7 +402,7 @@ abstract class BExpressionContext protected constructor(
     /**
      * @return a new lookupData array, or null if no metadata defined
      */
-    fun createNewLookupData(): IntArray? {
+    public fun createNewLookupData(): IntArray? {
         if (lookupDataFrozen) {
             return IntArray(lookupValues.size)
         }
@@ -412,7 +412,7 @@ abstract class BExpressionContext protected constructor(
     /**
      * generate random values for regression testing
      */
-    fun generateRandomValues(rnd: Random): IntArray {
+    public fun generateRandomValues(rnd: Random): IntArray {
         val data = createNewLookupData()!!
         data[0] = 2 * rnd.nextInt(2) // reverse-direction = 0 or 2
         for (inum in 1..<data.size) {
@@ -426,7 +426,7 @@ abstract class BExpressionContext protected constructor(
         return data
     }
 
-    fun assertAllVariablesEqual(other: BExpressionContext) {
+    public fun assertAllVariablesEqual(other: BExpressionContext) {
         val nv = variableData!!.size
         val nv2 = other.variableData!!.size
         if (nv != nv2) throw RuntimeException("mismatch in variable-count: $nv<->$nv2")
@@ -440,7 +440,7 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    fun variableName(idx: Int): String? {
+    public fun variableName(idx: Int): String? {
         for (e in variableNumbers.entries) {
             if (e.value == idx) {
                 return e.key
@@ -457,7 +457,7 @@ abstract class BExpressionContext protected constructor(
      *
      * @return a newly created value element, if any, to optionally add aliases
      */
-    fun addLookupValue(
+    public fun addLookupValue(
         name: String?,
         value: String,
         lookupData2: IntArray?
@@ -648,7 +648,7 @@ abstract class BExpressionContext protected constructor(
      * add a value-index to to internal array
      * value-index means 0=unknown, 1=other, 2=value-x, ...
      */
-    fun addLookupValue(name: String?, valueIndex: Int) {
+    public fun addLookupValue(name: String?, valueIndex: Int) {
         val num = lookupNumbers[name] ?: return
 
         // look for that value
@@ -664,7 +664,7 @@ abstract class BExpressionContext protected constructor(
      * add a 2=yes if the provided value is out of range
      * value-index means here 0=unknown, 1=other, 2=yes, 3=proposed
      */
-    fun addSmallestLookupValue(name: String?, valueIndex: Int) {
+    public fun addSmallestLookupValue(name: String?, valueIndex: Int) {
         var valueIndex = valueIndex
         val num = lookupNumbers[name] ?: return
 
@@ -681,12 +681,12 @@ abstract class BExpressionContext protected constructor(
         lookupData[num] = valueIndex
     }
 
-    fun getBooleanLookupValue(name: String?): Boolean {
+    public fun getBooleanLookupValue(name: String?): Boolean {
         val num = lookupNumbers[name]
         return num != null && lookupData[num] == 2
     }
 
-    fun getOutputVariableIndex(name: String?, mustExist: Boolean): Int {
+    public fun getOutputVariableIndex(name: String?, mustExist: Boolean): Int {
         val idx = getVariableIdx(name, false)
         if (idx < 0) {
             require(!mustExist) { "unknown variable: $name" }
@@ -703,21 +703,21 @@ abstract class BExpressionContext protected constructor(
         return nBuildInVars++
     }
 
-    fun setForeignContext(foreignContext: BExpressionContext) {
+    public fun setForeignContext(foreignContext: BExpressionContext) {
         this.foreignContext = foreignContext
     }
 
-    fun getForeignVariableValue(foreignIndex: Int): Float {
+    public fun getForeignVariableValue(foreignIndex: Int): Float {
         return foreignContext!!.getBuildInVariable(foreignIndex)
     }
 
-    fun getForeignVariableIdx(context: String, name: String?): Int {
+    public fun getForeignVariableIdx(context: String, name: String?): Int {
         require(!(foreignContext == null || context != foreignContext!!.context)) { "unknown foreign context: $context" }
         return foreignContext!!.getOutputVariableIndex(name, true)
     }
 
     @JvmOverloads
-    fun parseFile(
+    public fun parseFile(
         file: File,
         readOnlyContext: String?,
         keyValues: MutableMap<String, String>? = null
@@ -794,7 +794,7 @@ abstract class BExpressionContext protected constructor(
         return result
     }
 
-    fun setVariableValue(name: String?, value: Float, create: Boolean) {
+    public fun setVariableValue(name: String?, value: Float, create: Boolean) {
         var num = variableNumbers[name]
         if (num != null) {
             variableData!![num] = value
@@ -810,16 +810,16 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    fun getVariableValue(name: String?, defaultValue: Float): Float {
+    public fun getVariableValue(name: String?, defaultValue: Float): Float {
         val num = variableNumbers[name]
         return if (num == null) defaultValue else getVariableValue(num)
     }
 
-    fun getVariableValue(variableIdx: Int): Float {
+    public fun getVariableValue(variableIdx: Int): Float {
         return variableData!![variableIdx]
     }
 
-    fun getVariableIdx(name: String?, create: Boolean): Int {
+    public fun getVariableIdx(name: String?, create: Boolean): Int {
         var num = variableNumbers[name]
         if (num == null) {
             if (create) {
@@ -833,7 +833,7 @@ abstract class BExpressionContext protected constructor(
         return num
     }
 
-    fun getLookupMatch(nameIdx: Int, valueIdxArray: IntArray): Float {
+    public fun getLookupMatch(nameIdx: Int, valueIdxArray: IntArray): Float {
         for (i in valueIdxArray.indices) {
             if (lookupData[nameIdx] == valueIdxArray[i]) {
                 return 1.0f
@@ -842,26 +842,26 @@ abstract class BExpressionContext protected constructor(
         return 0.0f
     }
 
-    fun getLookupNameIdx(name: String?): Int {
+    public fun getLookupNameIdx(name: String?): Int {
         val num = lookupNumbers[name]
         return num ?: -1
     }
 
-    fun markLookupIdxUsed(idx: Int) {
+    public fun markLookupIdxUsed(idx: Int) {
         lookupIdxUsed[idx] = true
     }
 
-    fun isLookupIdxUsed(idx: Int): Boolean {
+    public fun isLookupIdxUsed(idx: Int): Boolean {
         return idx < lookupIdxUsed.size && lookupIdxUsed[idx]
     }
 
-    fun setAllTagsUsed() {
+    public fun setAllTagsUsed() {
         for (i in lookupIdxUsed.indices) {
             lookupIdxUsed[i] = true
         }
     }
 
-    fun usedTagList(): String {
+    public fun usedTagList(): String {
         val sb = StringBuilder()
         for (inum in lookupValues.indices) {
             if (lookupIdxUsed[inum]) {
@@ -874,7 +874,7 @@ abstract class BExpressionContext protected constructor(
         return sb.toString()
     }
 
-    fun getLookupValueIdx(nameIdx: Int, value: String?): Int {
+    public fun getLookupValueIdx(nameIdx: Int, value: String?): Int {
         val values = lookupValues[nameIdx]!!
         for (i in values.indices) {
             if (values[i]!!.value == value) return i
@@ -884,7 +884,7 @@ abstract class BExpressionContext protected constructor(
 
 
     @Throws(Exception::class)
-    fun parseToken(): String? {
+    public fun parseToken(): String? {
         while (true) {
             val token = _parseToken()
             if (token == null) return null
@@ -965,12 +965,12 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    fun assign(variableIdx: Int, value: Float): Float {
+    public fun assign(variableIdx: Int, value: Float): Float {
         variableData!![variableIdx] = value
         return value
     }
 
-    var ld2: IntArray = IntArray(512)
+    public var ld2: IntArray = IntArray(512)
 
     /**
      * Create an Expression-Context for the given node
@@ -992,7 +992,7 @@ abstract class BExpressionContext protected constructor(
         }
     }
 
-    fun checkStartWay(ab: ByteArray?): Boolean {
+    public fun checkStartWay(ab: ByteArray?): Boolean {
         if (ab == null) return true
         Arrays.fill(ld2, 0)
         decode(ld2, false, ab)
@@ -1006,11 +1006,11 @@ abstract class BExpressionContext protected constructor(
         return true
     }
 
-    fun freeNoWays() {
+    public fun freeNoWays() {
         noStartWays = IntArray(0)
     }
 
-    companion object {
+    public companion object {
         private const val CONTEXT_TAG = "---context:"
         private const val MODEL_TAG = "---model:"
     }
